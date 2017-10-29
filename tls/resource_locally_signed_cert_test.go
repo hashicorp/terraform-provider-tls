@@ -1,7 +1,6 @@
 package tls
 
 import (
-	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -107,11 +106,6 @@ EOT
 					if expected, got := "127.0.0.2", cert.IPAddresses[1].String(); got != expected {
 						return fmt.Errorf("incorrect IP address 0: expected %v, got %v", expected, got)
 					}
-
-					if expected, got := []byte{50, 174, 195, 33, 77, 223, 57, 1, 58, 166, 246, 243, 114, 109, 59, 64, 111, 9, 198, 144}, cert.AuthorityKeyId; !bytes.Equal(got, expected) {
-						return fmt.Errorf("incorrect AuthorityKeyId: expected %v, got %v", expected, got)
-					}
-
 					if expected, got := 2, len(cert.ExtKeyUsage); got != expected {
 						return fmt.Errorf("incorrect number of ExtKeyUsage: expected %v, got %v", expected, got)
 					}
