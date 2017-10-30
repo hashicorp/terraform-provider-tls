@@ -1,4 +1,9 @@
 ## 1.0.1 (Unreleased)
+
+BUG FIXES:
+
+* `tls_cert_request` and `tls_self_signed_cert` no longer cause a crash when `subject` isn't specified. [GH-7]
+
 ## 1.0.0 (September 15, 2017)
 
 * No changes from 0.1.0; just adjusting to [the new version numbering scheme](https://www.hashicorp.com/blog/hashicorp-terraform-provider-versioning/).
