@@ -18,7 +18,7 @@ func TestSelfSignedCert(t *testing.T) {
 		Steps: []r.TestStep{
 			r.TestStep{
 				Config: fmt.Sprintf(`
-                    resource "tls_self_signed_cert" "test" {
+                    resource "tls_self_signed_cert" "test1" {
                         subject {
                             common_name = "example.com"
                             organization = "Example, Inc"
@@ -55,15 +55,15 @@ func TestSelfSignedCert(t *testing.T) {
 %s
 EOT
                     }
-                    output "key_pem" {
-                        value = "${tls_self_signed_cert.test.cert_pem}"
+                    output "key_pem_1" {
+                        value = "${tls_self_signed_cert.test1.cert_pem}"
                     }
                 `, testPrivateKey),
 				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem"].Value
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
 					got, ok := gotUntyped.(string)
 					if !ok {
-						return fmt.Errorf("output for \"public_key_openssh\" is not a string")
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
 					}
 
 					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE----") {
@@ -147,6 +147,85 @@ EOT
 					}
 					if cert.NotAfter.Sub(cert.NotBefore) != time.Hour {
 						return fmt.Errorf("certificate validity is not one hour")
+					}
+
+					return nil
+				},
+			},
+			r.TestStep{
+				Config: fmt.Sprintf(`
+                    resource "tls_self_signed_cert" "test2" {
+                        subject {
+                            serial_number = "42"
+                        }
+                        key_algorithm = "RSA"
+                        validity_period_hours = 1
+                        allowed_uses = []
+                        private_key_pem = <<EOT
+%s
+EOT
+                    }
+                    output "key_pem_2" {
+                        value = "${tls_self_signed_cert.test2.cert_pem}"
+                    }
+                `, testPrivateKey),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_2"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_2\" is not a string")
+					}
+
+					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE----") {
+						return fmt.Errorf("key is missing cert PEM preamble")
+					}
+					block, _ := pem.Decode([]byte(got))
+					cert, err := x509.ParseCertificate(block.Bytes)
+					if err != nil {
+						return fmt.Errorf("error parsing cert: %s", err)
+					}
+					if expected, got := "42", cert.Subject.SerialNumber; got != expected {
+						return fmt.Errorf("incorrect subject serial number: expected %v, got %v", expected, got)
+					}
+					if expected, got := "", cert.Subject.CommonName; got != expected {
+						return fmt.Errorf("incorrect subject common name: expected %v, got %v", expected, got)
+					}
+					if expected, got := 0, len(cert.Subject.Organization); got != expected {
+						return fmt.Errorf("incorrect subject organization: expected %v, got %v", expected, got)
+					}
+					if expected, got := 0, len(cert.Subject.OrganizationalUnit); got != expected {
+						return fmt.Errorf("incorrect subject organizational unit: expected %v, got %v", expected, got)
+					}
+					if expected, got := 0, len(cert.Subject.StreetAddress); got != expected {
+						return fmt.Errorf("incorrect subject street address: expected %v, got %v", expected, got)
+					}
+					if expected, got := 0, len(cert.Subject.Locality); got != expected {
+						return fmt.Errorf("incorrect subject locality: expected %v, got %v", expected, got)
+					}
+					if expected, got := 0, len(cert.Subject.Province); got != expected {
+						return fmt.Errorf("incorrect subject province: expected %v, got %v", expected, got)
+					}
+					if expected, got := 0, len(cert.Subject.Country); got != expected {
+						return fmt.Errorf("incorrect subject country: expected %v, got %v", expected, got)
+					}
+					if expected, got := 0, len(cert.Subject.PostalCode); got != expected {
+						return fmt.Errorf("incorrect subject postal code: expected %v, got %v", expected, got)
+					}
+
+					if expected, got := 0, len(cert.DNSNames); got != expected {
+						return fmt.Errorf("incorrect number of DNS names: expected %v, got %v", expected, got)
+					}
+
+					if expected, got := 0, len(cert.IPAddresses); got != expected {
+						return fmt.Errorf("incorrect number of IP addresses: expected %v, got %v", expected, got)
+					}
+
+					if expected, got := 0, len(cert.ExtKeyUsage); got != expected {
+						return fmt.Errorf("incorrect number of ExtKeyUsage: expected %v, got %v", expected, got)
+					}
+
+					if expected, got := x509.KeyUsage(0), cert.KeyUsage; got != expected {
+						return fmt.Errorf("incorrect KeyUsage: expected %v, got %v", expected, got)
 					}
 
 					return nil
