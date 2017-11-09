@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * `tls_cert_request` and `tls_self_signed_cert` no longer cause a crash when `subject` isn't specified. [GH-7]
+* `tls_cert_request` and `tls_self_signed_cert` no longer generate empty-string values for various subject fields when they are not set in configuration. [GH-10]
 
 ## 1.0.0 (September 15, 2017)
 
