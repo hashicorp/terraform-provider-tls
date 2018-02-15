@@ -81,31 +81,6 @@ func TestPublicKeyRSA(t *testing.T) {
 					return nil
 				},
 			},
-			r.TestStep{
-				Config: `
-					resource "tls_private_key" "test" {
-						algorithm = "RSA"
-						rsa_bits = 4096
-					}
-					output "key_pem" {
-						value = "${tls_private_key.test.private_key_pem}"
-					}
-				`,
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem\" is not a string")
-					}
-					if !strings.HasPrefix(got, "-----BEGIN RSA PRIVATE KEY----") {
-						return fmt.Errorf("key is missing RSA key PEM preamble")
-					}
-					if len(got) < 1700 {
-						return fmt.Errorf("key PEM looks too short for a 4096-bit key (got %v characters)", len(got))
-					}
-					return nil
-				},
-			},
 		},
 	})
 }
