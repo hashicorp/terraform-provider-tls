@@ -79,18 +79,15 @@ func CreatePublicKey(d *schema.ResourceData, meta interface{}) error {
 
 	keyPem := string(pem.EncodeToMemory(keyPemBlock))
 
-	fmt.Printf("Key is: %s", keyPemBlock.Type)
-
 	// Converts an RSA private key from its ASN.1 PKCS#1 DER encoded form
 	rsaKey, err := x509.ParsePKCS1PrivateKey(keyPemBlock.Bytes)
 	if nil != err {
-		fmt.Printf("RSA auth is bad? ")
 		return fmt.Errorf("error converting key to rsa %s", err)
 	}
 
-	pubKeyBytes, err := x509.MarshalPKIXPublicKey(rsaKey.PublicKey)
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(publicKey(rsaKey))
 	if err != nil {
-		return fmt.Errorf("failed to marshal public key\n type: %T\n%#v\n \n key: %v \n error: %s - type: %s", rsaKey.PublicKey, rsaKey.PublicKey, rsaKey.PublicKey, err, keyPemBlock.Type)
+		return fmt.Errorf("failed to marshal public key error: %s", err)
 	}
 	pubKeyPemBlock := &pem.Block{
 		Type:  "PUBLIC KEY",
@@ -101,7 +98,7 @@ func CreatePublicKey(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_key_pem", keyPem)
 	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
 
-	sshPubKey, err := ssh.NewPublicKey(rsaKey.PublicKey)
+	sshPubKey, err := ssh.NewPublicKey(publicKey(rsaKey))
 	if err == nil {
 		// Not all EC types can be SSH keys, so we'll produce this only
 		// if an appropriate type was selected.
