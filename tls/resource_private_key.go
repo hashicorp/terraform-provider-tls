@@ -9,8 +9,6 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"golang.org/x/crypto/ssh"
-
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -130,31 +128,9 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 	}
 	keyPem := string(pem.EncodeToMemory(keyPemBlock))
 
-	pubKey := publicKey(key)
-	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
-	if err != nil {
-		return fmt.Errorf("failed to marshal public key: %s", err)
-	}
-	pubKeyPemBlock := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: pubKeyBytes,
-	}
-
-	d.SetId(hashForState(string((pubKeyBytes))))
 	d.Set("private_key_pem", keyPem)
-	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
 
-	sshPubKey, err := ssh.NewPublicKey(pubKey)
-	if err == nil {
-		// Not all EC types can be SSH keys, so we'll produce this only
-		// if an appropriate type was selected.
-		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
-		d.Set("public_key_openssh", string(sshPubKeyBytes))
-	} else {
-		d.Set("public_key_openssh", "")
-	}
-
-	return nil
+	return parsePublicKey(d, key)
 }
 
 func DeletePrivateKey(d *schema.ResourceData, meta interface{}) error {
@@ -164,4 +140,15 @@ func DeletePrivateKey(d *schema.ResourceData, meta interface{}) error {
 
 func ReadPrivateKey(d *schema.ResourceData, meta interface{}) error {
 	return nil
+}
+
+func publicKey(priv interface{}) interface{} {
+	switch k := priv.(type) {
+	case *rsa.PrivateKey:
+		return &k.PublicKey
+	case *ecdsa.PrivateKey:
+		return &k.PublicKey
+	default:
+		return nil
+	}
 }

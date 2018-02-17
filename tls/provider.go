@@ -14,10 +14,12 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
 			"tls_private_key":         resourcePrivateKey(),
-			"tls_public_key":          resourcePublicKey(),
 			"tls_locally_signed_cert": resourceLocallySignedCert(),
 			"tls_self_signed_cert":    resourceSelfSignedCert(),
 			"tls_cert_request":        resourceCertRequest(),
+		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"tls_public_key": dataSourcePublicKey(),
 		},
 	}
 }
