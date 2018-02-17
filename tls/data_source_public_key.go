@@ -27,6 +27,14 @@ func dataSourcePublicKey() *schema.Resource {
 				Description: "File path of the PEM formatted string to use as the private key",
 				ForceNew:    true,
 			},
+			"public_key_pem": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"public_key_openssh": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }

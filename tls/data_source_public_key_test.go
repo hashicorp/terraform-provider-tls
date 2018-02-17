@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -19,22 +20,23 @@ D9Hk2MajZuFnJiqj1QIDAQAB
 
 func TestAccPublicKey_dataSource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
+		Providers: testProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccDataSourcePublicKeyConfig,
+				Config: fmt.Sprintf(testAccDataSourcePublicKeyConfig, testPrivateKey),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(expectedPublic)),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(expectedPublicSSH)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(expectedPublic)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(expectedPublicSSH)+"\n"),
 				),
 			},
 		},
 	})
 }
 
-var testAccDataSourcePublicKeyConfig = `
+const testAccDataSourcePublicKeyConfig = `
 data "tls_public_key" "test" {
   private_key = <<EOF
-	` + testPrivateKey + `
+	%s
 	EOF
 }
 `
