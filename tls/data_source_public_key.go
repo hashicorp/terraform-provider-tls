@@ -14,7 +14,7 @@ func dataSourcePublicKey() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"private_key_pem": &schema.Schema{
 				Type:        schema.TypeString,
-				Optional:    true,
+				Required:    true,
 				Description: "PEM formatted string to use as the private key",
 			},
 			"public_key_pem": &schema.Schema{
