@@ -22,12 +22,34 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testProviders,
 		Steps: []resource.TestStep{
-			{
+			resource.TestStep{
 				Config: fmt.Sprintf(testAccDataSourcePublicKeyConfig, testPrivateKey),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(expectedPublic)+"\n"),
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(expectedPublicSSH)+"\n"),
 				),
+			},
+			resource.TestStep{
+				Config: `
+                    resource "tls_private_key" "test" {
+                        algorithm = "RSA"
+                    }
+                    output "private_key_pem" {
+                        value = "${tls_private_key.test.private_key_pem}"
+                    }
+                    output "public_key_pem" {
+                        value = "${tls_private_key.test.public_key_pem}"
+                    }
+                    output "public_key_openssh" {
+                        value = "${tls_private_key.test.public_key_openssh}"
+										}
+										data "tls_public_key" "test" {
+											private_key_pem = "${tls_private_key.test.private_key_pem}"
+										}
+                `,
+				Check: resource.TestCheckResourceAttrPair(
+					"data.tls_public_key.test", "public_key_pem",
+					"tls_private_key.test", "public_key_pem"),
 			},
 		},
 	})
@@ -35,7 +57,7 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 
 const testAccDataSourcePublicKeyConfig = `
 data "tls_public_key" "test" {
-  private_key = <<EOF
+  private_key_pem = <<EOF
 	%s
 	EOF
 }

@@ -76,7 +76,7 @@ func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.Certi
 	return certReq, nil
 }
 
-func parsePublicKey(d *schema.ResourceData, rsaKey interface{}) error {
+func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 	pubKey := publicKey(rsaKey)
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {

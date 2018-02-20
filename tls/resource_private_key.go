@@ -130,7 +130,7 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("private_key_pem", keyPem)
 
-	return parsePublicKey(d, key)
+	return readPublicKey(d, key)
 }
 
 func DeletePrivateKey(d *schema.ResourceData, meta interface{}) error {
