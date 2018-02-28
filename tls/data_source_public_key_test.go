@@ -31,22 +31,22 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 			},
 			resource.TestStep{
 				Config: `
-                    resource "tls_private_key" "test" {
-                        algorithm = "RSA"
-                    }
-                    output "private_key_pem" {
-                        value = "${tls_private_key.test.private_key_pem}"
-                    }
-                    output "public_key_pem" {
-                        value = "${tls_private_key.test.public_key_pem}"
-                    }
-                    output "public_key_openssh" {
-                        value = "${tls_private_key.test.public_key_openssh}"
-										}
-										data "tls_public_key" "test" {
-											private_key_pem = "${tls_private_key.test.private_key_pem}"
-										}
-                `,
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+					}
+					output "private_key_pem" {
+						value = "${tls_private_key.test.private_key_pem}"
+					}
+					output "public_key_pem" {
+						value = "${tls_private_key.test.public_key_pem}"
+					}
+					output "public_key_openssh" {
+						value = "${tls_private_key.test.public_key_openssh}"
+					}
+					data "tls_public_key" "test" {
+						private_key_pem = "${tls_private_key.test.private_key_pem}"
+					}
+				`,
 				Check: resource.TestCheckResourceAttrPair(
 					"data.tls_public_key.test", "public_key_pem",
 					"tls_private_key.test", "public_key_pem"),
