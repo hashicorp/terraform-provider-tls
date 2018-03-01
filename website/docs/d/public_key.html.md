@@ -1,15 +1,15 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_public_key"
-sidebar_current: "docs-tls-resource-private-key"
+sidebar_current: "docs-tls-datasource-public-key"
 description: |-
   Get a public key from a PEM-encoded private key.
 ---
 
 # Data Source: tls_public_key
 
-Use this data source to get the public key from a PEM-encoded private key for use in other
-resources.
+Use this data source to get the public key from a PEM-encoded private key for
+use in other resources.
 
 ## Example Usage
 
@@ -23,17 +23,17 @@ data "tls_public_key" "example" {
 
 The following arguments are supported:
 
-* `private_key_pem` - (Required) The private key to use. Currently-supported key types are "RSA" or "ECDSA".
+* `private_key_pem` - (Required) The private key to use. The resource currently
+  supports RSA and ECDSA keys only.
 
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `private_key_pem` - The private key data in PEM format.
 * `public_key_pem` - The public key data in PEM format.
 * `public_key_openssh` - The public key data in OpenSSH `authorized_keys`
-  format, if the selected private key format is compatible. All RSA keys
-  are supported, and ECDSA keys with curves "P256", "P384" and "P251"
-  are supported. This attribute is empty if an incompatible ECDSA curve
-  is selected.
+  format, if the selected private key format is compatible. All RSA keys are
+  supported, and ECDSA keys with curves "P256", "P384" and "P251" are supported.
+  This attribute is empty if an incompatible ECDSA curve is present in the
+  private key.
