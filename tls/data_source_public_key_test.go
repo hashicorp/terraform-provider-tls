@@ -29,6 +29,14 @@ func TestAccDataSourceTLSPublicKey_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(expectedPublicSSH)+"\n"),
 				),
 			},
+		},
+	})
+}
+
+func TestAccDataSourceTLSPublicKey_rsaFromDataSource(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		Providers: testProviders,
+		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: `
 					resource "tls_private_key" "test" {
@@ -42,6 +50,14 @@ func TestAccDataSourceTLSPublicKey_basic(t *testing.T) {
 					"data.tls_public_key.test", "public_key_pem",
 					"tls_private_key.test", "public_key_pem"),
 			},
+		},
+	})
+}
+
+func TestAccDataSourceTLSPublicKey_ecdsaFromDataSource(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		Providers: testProviders,
+		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: `
 					resource "tls_private_key" "key" {
