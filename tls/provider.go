@@ -18,6 +18,9 @@ func Provider() terraform.ResourceProvider {
 			"tls_self_signed_cert":    resourceSelfSignedCert(),
 			"tls_cert_request":        resourceCertRequest(),
 		},
+		DataSourcesMap: map[string]*schema.Resource{
+			"tls_public_key": dataSourcePublicKey(),
+		},
 	}
 }
 
