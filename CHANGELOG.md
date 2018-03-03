@@ -1,4 +1,9 @@
 ## 1.0.2 (Unreleased)
+
+FEATURES:
+
+* New Data Source: `tls_public_key` [GH-11]
+
 ## 1.0.1 (November 09, 2017)
 
 BUG FIXES:
