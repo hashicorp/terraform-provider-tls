@@ -1,7 +1,6 @@
 package tls
 
 import (
-	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 
@@ -16,6 +15,11 @@ func dataSourcePublicKey() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "PEM formatted string to use as the private key",
+			},
+			"algorithm": &schema.Schema{
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Name of the algorithm to use to generate the private key",
 			},
 			"public_key_pem": &schema.Schema{
 				Type:     schema.TypeString,
@@ -44,15 +48,19 @@ func dataSourcePublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("failed to decode PEM block containing private key of type %#v", keyPemBlock.Type)
 	}
 
-	keyPem := string(pem.EncodeToMemory(keyPemBlock))
-
-	// Converts an RSA private key from its ASN.1 PKCS#1 DER encoded form
-	rsaKey, err := x509.ParsePKCS1PrivateKey(keyPemBlock.Bytes)
-	if nil != err {
-		return fmt.Errorf("error converting key to rsa %s", err)
+	keyAlgo := ""
+	switch keyPemBlock.Type {
+	case "RSA PRIVATE KEY":
+		keyAlgo = "RSA"
+	case "EC PRIVATE KEY":
+		keyAlgo = "ECDSA"
+	}
+	d.Set("algorithm", keyAlgo)
+	// Converts a private key from its ASN.1 PKCS#1 DER encoded form
+	key, err := parsePrivateKey(d, "private_key_pem", "algorithm")
+	if err != nil {
+		return fmt.Errorf("error converting key to algo: %s - %s", keyAlgo, err)
 	}
 
-	d.Set("private_key_pem", keyPem)
-
-	return readPublicKey(d, rsaKey)
+	return readPublicKey(d, key)
 }

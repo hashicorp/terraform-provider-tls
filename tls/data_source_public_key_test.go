@@ -34,15 +34,6 @@ func TestAccDataSourceTLSPublicKey_basic(t *testing.T) {
 					resource "tls_private_key" "test" {
 						algorithm = "RSA"
 					}
-					output "private_key_pem" {
-						value = "${tls_private_key.test.private_key_pem}"
-					}
-					output "public_key_pem" {
-						value = "${tls_private_key.test.public_key_pem}"
-					}
-					output "public_key_openssh" {
-						value = "${tls_private_key.test.public_key_openssh}"
-					}
 					data "tls_public_key" "test" {
 						private_key_pem = "${tls_private_key.test.private_key_pem}"
 					}
@@ -50,6 +41,20 @@ func TestAccDataSourceTLSPublicKey_basic(t *testing.T) {
 				Check: resource.TestCheckResourceAttrPair(
 					"data.tls_public_key.test", "public_key_pem",
 					"tls_private_key.test", "public_key_pem"),
+			},
+			resource.TestStep{
+				Config: `
+					resource "tls_private_key" "key" {
+						algorithm   = "ECDSA"
+						ecdsa_curve = "P384"
+					}
+					data "tls_public_key" "pub" {
+						private_key_pem = "${tls_private_key.key.private_key_pem}"
+					}
+				`,
+				Check: resource.TestCheckResourceAttrPair(
+					"data.tls_public_key.pub", "public_key_pem",
+					"tls_private_key.key", "public_key_pem"),
 			},
 		},
 	})
