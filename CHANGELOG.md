@@ -2,7 +2,7 @@
 
 FEATURES:
 
-* New Data Source: `tls_public_key` [GH-11]
+* **New Data Source:** `tls_public_key` [GH-11]
 
 ## 1.0.1 (November 09, 2017)
 
