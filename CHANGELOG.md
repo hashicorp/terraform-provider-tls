@@ -1,8 +1,8 @@
-## 1.1.0 (Unreleased)
+## 1.1.0 (March 09, 2018)
 
 FEATURES:
 
-* **New Data Source:** `tls_public_key` [GH-11]
+* **New Data Source:** `tls_public_key` ([#11](https://github.com/terraform-providers/terraform-provider-tls/issues/11))
 
 ## 1.0.1 (November 09, 2017)
 
