@@ -53,7 +53,7 @@ The following attributes are exported:
 * `public_key_pem` - The public key data in PEM format.
 * `public_key_openssh` - The public key data in OpenSSH `authorized_keys`
   format, if the selected private key format is compatible. All RSA keys
-  are supported, and ECDSA keys with curves "P256", "P384" and "P251"
+  are supported, and ECDSA keys with curves "P256", "P384" and "P521"
   are supported. This attribute is empty if an incompatible ECDSA curve
   is selected.
 
