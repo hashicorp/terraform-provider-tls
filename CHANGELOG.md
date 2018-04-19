@@ -1,4 +1,9 @@
 ## 1.2.0 (Unreleased)
+
+BUG FIXES:
+
+* `tls_cert_request` and `tls_self_signed_cert`: changes to `subject` now correctly force the recreation of the resource, instead of returning an error [GH-18]
+
 ## 1.1.0 (March 09, 2018)
 
 FEATURES:
