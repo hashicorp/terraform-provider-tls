@@ -32,36 +32,22 @@ func hashForState(value string) string {
 	return hex.EncodeToString(hash[:])
 }
 
+// Create a PKIX Name from the subject resource
 func nameFromResourceData(nameMap map[string]interface{}) (*pkix.Name, error) {
 	result := &pkix.Name{}
 
 	if value := nameMap["common_name"]; value != "" {
 		result.CommonName = value.(string)
 	}
-	if value := nameMap["organization"]; value != "" {
-		result.Organization = []string{value.(string)}
-	}
-	if value := nameMap["organizational_unit"]; value != "" {
-		result.OrganizationalUnit = []string{value.(string)}
-	}
-	if value := nameMap["street_address"].([]interface{}); len(value) > 0 {
-		result.StreetAddress = make([]string, len(value))
-		for i, vi := range value {
-			result.StreetAddress[i] = vi.(string)
-		}
-	}
-	if value := nameMap["locality"]; value != "" {
-		result.Locality = []string{value.(string)}
-	}
-	if value := nameMap["province"]; value != "" {
-		result.Province = []string{value.(string)}
-	}
-	if value := nameMap["country"]; value != "" {
-		result.Country = []string{value.(string)}
-	}
-	if value := nameMap["postal_code"]; value != "" {
-		result.PostalCode = []string{value.(string)}
-	}
+
+	result.Organization = convertResourceToStrings("organization", nameMap)
+	result.OrganizationalUnit = convertResourceToStrings("organizational_unit", nameMap)
+	result.StreetAddress = convertResourceToStrings("street_address", nameMap)
+	result.Locality = convertResourceToStrings("locality", nameMap)
+	result.Province = convertResourceToStrings("province", nameMap)
+	result.Country = convertResourceToStrings("country", nameMap)
+	result.PostalCode = convertResourceToStrings("postal_code", nameMap)
+
 	if value := nameMap["serial_number"]; value != "" {
 		result.SerialNumber = value.(string)
 	}
@@ -69,12 +55,33 @@ func nameFromResourceData(nameMap map[string]interface{}) (*pkix.Name, error) {
 	return result, nil
 }
 
+// Convert a Resource that is a list of strings to a []string
+func convertResourceToStrings(key string, in map[string]interface{}) []string {
+	// start with a map of string to interface{} and look up the interface{} for the given string
+	// then convert the interface() to a slice of interface{}
+	// then convert the slice of interface{} to a slice of string, or nil if no elements
+	// panic at any step if something isn't right
+	v := in[key].([]interface{})
+	if len(v) == 0 {
+		return nil
+	}
+	out := make([]string, len(v))
+	for i, vi := range v {
+		out[i] = vi.(string)
+	}
+	return out
+}
+
 var nameSchema *schema.Resource = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"organization": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
-			ForceNew: true,
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:      true,
+			ForceNew:      true,
+			PromoteSingle: true,
 		},
 		"common_name": &schema.Schema{
 			Type:     schema.TypeString,
@@ -82,37 +89,57 @@ var nameSchema *schema.Resource = &schema.Resource{
 			ForceNew: true,
 		},
 		"organizational_unit": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
-			ForceNew: true,
-		},
-		"street_address": &schema.Schema{
-			Type:     schema.TypeList,
-			Optional: true,
+			Type: schema.TypeList,
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
 			},
+			Optional:      true,
+			ForceNew:      true,
+			PromoteSingle: true,
+		},
+		"street_address": &schema.Schema{
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional: true,
 			ForceNew: true,
 		},
 		"locality": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
-			ForceNew: true,
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:      true,
+			ForceNew:      true,
+			PromoteSingle: true,
 		},
 		"province": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
-			ForceNew: true,
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:      true,
+			ForceNew:      true,
+			PromoteSingle: true,
 		},
 		"country": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
-			ForceNew: true,
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:      true,
+			ForceNew:      true,
+			PromoteSingle: true,
 		},
 		"postal_code": &schema.Schema{
-			Type:     schema.TypeString,
-			Optional: true,
-			ForceNew: true,
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:      true,
+			ForceNew:      true,
+			PromoteSingle: true,
 		},
 		"serial_number": &schema.Schema{
 			Type:     schema.TypeString,
