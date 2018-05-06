@@ -33,7 +33,10 @@ resource "tls_cert_request" "example" {
 
   subject {
     common_name  = "example.com"
-    organization = "ACME Examples, Inc"
+    organization = ["ACME Examples, Inc"]
+    # Specifying a simple string instead of a list of strings is deprecated
+    # but is works for now
+    # organization = "ACME Examples, Inc"
   }
 }
 ```
@@ -47,7 +50,7 @@ in `private_key_pem`.
 
 * `private_key_pem` - (Required) PEM-encoded private key data. This can be
 read from a separate file using the ``file`` interpolation function. Only
-an irreversable secure hash of the private key will be stored in the Terraform
+an irreversible secure hash of the private key will be stored in the Terraform
 state.
 
 * `subject` - (Required) The subject for which a certificate is being requested. This is
@@ -59,25 +62,40 @@ a nested configuration block whose structure is described below.
 
 The nested `subject` block accepts the following arguments, all optional, with their meaning
 corresponding to the similarly-named attributes defined in
-[RFC5290](https://tools.ietf.org/html/rfc5280#section-4.1.2.4):
+[RFC 5280](https://tools.ietf.org/html/rfc5280#section-4.1.2.4):
 
 * `common_name` (string)
 
-* `organization` (string)
+* `organization` (list of strings)
 
-* `organizational_unit` (string)
+* `organizational_unit` (list of strings)
 
 * `street_address` (list of strings)
 
-* `locality` (string)
+* `locality` (list of strings)
 
-* `province` (string)
+* `province` (list of strings)
 
-* `country` (string)
+* `country` (list of strings)
 
-* `postal_code` (string)
+* `postal_code` (list of strings)
 
 * `serial_number` (string)
+
+**NOTE** In provider releases prior to 1.2.0, the `organization`, `organizational_unit`,
+`locality`, `province`, `country`, and `postal_code` attributes were of type string.
+In accordance with RFC 5290, these attributes now take values of type list of strings,
+and using values of type string is now deprecated.
+
+However, a simple string is currently accepted for these
+attributes for compatibility reasons, and is converted internally to a list of
+a single string. In the future, we may remove this compatibility feature, so please
+update your configuration files.
+
+If you have existing Terraform state that was created with previous verisons of the TLs
+provider, running `terraform plan` or `terraform apply` will force any resources
+dependent on a `subject` field to be destroyed and recreated. This may cause
+certificates to be regenerated.
 
 ## Attributes Reference
 
