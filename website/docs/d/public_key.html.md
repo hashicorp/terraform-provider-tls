@@ -37,3 +37,7 @@ The following attributes are exported:
   are supported, and ECDSA keys with curves "P256", "P384" and "P251"
   are supported. This attribute is empty if an incompatible ECDSA curve
   is selected.
+* `public_key_fingerprint_md5` - The md5 hash of the public key data in
+  OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. Only available if the
+  selected private key format is compatible, as per the rules for
+  `public_key_openssh`.

@@ -27,6 +27,9 @@ func TestPrivateKeyRSA(t *testing.T) {
                     output "public_key_openssh" {
                         value = "${tls_private_key.test.public_key_openssh}"
                     }
+                    output "public_key_fingerprint_md5" {
+                        value = "${tls_private_key.test.public_key_fingerprint_md5}"
+                    }
                 `,
 				Check: func(s *terraform.State) error {
 					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"].Value
@@ -58,6 +61,15 @@ func TestPrivateKeyRSA(t *testing.T) {
 					}
 					if !strings.HasPrefix(gotPublicSSH, "ssh-rsa ") {
 						return fmt.Errorf("SSH public key is missing ssh-rsa prefix")
+					}
+
+					gotPublicFingerprintUntyped := s.RootModule().Outputs["public_key_fingerprint_md5"].Value
+					gotPublicFingerprint, ok := gotPublicFingerprintUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_fingerprint_md5\" is not a string")
+					}
+					if !(gotPublicFingerprint[2] == ':') {
+						return fmt.Errorf("MD5 public key fingerprint is missing : in the correct place")
 					}
 
 					return nil
@@ -110,6 +122,9 @@ func TestPrivateKeyECDSA(t *testing.T) {
                     output "public_key_openssh" {
                         value = "${tls_private_key.test.public_key_openssh}"
                     }
+                    output "public_key_fingerprint_md5" {
+                        value = "${tls_private_key.test.public_key_fingerprint_md5}"
+                    }
                 `,
 				Check: func(s *terraform.State) error {
 					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"].Value
@@ -137,6 +152,11 @@ func TestPrivateKeyECDSA(t *testing.T) {
 						return fmt.Errorf("P224 EC key should not generate OpenSSH public key")
 					}
 
+					gotPublicFingerprint := s.RootModule().Outputs["public_key_fingerprint_md5"].Value.(string)
+					if gotPublicFingerprint != "" {
+						return fmt.Errorf("P224 EC key should not generate OpenSSH public key fingerprint")
+					}
+
 					return nil
 				},
 			},
@@ -154,6 +174,9 @@ func TestPrivateKeyECDSA(t *testing.T) {
                     }
                     output "public_key_openssh" {
                         value = "${tls_private_key.test.public_key_openssh}"
+                    }
+                    output "public_key_fingerprint_md5" {
+                        value = "${tls_private_key.test.public_key_fingerprint_md5}"
                     }
                 `,
 				Check: func(s *terraform.State) error {
@@ -182,6 +205,15 @@ func TestPrivateKeyECDSA(t *testing.T) {
 					}
 					if !strings.HasPrefix(gotPublicSSH, "ecdsa-sha2-nistp256 ") {
 						return fmt.Errorf("P256 SSH public key is missing ecdsa prefix")
+					}
+
+					gotPublicFingerprintUntyped := s.RootModule().Outputs["public_key_fingerprint_md5"].Value
+					gotPublicFingerprint, ok := gotPublicFingerprintUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_fingerprint_md5\" is not a string")
+					}
+					if !(gotPublicFingerprint[2] == ':') {
+						return fmt.Errorf("MD5 public key fingerprint is missing : in the correct planbe")
 					}
 
 					return nil
