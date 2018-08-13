@@ -1,5 +1,10 @@
 ## 1.2.0 (Unreleased)
 
+FEATURES: 
+
+* `tls_private_key` (both datasource and resource) include MD5 public key fingerprints as computed attributes.
+
+
 BUG FIXES:
 
 * `tls_cert_request` and `tls_self_signed_cert`: changes to `subject` now
