@@ -79,12 +79,12 @@ corresponding to the similarly-named attributes defined in
 
 * `serial_number` (string)
 
--> **Note:** Versions of this provider compiled by Go 1.9.x or older may
-generate a certificate request which cannot be validated by your Certificate
-Authority if the `*` character is used in any of the `subject` fields, for
-example as part of the `common_name` when generating a request for a wildcard
-certificate. Strings containing a `*` and passed to the `dns_names` argument
-are encoded correctly.
+-> **Note:** Versions of this provider prior to 1.2.0 may generate a
+certificate request which cannot be validated by your Certificate Authority if
+the `*` character is used in any of the `subject` fields, for example as part
+of the `common_name` when generating a request for a wildcard certificate.
+Strings containing a `*` and passed to the `dns_names` argument are encoded
+correctly.
 
 ## Attributes Reference
 
