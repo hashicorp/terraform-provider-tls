@@ -59,7 +59,7 @@ a nested configuration block whose structure is described below.
 
 The nested `subject` block accepts the following arguments, all optional, with their meaning
 corresponding to the similarly-named attributes defined in
-[RFC5290](https://tools.ietf.org/html/rfc5280#section-4.1.2.4):
+[RFC5280](https://tools.ietf.org/html/rfc5280#section-4.1.2.4):
 
 * `common_name` (string)
 
@@ -78,6 +78,13 @@ corresponding to the similarly-named attributes defined in
 * `postal_code` (string)
 
 * `serial_number` (string)
+
+-> **Note:** Versions of this provider prior to 1.2.0 may generate a
+certificate request which cannot be validated by your Certificate Authority if
+the `*` character is used in any of the `subject` fields, for example as part
+of the `common_name` when generating a request for a wildcard certificate.
+Strings containing a `*` and passed to the `dns_names` argument are encoded
+correctly.
 
 ## Attributes Reference
 
