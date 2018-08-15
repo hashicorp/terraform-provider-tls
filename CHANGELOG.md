@@ -1,4 +1,4 @@
-## 1.2.0 (Unreleased)
+## 1.2.0 (August 15, 2018)
 
 FEATURES: 
 
@@ -9,7 +9,7 @@ BUG FIXES:
 
 * `tls_cert_request` and `tls_self_signed_cert`: changes to `subject` now
   correctly force the recreation of the resource, instead of returning an error
-  [GH-18]
+  ([#18](https://github.com/terraform-providers/terraform-provider-tls/issues/18))
 
 ## 1.1.0 (March 09, 2018)
 
