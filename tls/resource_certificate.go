@@ -130,6 +130,13 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Type:     schema.TypeString,
 			Computed: true,
 		},
+
+		"set_subject_key_id": &schema.Schema{
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If true, the generated certificate will include a subject key identifier.",
+			ForceNew:    true,
+		},
 	}
 }
 
@@ -159,6 +166,13 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	if d.Get("is_ca_certificate").(bool) {
 		template.IsCA = true
 
+		template.SubjectKeyId, err = generateSubjectKeyID(pub)
+		if err != nil {
+			return fmt.Errorf("failed to set subject key identifier: %s", err)
+		}
+	}
+
+	if d.Get("set_subject_key_id").(bool) {
 		template.SubjectKeyId, err = generateSubjectKeyID(pub)
 		if err != nil {
 			return fmt.Errorf("failed to set subject key identifier: %s", err)

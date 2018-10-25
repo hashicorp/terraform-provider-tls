@@ -67,6 +67,10 @@ The following arguments are supported:
   generated certificate. Defaults to `false`, meaning that the certificate does not represent
   a certificate authority.
 
+* `set_subject_key_id` - (Optional) If `true`, the certificate will include
+  the subject key identifier. Defaults to `false`, in which case the subject
+  key identifier is not set at all.
+
 The `allowed_uses` list accepts the following keywords, combining the set of flags defined by
 both [Key Usage](https://tools.ietf.org/html/rfc5280#section-4.2.1.3) and
 [Extended Key Usage](https://tools.ietf.org/html/rfc5280#section-4.2.1.12) in

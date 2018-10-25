@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestSelfSignedCert(t *testing.T) {
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
 			{
@@ -192,6 +193,9 @@ EOT
 					if expected, got := 0, len(cert.ExtKeyUsage); got != expected {
 						return fmt.Errorf("incorrect number of ExtKeyUsage: expected %v, got %v", expected, got)
 					}
+					if expected, got := []byte(``), cert.SubjectKeyId; !bytes.Equal(got, expected) {
+						return fmt.Errorf("incorrect subject key id: expected %v, got %v", expected, got)
+					}
 
 					if expected, got := x509.KeyUsage(0), cert.KeyUsage; got != expected {
 						return fmt.Errorf("incorrect KeyUsage: expected %v, got %v", expected, got)
@@ -356,6 +360,49 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 		},
 	})
 	now = oldNow
+}
+
+func TestAccSelfSignedCertSetSubjectKeyID(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+				resource "tls_self_signed_cert" "test" {
+					subject {
+						serial_number = "42"
+					}
+					key_algorithm = "RSA"
+					validity_period_hours = 1
+					allowed_uses = []
+					set_subject_key_id = true
+					private_key_pem = <<EOT
+%s
+EOT
+				}
+				output "cert_pem" {
+					value = "${tls_self_signed_cert.test.cert_pem}"
+				}
+				`, testPrivateKey),
+				Check: func(s *terraform.State) error {
+					certPEM := s.RootModule().Outputs["cert_pem"].Value
+					block, _ := pem.Decode([]byte(certPEM.(string)))
+					cert, err := x509.ParseCertificate(block.Bytes)
+					if err != nil {
+						return fmt.Errorf("error parsing cert: %s", err)
+					}
+					got := cert.SubjectKeyId
+					want := []byte{207, 81, 38, 63, 172, 18, 241, 109, 195, 169, 6, 109, 237, 6, 18, 214, 52, 231, 17, 222}
+					if !bytes.Equal(got, want) {
+						return fmt.Errorf("incorrect subject key id\ngot:  %v\nwant: %v", got, want)
+					}
+					return nil
+				},
+			},
+		},
+	})
+
 }
 
 func selfSignedCertConfig(validity uint32, earlyRenewal uint32) string {
