@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/terraform-providers/terraform-provider-tls/tls"
+	"github.com/kaidence/terraform-provider-tls/tls"
 )
 
 func main() {
