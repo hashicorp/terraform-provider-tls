@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"golang.org/x/crypto/ed25519"
 )
 
 type keyAlgo func(d *schema.ResourceData) (interface{}, error)
@@ -35,6 +36,12 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 			return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
 		}
 	},
+	"ED25519": func(d *schema.ResourceData) (interface{}, error) {
+		return func() (interface{}, error) {
+			_, priv, err := ed25519.GenerateKey(rand.Reader)
+			return priv, err
+		}()
+	},
 }
 
 var keyParsers map[string]keyParser = map[string]keyParser{
@@ -43,6 +50,9 @@ var keyParsers map[string]keyParser = map[string]keyParser{
 	},
 	"ECDSA": func(der []byte) (interface{}, error) {
 		return x509.ParseECPrivateKey(der)
+	},
+	"ED25519": func(der []byte) (interface{}, error) {
+		return ed25519.NewKeyFromSeed(der), nil
 	},
 }
 
@@ -128,13 +138,17 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 			Type:  "EC PRIVATE KEY",
 			Bytes: keyBytes,
 		}
+	case ed25519.PrivateKey:
+		keyPemBlock = &pem.Block{
+			Type:  "ED25519 PRIVATE KEY",
+			Bytes: k.Seed(),
+		}
 	default:
 		return fmt.Errorf("unsupported private key type")
 	}
 	keyPem := string(pem.EncodeToMemory(keyPemBlock))
 
 	d.Set("private_key_pem", keyPem)
-
 	return readPublicKey(d, key)
 }
 
@@ -153,7 +167,26 @@ func publicKey(priv interface{}) interface{} {
 		return &k.PublicKey
 	case *ecdsa.PrivateKey:
 		return &k.PublicKey
+	case ed25519.PrivateKey:
+		return k.Public()
 	default:
 		return nil
+	}
+}
+
+func publicKeyBytes(priv interface{}) ([]byte, error) {
+	switch k := priv.(type) {
+	case *rsa.PrivateKey:
+		return x509.MarshalPKIXPublicKey(&k.PublicKey)
+	case *ecdsa.PrivateKey:
+		return x509.MarshalPKIXPublicKey(&k.PublicKey)
+	case ed25519.PrivateKey:
+		pubKey, ok := k.Public().(ed25519.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("failed to get ed25519 public key")
+		}
+		return []byte(pubKey), nil
+	default:
+		return nil, fmt.Errorf("unsupported private key type")
 	}
 }

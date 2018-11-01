@@ -76,21 +76,18 @@ func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.Certi
 	return certReq, nil
 }
 
-func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
-	pubKey := publicKey(rsaKey)
-	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+func readPublicKey(d *schema.ResourceData, privKey interface{}) error {
+	pubKeyBytes, err := publicKeyBytes(privKey)
 	if err != nil {
-		return fmt.Errorf("failed to marshal public key error: %s", err)
+		return err
 	}
 	pubKeyPemBlock := &pem.Block{
 		Type:  "PUBLIC KEY",
 		Bytes: pubKeyBytes,
 	}
-
 	d.SetId(hashForState(string((pubKeyBytes))))
 	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
-
-	sshPubKey, err := ssh.NewPublicKey(publicKey(rsaKey))
+	sshPubKey, err := ssh.NewPublicKey(publicKey(privKey))
 	if err == nil {
 		// Not all EC types can be SSH keys, so we'll produce this only
 		// if an appropriate type was selected.
