@@ -16,7 +16,7 @@ func TestSelfSignedCert(t *testing.T) {
 	r.Test(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
-			r.TestStep{
+			{
 				Config: fmt.Sprintf(`
                     resource "tls_self_signed_cert" "test1" {
                         subject {
@@ -152,7 +152,7 @@ EOT
 					return nil
 				},
 			},
-			r.TestStep{
+			{
 				Config: fmt.Sprintf(`
                     resource "tls_self_signed_cert" "test2" {
                         subject {

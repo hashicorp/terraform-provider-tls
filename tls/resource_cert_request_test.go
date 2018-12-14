@@ -15,7 +15,7 @@ func TestCertRequest(t *testing.T) {
 	r.Test(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
-			r.TestStep{
+			{
 				Config: fmt.Sprintf(`
                     resource "tls_cert_request" "test1" {
                         subject {
@@ -116,7 +116,7 @@ EOT
 					return nil
 				},
 			},
-			r.TestStep{
+			{
 				Config: fmt.Sprintf(`
                     resource "tls_cert_request" "test2" {
                         subject {
