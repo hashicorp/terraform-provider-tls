@@ -23,7 +23,7 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		Providers: testProviders,
 		Steps: []resource.TestStep{
-			resource.TestStep{
+			{
 				Config: fmt.Sprintf(testAccDataSourcePublicKeyConfig, testPrivateKey),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(expectedPublic)+"\n"),
@@ -31,7 +31,7 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(expectedPublicFingerprintMD5)),
 				),
 			},
-			resource.TestStep{
+			{
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "RSA"
@@ -44,7 +44,7 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 					"data.tls_public_key.test", "public_key_pem",
 					"tls_private_key.test", "public_key_pem"),
 			},
-			resource.TestStep{
+			{
 				Config: `
 					resource "tls_private_key" "key" {
 						algorithm   = "ECDSA"
