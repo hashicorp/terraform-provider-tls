@@ -1,4 +1,9 @@
 ## 1.2.1 (Unreleased)
+
+BUG FIXES:
+
+* `tls_public_key`: fixes panic for corrupt certificates ([#39](https://github.com/terraform-providers/terraform-provider-tls/issues/39))
+
 ## 1.2.0 (August 15, 2018)
 
 FEATURES: 
@@ -7,7 +12,6 @@ FEATURES:
 
 
 BUG FIXES:
-
 * `tls_cert_request` and `tls_self_signed_cert`: changes to `subject` now
   correctly force the recreation of the resource, instead of returning an error
   ([#18](https://github.com/terraform-providers/terraform-provider-tls/issues/18))
