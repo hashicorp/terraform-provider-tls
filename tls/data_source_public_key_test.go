@@ -60,7 +60,7 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 					"tls_private_key.key", "public_key_pem"),
 			},
 			{
-				Config: fmt.Sprintf(testAccDataSourcePublicKeyConfig, "corrupt"),
+				Config:      fmt.Sprintf(testAccDataSourcePublicKeyConfig, "corrupt"),
 				ExpectError: regexp.MustCompile("failed to decode PEM block containing private key of type \"unknown\""),
 			},
 		},
