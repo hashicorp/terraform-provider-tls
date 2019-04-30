@@ -1,9 +1,12 @@
 ## 2.1.0 (Unreleased)
+
+* This release includes an upgraded Terraform SDK, for the sake of aligning versions of the SDK amongst released providers, as we lead up to Core v0.12. This should have no noticeable impact on the provider.
+
 ## 2.0.0 (April 17, 2019)
 
 IMPROVEMENTS:
 
-The provider is now compatible with Terraform v0.12, while retaining compatibility with prior versions.
+* The provider is now compatible with Terraform v0.12, while retaining compatibility with prior versions.
 
 ## 1.2.0 (August 15, 2018)
 
