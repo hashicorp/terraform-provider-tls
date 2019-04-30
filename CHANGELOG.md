@@ -1,4 +1,4 @@
-## 2.0.1 (Unreleased)
+## 2.0.1 (April 30, 2019)
 
 * This release includes an upgraded Terraform SDK, for the sake of aligning versions of the SDK amongst released providers, as we lead up to Core v0.12. This should have no noticeable impact on the provider.
 
