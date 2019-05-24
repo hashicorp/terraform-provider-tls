@@ -1,6 +1,6 @@
 ## 2.1.0 (Unreleased)
 
-BUGS FIXED:
+BUG FIXES:
 
 * More of the private key arguments are now marked as "sensitive" so that Terraform will know to hide their values when showing plans and state in response to various commands. [GH-48]
 
