@@ -116,8 +116,8 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Computed: true,
 		},
 
-		"seconds_to_renewal": {
-			Type:     schema.TypeInt,
+		"ready_for_renewal": {
+			Type:     schema.TypeBool,
 			Computed: true,
 		},
 
@@ -180,13 +180,9 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 		return fmt.Errorf("error serializing validity_end_time: %s", err)
 	}
 
-	earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
-	renewalTime := template.NotAfter.Add(earlyRenewalPeriod)
-	timeToRenewal := renewalTime.Sub(template.NotBefore)
-
 	d.SetId(template.SerialNumber.String())
 	d.Set("cert_pem", certPem)
-	d.Set("seconds_to_renewal", timeToRenewal.Seconds())
+	d.Set("ready_for_renewal", false)
 	d.Set("validity_start_time", string(validFromBytes))
 	d.Set("validity_end_time", string(validToBytes))
 
@@ -203,34 +199,33 @@ func ReadCertificate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func CustomizeCertificateDiff(d *schema.ResourceDiff, meta interface{}) error {
-	oldSecondsToRenewal := d.Get("seconds_to_renewal").(int)
-	var newSecondsToRenewal int
+	var readyForRenewal bool
 
 	endTimeStr := d.Get("validity_end_time").(string)
 	endTime := now()
 	err := endTime.UnmarshalText([]byte(endTimeStr))
 	if err != nil {
 		// If end time is invalid then we'll treat it as being at the time for renewal.
-		newSecondsToRenewal = 0
+		readyForRenewal = true
 	} else {
 		earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
 		endTime = endTime.Add(earlyRenewalPeriod)
 
 		currentTime := now()
 		timeToRenewal := endTime.Sub(currentTime)
-		newSecondsToRenewal = int(timeToRenewal.Seconds())
+		if timeToRenewal <= 0 {
+			readyForRenewal = true
+		}
 	}
 
-	if newSecondsToRenewal != oldSecondsToRenewal {
-		err = d.SetNew("seconds_to_renewal", newSecondsToRenewal)
+	if readyForRenewal {
+		err = d.SetNew("ready_for_renewal", true)
 		if err != nil {
 			return err
 		}
-		if newSecondsToRenewal < 0 {
-			err = d.ForceNew("seconds_to_renewal")
-			if err != nil {
-				return err
-			}
+		err = d.ForceNew("ready_for_renewal")
+		if err != nil {
+			return err
 		}
 	}
 
