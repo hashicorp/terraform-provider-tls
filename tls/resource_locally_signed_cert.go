@@ -48,10 +48,12 @@ func resourceLocallySignedCert() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Create: CreateLocallySignedCert,
-		Delete: DeleteCertificate,
-		Read:   ReadCertificate,
-		Schema: s,
+		Create:        CreateLocallySignedCert,
+		Delete:        DeleteCertificate,
+		Read:          ReadCertificate,
+		Update:        UpdateCertificate,
+		CustomizeDiff: CustomizeCertificateDiff,
+		Schema:        s,
 	}
 }
 

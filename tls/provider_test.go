@@ -2,6 +2,7 @@ package tls
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -92,3 +93,12 @@ gQDcpC/LqiMUhSvluRBitI5ZLUn7V7jT1C3AuGW1LrTlb/q8nnhu2Gi8HY0csHvH
 UI+cIbsQJcr9i0SADwhqs7XYIcEz9jDqrdezenaXdGtXYg==
 -----END CERTIFICATE-----
 `
+
+func setTimeForTest(timeStr string) func() {
+	return func() {
+		now = func() time.Time {
+			t, _ := time.Parse(time.RFC3339, timeStr)
+			return t
+		}
+	}
+}

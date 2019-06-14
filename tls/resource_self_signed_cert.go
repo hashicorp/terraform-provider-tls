@@ -57,10 +57,12 @@ func resourceSelfSignedCert() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Create: CreateSelfSignedCert,
-		Delete: DeleteCertificate,
-		Read:   ReadCertificate,
-		Schema: s,
+		Create:        CreateSelfSignedCert,
+		Delete:        DeleteCertificate,
+		Read:          ReadCertificate,
+		Update:        UpdateCertificate,
+		CustomizeDiff: CustomizeCertificateDiff,
+		Schema:        s,
 	}
 }
 

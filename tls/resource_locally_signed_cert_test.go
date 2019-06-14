@@ -18,33 +18,7 @@ func TestLocallySignedCert(t *testing.T) {
 		Providers: testProviders,
 		Steps: []r.TestStep{
 			{
-				Config: fmt.Sprintf(`
-                    resource "tls_locally_signed_cert" "test" {
-                        cert_request_pem = <<EOT
-%s
-EOT
-
-                        validity_period_hours = 1
-
-                        allowed_uses = [
-                            "key_encipherment",
-                            "digital_signature",
-                            "server_auth",
-                            "client_auth",
-                        ]
-
-                        ca_key_algorithm = "RSA"
-                        ca_cert_pem = <<EOT
-%s
-EOT
-                        ca_private_key_pem = <<EOT
-%s
-EOT
-                    }
-                    output "cert_pem" {
-                        value = "${tls_locally_signed_cert.test.cert_pem}"
-                    }
-                `, testCertRequest, testCACert, testCAPrivateKey),
+				Config: locallySignedCertConfig(1, 0),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
 					got, ok := gotUntyped.(string)
@@ -157,4 +131,189 @@ EOT
 			},
 		},
 	})
+}
+
+func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
+	oldNow := now
+	var previousCert string
+	r.Test(t, r.TestCase{
+		Providers: testProviders,
+		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: locallySignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				Config: locallySignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though no time has passed")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T19:00:00Z"),
+				Config:    locallySignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though not enough time has passed")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T21:00:00Z"),
+				Config:    locallySignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+
+					if got == previousCert {
+						return fmt.Errorf("certificate not updated even though passed early renewal")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+		},
+	})
+	now = oldNow
+}
+
+func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
+	oldNow := now
+	var previousCert string
+	r.Test(t, r.TestCase{
+		Providers: testProviders,
+		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: locallySignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				Config: locallySignedCertConfig(10, 3),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though still time until early renewal")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				Config:    locallySignedCertConfig(10, 3),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though still time until early renewal")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				Config:    locallySignedCertConfig(10, 9),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+
+					if got == previousCert {
+						return fmt.Errorf("certificate not updated even though early renewal time has passed")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+		},
+	})
+	now = oldNow
+}
+
+func locallySignedCertConfig(validity uint32, earlyRenewal uint32) string {
+	return fmt.Sprintf(`
+                    resource "tls_locally_signed_cert" "test" {
+                        cert_request_pem = <<EOT
+%s
+EOT
+
+                        validity_period_hours = %d
+                        early_renewal_hours = %d
+
+                        allowed_uses = [
+                            "key_encipherment",
+                            "digital_signature",
+                            "server_auth",
+                            "client_auth",
+                        ]
+
+                        ca_key_algorithm = "RSA"
+                        ca_cert_pem = <<EOT
+%s
+EOT
+                        ca_private_key_pem = <<EOT
+%s
+EOT
+                    }
+                    output "cert_pem" {
+                        value = "${tls_locally_signed_cert.test.cert_pem}"
+                    }
+                `, testCertRequest, validity, earlyRenewal, testCACert, testCAPrivateKey)
 }
