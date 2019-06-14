@@ -53,6 +53,10 @@ type rsaPublicKey struct {
 	E int
 }
 
+var now = func() time.Time {
+	return time.Now()
+}
+
 // generateSubjectKeyID generates a SHA-1 hash of the subject public key.
 func generateSubjectKeyID(pub crypto.PublicKey) ([]byte, error) {
 	var publicKeyBytes []byte
@@ -88,7 +92,6 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Optional:    true,
 			Default:     0,
 			Description: "Number of hours before the certificates expiry when a new certificate will be generated",
-			ForceNew:    true,
 		},
 
 		"is_ca_certificate": {
@@ -113,6 +116,11 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Computed: true,
 		},
 
+		"seconds_to_renewal": {
+			Type:     schema.TypeInt,
+			Computed: true,
+		},
+
 		"validity_start_time": {
 			Type:     schema.TypeString,
 			Computed: true,
@@ -128,7 +136,7 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 func createCertificate(d *schema.ResourceData, template, parent *x509.Certificate, pub crypto.PublicKey, priv interface{}) error {
 	var err error
 
-	template.NotBefore = time.Now()
+	template.NotBefore = now()
 	template.NotAfter = template.NotBefore.Add(time.Duration(d.Get("validity_period_hours").(int)) * time.Hour)
 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
@@ -172,8 +180,13 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 		return fmt.Errorf("error serializing validity_end_time: %s", err)
 	}
 
+	earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
+	renewalTime := template.NotAfter.Add(earlyRenewalPeriod)
+	timeToRenewal := renewalTime.Sub(template.NotBefore)
+
 	d.SetId(template.SerialNumber.String())
 	d.Set("cert_pem", certPem)
+	d.Set("seconds_to_renewal", timeToRenewal.Seconds())
 	d.Set("validity_start_time", string(validFromBytes))
 	d.Set("validity_end_time", string(validToBytes))
 
@@ -186,25 +199,44 @@ func DeleteCertificate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func ReadCertificate(d *schema.ResourceData, meta interface{}) error {
+	return nil
+}
+
+func CustomizeCertificateDiff(d *schema.ResourceDiff, meta interface{}) error {
+	oldSecondsToRenewal := d.Get("seconds_to_renewal").(int)
+	var newSecondsToRenewal int
 
 	endTimeStr := d.Get("validity_end_time").(string)
-	endTime := time.Now()
+	endTime := now()
 	err := endTime.UnmarshalText([]byte(endTimeStr))
 	if err != nil {
-		// If end time is invalid then we'll just throw away the whole
-		// thing so we can generate a new one.
-		d.SetId("")
-		return nil
+		// If end time is invalid then we'll treat it as being at the time for renewal.
+		newSecondsToRenewal = 0
+	} else {
+		earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
+		endTime = endTime.Add(earlyRenewalPeriod)
+
+		currentTime := now()
+		timeToRenewal := endTime.Sub(currentTime)
+		newSecondsToRenewal = int(timeToRenewal.Seconds())
 	}
 
-	earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
-	endTime = endTime.Add(earlyRenewalPeriod)
-
-	if time.Now().After(endTime) {
-		// Treat an expired certificate as not existing, so we'll generate
-		// a new one with the next plan.
-		d.SetId("")
+	if newSecondsToRenewal != oldSecondsToRenewal {
+		err = d.SetNew("seconds_to_renewal", newSecondsToRenewal)
+		if err != nil {
+			return err
+		}
+		if newSecondsToRenewal < 0 {
+			err = d.ForceNew("seconds_to_renewal")
+			if err != nil {
+				return err
+			}
+		}
 	}
 
+	return nil
+}
+
+func UpdateCertificate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
