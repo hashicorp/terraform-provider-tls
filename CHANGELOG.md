@@ -1,5 +1,9 @@
 ## 2.1.0 (Unreleased)
 
+ENHANCEMENTS:
+
+* Certificate renewal is now handled as a "replace" action in the plan, rather than by behaving as if the expired certificate had been deleted. Although the effective behavior remains unchanged, renewal will now appear as a `-/+` action in the plan, rather than just as a `+`. [GH-34]
+
 BUG FIXES:
 
 * More of the private key arguments are now marked as "sensitive" so that Terraform will know to hide their values when showing plans and state in response to various commands. [GH-48]
