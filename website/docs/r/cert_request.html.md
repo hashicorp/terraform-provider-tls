@@ -57,6 +57,8 @@ a nested configuration block whose structure is described below.
 
 * `ip_addresses` - (Optional) List of IP addresses for which a certificate is being requested.
 
+* `uris` - (Optional) List of URIs for which a certificate is being requested.
+
 The nested `subject` block accepts the following arguments, all optional, with their meaning
 corresponding to the similarly-named attributes defined in
 [RFC5280](https://tools.ietf.org/html/rfc5280#section-4.1.2.4):

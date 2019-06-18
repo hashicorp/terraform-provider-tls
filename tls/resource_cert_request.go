@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/hashicorp/go-getter/helper/url"
 	"net"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -34,6 +35,16 @@ func resourceCertRequest() *schema.Resource {
 				Type:        schema.TypeList,
 				Optional:    true,
 				Description: "List of IP addresses to use as subjects of the certificate",
+				ForceNew:    true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+			},
+
+			"uris": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "List of URIs to use as subjects of the certificate",
 				ForceNew:    true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
@@ -107,6 +118,14 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("invalid IP address %#v", ipStrI.(string))
 		}
 		certReq.IPAddresses = append(certReq.IPAddresses, ip)
+	}
+	urisI := d.Get("uris").([]interface{})
+	for _, uriI := range urisI {
+		uri, err := url.Parse(uriI.(string))
+		if err != nil {
+			return fmt.Errorf("invalid URI %#v", uriI.(string))
+		}
+		certReq.URIs = append(certReq.URIs, uri)
 	}
 
 	certReqBytes, err := x509.CreateCertificateRequest(rand.Reader, &certReq, key)

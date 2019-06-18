@@ -81,6 +81,16 @@ func TestSelfSignedCert(t *testing.T) {
 						return fmt.Errorf("incorrect IP address 0: expected %v, got %v", expected, got)
 					}
 
+					if expected, got := 2, len(cert.URIs); got != expected {
+						return fmt.Errorf("incorrect number of URIs: expected %v, got %v", expected, got)
+					}
+					if expected, got := "spiffe://example-trust-domain/ca", cert.URIs[0].String(); got != expected {
+						return fmt.Errorf("incorrect URI 0: expected %v, got %v", expected, got)
+					}
+					if expected, got := "spiffe://example-trust-domain/ca2", cert.URIs[1].String(); got != expected {
+						return fmt.Errorf("incorrect URI 1: expected %v, got %v", expected, got)
+					}
+
 					if expected, got := 2, len(cert.ExtKeyUsage); got != expected {
 						return fmt.Errorf("incorrect number of ExtKeyUsage: expected %v, got %v", expected, got)
 					}
@@ -371,6 +381,11 @@ func selfSignedCertConfig(validity uint32, earlyRenewal uint32) string {
                         ip_addresses = [
                             "127.0.0.1",
                             "127.0.0.2",
+                        ]
+
+						uris = [
+                            "spiffe://example-trust-domain/ca",
+                            "spiffe://example-trust-domain/ca2",
                         ]
 
                         validity_period_hours = %d

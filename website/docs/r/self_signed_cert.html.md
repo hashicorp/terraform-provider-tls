@@ -76,6 +76,8 @@ The following arguments are supported:
 
 * `ip_addresses` - (Optional) List of IP addresses for which a certificate is being requested.
 
+* `uris` - (Optional) List of URIs for which a certificate is being requested.
+
 * `early_renewal_hours` - (Optional) If set, the resource will consider the certificate to
   have expired the given number of hours before its actual expiry time. This can be useful
   to deploy an updated certificate in advance of the expiration of the current certificate.
