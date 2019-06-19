@@ -5,10 +5,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/hashicorp/go-getter/helper/url"
-	"net"
-
 	"github.com/hashicorp/terraform/helper/schema"
+	"net"
+	"net/url"
 )
 
 const pemCertReqType = "CERTIFICATE REQUEST"
