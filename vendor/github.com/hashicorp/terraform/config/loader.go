@@ -80,7 +80,7 @@ func LoadDir(root string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(files) == 0 {
+	if len(files) == 0 && len(overrides) == 0 {
 		return nil, &ErrNoConfigsFound{Dir: root}
 	}
 
@@ -112,6 +112,9 @@ func LoadDir(root string) (*Config, error) {
 			result = c
 		}
 	}
+	if len(files) == 0 {
+		result = &Config{}
+	}
 
 	// Load all the overrides, and merge them into the config
 	for _, f := range overrides {
@@ -130,21 +133,6 @@ func LoadDir(root string) (*Config, error) {
 	result.Dir = rootAbs
 
 	return result, nil
-}
-
-// IsEmptyDir returns true if the directory given has no Terraform
-// configuration files.
-func IsEmptyDir(root string) (bool, error) {
-	if _, err := os.Stat(root); err != nil && os.IsNotExist(err) {
-		return true, nil
-	}
-
-	fs, os, err := dirFiles(root)
-	if err != nil {
-		return false, err
-	}
-
-	return len(fs) == 0 && len(os) == 0, nil
 }
 
 // Ext returns the Terraform configuration extension of the given

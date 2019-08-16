@@ -1,8 +1,23 @@
-## 1.2.1 (Unreleased)
+## 2.1.0 (Unreleased)
+
+ENHANCEMENTS:
+
+* Certificate renewal is now handled as a "replace" action in the plan, rather than by behaving as if the expired certificate had been deleted. Although the effective behavior remains unchanged, renewal will now appear as a `-/+` action in the plan, rather than just as a `+`. [GH-34]
+* Certificates can now have URIs as subject alternative names. [GH-50]
 
 BUG FIXES:
 
-* `tls_public_key`: fixes panic for corrupt certificates ([#39](https://github.com/terraform-providers/terraform-provider-tls/issues/39))
+* More of the private key arguments are now marked as "sensitive" so that Terraform will know to hide their values when showing plans and state in response to various commands. [GH-48]
+
+## 2.0.1 (April 30, 2019)
+
+* This release includes an upgraded Terraform SDK, for the sake of aligning versions of the SDK amongst released providers, as we lead up to Core v0.12. This should have no noticeable impact on the provider.
+
+## 2.0.0 (April 17, 2019)
+
+IMPROVEMENTS:
+
+* The provider is now compatible with Terraform v0.12, while retaining compatibility with prior versions.
 
 ## 1.2.0 (August 15, 2018)
 

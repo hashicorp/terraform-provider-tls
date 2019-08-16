@@ -17,48 +17,7 @@ func TestSelfSignedCert(t *testing.T) {
 		Providers: testProviders,
 		Steps: []r.TestStep{
 			{
-				Config: fmt.Sprintf(`
-                    resource "tls_self_signed_cert" "test1" {
-                        subject {
-                            common_name = "example.com"
-                            organization = "Example, Inc"
-                            organizational_unit = "Department of Terraform Testing"
-                            street_address = ["5879 Cotton Link"]
-                            locality = "Pirate Harbor"
-                            province = "CA"
-                            country = "US"
-                            postal_code = "95559-1227"
-                            serial_number = "2"
-                        }
-
-                        dns_names = [
-                            "example.com",
-                            "example.net",
-                        ]
-
-                        ip_addresses = [
-                            "127.0.0.1",
-                            "127.0.0.2",
-                        ]
-
-                        validity_period_hours = 1
-
-                        allowed_uses = [
-                            "key_encipherment",
-                            "digital_signature",
-                            "server_auth",
-                            "client_auth",
-                        ]
-
-                        key_algorithm = "RSA"
-                        private_key_pem = <<EOT
-%s
-EOT
-                    }
-                    output "key_pem_1" {
-                        value = "${tls_self_signed_cert.test1.cert_pem}"
-                    }
-                `, testPrivateKey),
+				Config: selfSignedCertConfig(1, 0),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
 					got, ok := gotUntyped.(string)
@@ -120,6 +79,16 @@ EOT
 					}
 					if expected, got := "127.0.0.2", cert.IPAddresses[1].String(); got != expected {
 						return fmt.Errorf("incorrect IP address 0: expected %v, got %v", expected, got)
+					}
+
+					if expected, got := 2, len(cert.URIs); got != expected {
+						return fmt.Errorf("incorrect number of URIs: expected %v, got %v", expected, got)
+					}
+					if expected, got := "spiffe://example-trust-domain/ca", cert.URIs[0].String(); got != expected {
+						return fmt.Errorf("incorrect URI 0: expected %v, got %v", expected, got)
+					}
+					if expected, got := "spiffe://example-trust-domain/ca2", cert.URIs[1].String(); got != expected {
+						return fmt.Errorf("incorrect URI 1: expected %v, got %v", expected, got)
 					}
 
 					if expected, got := 2, len(cert.ExtKeyUsage); got != expected {
@@ -233,4 +202,209 @@ EOT
 			},
 		},
 	})
+}
+
+func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
+	oldNow := now
+	var previousCert string
+	r.Test(t, r.TestCase{
+		Providers: testProviders,
+		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: selfSignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
+					}
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				Config: selfSignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though no time has passed")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T19:00:00Z"),
+				Config:    selfSignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though not enough time has passed")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T21:00:00Z"),
+				Config:    selfSignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
+					}
+
+					if got == previousCert {
+						return fmt.Errorf("certificate not updated even though passed early renewal")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+		},
+	})
+	now = oldNow
+}
+
+func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
+	oldNow := now
+	var previousCert string
+	r.Test(t, r.TestCase{
+		Providers: testProviders,
+		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: selfSignedCertConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
+					}
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				Config: selfSignedCertConfig(10, 3),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though still time until early renewal")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				Config:    selfSignedCertConfig(10, 3),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though still time until early renewal")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				Config:    selfSignedCertConfig(10, 9),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"key_pem_1\" is not a string")
+					}
+
+					if got == previousCert {
+						return fmt.Errorf("certificate not updated even though early renewal time has passed")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+		},
+	})
+	now = oldNow
+}
+
+func selfSignedCertConfig(validity uint32, earlyRenewal uint32) string {
+	return fmt.Sprintf(`
+                    resource "tls_self_signed_cert" "test1" {
+                        subject {
+                            common_name = "example.com"
+                            organization = "Example, Inc"
+                            organizational_unit = "Department of Terraform Testing"
+                            street_address = ["5879 Cotton Link"]
+                            locality = "Pirate Harbor"
+                            province = "CA"
+                            country = "US"
+                            postal_code = "95559-1227"
+                            serial_number = "2"
+                        }
+
+                        dns_names = [
+                            "example.com",
+                            "example.net",
+                        ]
+
+                        ip_addresses = [
+                            "127.0.0.1",
+                            "127.0.0.2",
+                        ]
+
+						uris = [
+                            "spiffe://example-trust-domain/ca",
+                            "spiffe://example-trust-domain/ca2",
+                        ]
+
+                        validity_period_hours = %d
+                        early_renewal_hours = %d
+
+                        allowed_uses = [
+                            "key_encipherment",
+                            "digital_signature",
+                            "server_auth",
+                            "client_auth",
+                        ]
+
+                        key_algorithm = "RSA"
+                        private_key_pem = <<EOT
+%s
+EOT
+                    }
+                    output "key_pem_1" {
+                        value = "${tls_self_signed_cert.test1.cert_pem}"
+                    }
+                `, validity, earlyRenewal, testPrivateKey)
 }
