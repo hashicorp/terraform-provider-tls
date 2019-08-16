@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"net/url"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -32,6 +33,16 @@ func resourceSelfSignedCert() *schema.Resource {
 		Type:        schema.TypeList,
 		Optional:    true,
 		Description: "List of IP addresses to use as subjects of the certificate",
+		ForceNew:    true,
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
+		},
+	}
+
+	s["uris"] = &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "List of URIs to use as subjects of the certificate",
 		ForceNew:    true,
 		Elem: &schema.Schema{
 			Type: schema.TypeString,
@@ -101,6 +112,14 @@ func CreateSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("invalid IP address %#v", ipStrI.(string))
 		}
 		cert.IPAddresses = append(cert.IPAddresses, ip)
+	}
+	urisI := d.Get("uris").([]interface{})
+	for _, uriStrI := range urisI {
+		uri, err := url.Parse(uriStrI.(string))
+		if err != nil {
+			return fmt.Errorf("invalid URI %#v", uriStrI.(string))
+		}
+		cert.URIs = append(cert.URIs, uri)
 	}
 
 	return createCertificate(d, &cert, &cert, publicKey(key), key)

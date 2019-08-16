@@ -75,6 +75,7 @@ func CreateLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
 		Subject:               certReq.Subject,
 		DNSNames:              certReq.DNSNames,
 		IPAddresses:           certReq.IPAddresses,
+		URIs:                  certReq.URIs,
 		BasicConstraintsValid: true,
 	}
 

@@ -80,6 +80,16 @@ func TestLocallySignedCert(t *testing.T) {
 					if expected, got := "127.0.0.2", cert.IPAddresses[1].String(); got != expected {
 						return fmt.Errorf("incorrect IP address 0: expected %v, got %v", expected, got)
 					}
+					if expected, got := 2, len(cert.URIs); got != expected {
+						return fmt.Errorf("incorrect number of URIs: expected %v, got %v", expected, got)
+					}
+					if expected, got := "spiffe://example-trust-domain/workload", cert.URIs[0].String(); got != expected {
+						return fmt.Errorf("incorrect URI 0: expected %v, got %v", expected, got)
+					}
+					if expected, got := "spiffe://example-trust-domain/workload2", cert.URIs[1].String(); got != expected {
+						return fmt.Errorf("incorrect URI 1: expected %v, got %v", expected, got)
+					}
+
 					if expected, got := 2, len(cert.ExtKeyUsage); got != expected {
 						return fmt.Errorf("incorrect number of ExtKeyUsage: expected %v, got %v", expected, got)
 					}
