@@ -8,6 +8,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * More of the private key arguments are now marked as "sensitive" so that Terraform will know to hide their values when showing plans and state in response to various commands. [GH-48]
+* In `tls_public_key`, don't panic if the PEM isn't valid PEM syntax at all. [GH-40]
 
 ## 2.0.1 (April 30, 2019)
 
