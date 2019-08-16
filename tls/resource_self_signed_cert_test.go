@@ -211,7 +211,7 @@ EOT
 func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 	oldNow := now
 	var previousCert string
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
@@ -288,7 +288,7 @@ func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
 	oldNow := now
 	var previousCert string
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{

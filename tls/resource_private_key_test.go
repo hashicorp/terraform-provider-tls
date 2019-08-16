@@ -10,7 +10,7 @@ import (
 )
 
 func TestPrivateKeyRSA(t *testing.T) {
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
 			{
@@ -105,7 +105,7 @@ func TestPrivateKeyRSA(t *testing.T) {
 }
 
 func TestPrivateKeyECDSA(t *testing.T) {
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
 			{

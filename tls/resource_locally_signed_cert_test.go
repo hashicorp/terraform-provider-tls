@@ -14,7 +14,7 @@ import (
 )
 
 func TestLocallySignedCert(t *testing.T) {
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
 			{
@@ -146,7 +146,7 @@ func TestLocallySignedCert(t *testing.T) {
 func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 	oldNow := now
 	var previousCert string
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
@@ -223,7 +223,7 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
 	oldNow := now
 	var previousCert string
-	r.Test(t, r.TestCase{
+	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{

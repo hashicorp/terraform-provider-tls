@@ -21,7 +21,7 @@ D9Hk2MajZuFnJiqj1QIDAQAB
 )
 
 func TestAccPublicKey_dataSource(t *testing.T) {
-	resource.Test(t, resource.TestCase{
+	resource.UnitTest(t, resource.TestCase{
 		Providers: testProviders,
 		Steps: []resource.TestStep{
 			{
