@@ -4,6 +4,7 @@ ENHANCEMENTS:
 
 * Certificate renewal is now handled as a "replace" action in the plan, rather than by behaving as if the expired certificate had been deleted. Although the effective behavior remains unchanged, renewal will now appear as a `-/+` action in the plan, rather than just as a `+`. [GH-34]
 * Certificates can now have URIs as subject alternative names. [GH-50]
+* Certificates can now optionally have the Subject Key ID field populated. [GH-31]
 
 BUG FIXES:
 
