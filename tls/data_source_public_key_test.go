@@ -2,6 +2,7 @@ package tls
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -57,6 +58,10 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 				Check: resource.TestCheckResourceAttrPair(
 					"data.tls_public_key.pub", "public_key_pem",
 					"tls_private_key.key", "public_key_pem"),
+			},
+			{
+				Config:      fmt.Sprintf(testAccDataSourcePublicKeyConfig, "corrupt"),
+				ExpectError: regexp.MustCompile("failed to decode PEM block containing private key of type \"unknown\""),
 			},
 		},
 	})
