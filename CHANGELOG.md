@@ -1,4 +1,9 @@
 ## 2.2.0 (Unreleased)
+
+NOTES:
+
+* The provider has switched to the standalone TF SDK, there should be no noticeable impact on compatibility. [GH-54]
+
 ## 2.1.0 (August 16, 2019)
 
 ENHANCEMENTS:
