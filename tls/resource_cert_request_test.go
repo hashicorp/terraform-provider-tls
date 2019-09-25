@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	r "github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	r "github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
 func TestCertRequest(t *testing.T) {
