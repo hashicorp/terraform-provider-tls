@@ -1,6 +1,6 @@
 module github.com/terraform-providers/terraform-provider-tls
 
 require (
-	github.com/hashicorp/terraform v0.12.8
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
+	github.com/hashicorp/terraform-plugin-sdk v1.0.0
+	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 )
