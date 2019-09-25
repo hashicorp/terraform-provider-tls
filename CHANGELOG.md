@@ -1,8 +1,8 @@
-## 2.1.1 (Unreleased)
+## 2.1.1 (September 25, 2019)
 
 NOTES:
 
-* The provider has switched to the standalone TF SDK, there should be no noticeable impact on compatibility. [GH-54]
+* The provider has switched to the standalone TF SDK, there should be no noticeable impact on compatibility. ([#54](https://github.com/terraform-providers/terraform-provider-tls/issues/54))
 
 ## 2.1.0 (August 16, 2019)
 
