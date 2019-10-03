@@ -35,7 +35,7 @@ resource "tls_private_key" "example" {
 The following arguments are supported:
 
 * `algorithm` - (Required) The name of the algorithm to use for
-the key. Currently-supported values are "RSA" and "ECDSA".
+the key. Currently-supported values are "RSA", "ECDSA" and "ED25519".
 
 * `rsa_bits` - (Optional) When `algorithm` is "RSA", the size of the generated
 RSA key in bits. Defaults to 2048.
@@ -49,13 +49,13 @@ default.
 The following attributes are exported:
 
 * `algorithm` - The algorithm that was selected for the key.
-* `private_key_pem` - The private key data in PEM format.
+* `private_key_pem` - The private key data in PEM format. For "ED25519" keys,
+  the key is in OpenSSH-compatible format.
 * `public_key_pem` - The public key data in PEM format.
 * `public_key_openssh` - The public key data in OpenSSH `authorized_keys`
-  format, if the selected private key format is compatible. All RSA keys
-  are supported, and ECDSA keys with curves "P256", "P384" and "P521"
-  are supported. This attribute is empty if an incompatible ECDSA curve
-  is selected.
+  format, if the selected private key format is compatible. All RSA and ED25519
+  keys are supported, and ECDSA keys with curves "P256", "P384" and "P521" are
+  supported. This attribute is empty if an incompatible ECDSA curve is selected.
 * `public_key_fingerprint_md5` - The md5 hash of the public key data in
   OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. Only available if the
   selected private key format is compatible, as per the rules for

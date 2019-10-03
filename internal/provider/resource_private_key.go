@@ -2,6 +2,7 @@ package provider
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -35,6 +36,13 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 			return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
 		}
 	},
+	"ED25519": func(d *schema.ResourceData) (interface{}, error) {
+		_, key, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate ed25519 key: %s", err)
+		}
+		return &key, err
+	},
 }
 
 var keyParsers map[string]keyParser = map[string]keyParser{
@@ -43,6 +51,9 @@ var keyParsers map[string]keyParser = map[string]keyParser{
 	},
 	"ECDSA": func(der []byte) (interface{}, error) {
 		return x509.ParseECPrivateKey(der)
+	},
+	"ED25519": func(der []byte) (interface{}, error) {
+		return x509.ParsePKCS8PrivateKey(der)
 	},
 }
 
@@ -129,6 +140,11 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 			Type:  "EC PRIVATE KEY",
 			Bytes: keyBytes,
 		}
+	case *ed25519.PrivateKey:
+		keyPemBlock = &pem.Block{
+			Type:  "OPENSSH PRIVATE KEY",
+			Bytes: marshalED25519PrivateKey(*k),
+		}
 	default:
 		return fmt.Errorf("unsupported private key type")
 	}
@@ -154,6 +170,8 @@ func publicKey(priv interface{}) interface{} {
 		return &k.PublicKey
 	case *ecdsa.PrivateKey:
 		return &k.PublicKey
+	case *ed25519.PrivateKey:
+		return k.Public()
 	default:
 		return nil
 	}

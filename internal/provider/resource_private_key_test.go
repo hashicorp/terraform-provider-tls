@@ -222,3 +222,70 @@ func TestPrivateKeyECDSA(t *testing.T) {
 		},
 	})
 }
+
+func TestPrivateKeyED25519(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+                    resource "tls_private_key" "test" {
+                        algorithm = "ED25519"
+                    }
+                    output "private_key_pem" {
+                        value = "${tls_private_key.test.private_key_pem}"
+                    }
+                    output "public_key_pem" {
+                        value = "${tls_private_key.test.public_key_pem}"
+                    }
+                    output "public_key_openssh" {
+                        value = "${tls_private_key.test.public_key_openssh}"
+                    }
+                    output "public_key_fingerprint_md5" {
+                        value = "${tls_private_key.test.public_key_fingerprint_md5}"
+                    }
+                `,
+				Check: func(s *terraform.State) error {
+					gotPrivateUntyped := s.RootModule().Outputs["private_key_pem"].Value
+					gotPrivate, ok := gotPrivateUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"private_key_pem\" is not a string")
+					}
+
+					if !strings.HasPrefix(gotPrivate, "-----BEGIN OPENSSH PRIVATE KEY----") {
+						return fmt.Errorf("private key is missing RSA key PEM preamble")
+					}
+
+					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"].Value
+					gotPublic, ok := gotPublicUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_pem\" is not a string")
+					}
+					if !strings.HasPrefix(gotPublic, "-----BEGIN PUBLIC KEY----") {
+						return fmt.Errorf("public key is missing public key PEM preamble")
+					}
+
+					gotPublicSSHUntyped := s.RootModule().Outputs["public_key_openssh"].Value
+					gotPublicSSH, ok := gotPublicSSHUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_openssh\" is not a string")
+					}
+					if !strings.HasPrefix(gotPublicSSH, "ssh-ed25519 ") {
+						return fmt.Errorf("SSH public key is missing ssh-ed25519 prefix")
+					}
+
+					gotPublicFingerprintUntyped := s.RootModule().Outputs["public_key_fingerprint_md5"].Value
+					gotPublicFingerprint, ok := gotPublicFingerprintUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_fingerprint_md5\" is not a string")
+					}
+					if !(gotPublicFingerprint[2] == ':') {
+						return fmt.Errorf("MD5 public key fingerprint is missing : in the correct place")
+					}
+
+					return nil
+				},
+			},
+		},
+	})
+}
