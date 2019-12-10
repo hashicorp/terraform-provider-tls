@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -18,20 +19,11 @@ func TestLocallySignedCert(t *testing.T) {
 		Providers: testProviders,
 		Steps: []r.TestStep{
 			{
-				Config: locallySignedCertConfig(1, 0),
+				Config: locallySignedCertConfig(1, 0, false),
 				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"cert_pem\" is not a string")
-					}
-					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE----") {
-						return fmt.Errorf("key is missing cert PEM preamble")
-					}
-					block, _ := pem.Decode([]byte(got))
-					cert, err := x509.ParseCertificate(block.Bytes)
+					cert, err := extractCert(s)
 					if err != nil {
-						return fmt.Errorf("error parsing cert: %s", err)
+						return err
 					}
 					if expected, got := "2", cert.Subject.SerialNumber; got != expected {
 						return fmt.Errorf("incorrect subject serial number: expected %v, got %v", expected, got)
@@ -139,8 +131,48 @@ func TestLocallySignedCert(t *testing.T) {
 					return nil
 				},
 			},
+			{
+				Config: locallySignedCertConfig(1, 0, false),
+				Check: func(s *terraform.State) error {
+					caCert, err := parseCert(testCACert)
+					if err != nil {
+						return err
+					}
+					cert, err := extractCert(s)
+					if err != nil {
+						return err
+					}
+					if expected, got := caCert.SubjectKeyId, cert.AuthorityKeyId; bytes.Compare(expected, got) != 0 {
+						return fmt.Errorf("invalid authority key identifier: expected %v, got %v", expected, got)
+					}
+
+					return nil
+				},
+			},
 		},
 	})
+}
+
+func extractCert(s *terraform.State) (*x509.Certificate, error) {
+	gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+	got, ok := gotUntyped.(string)
+	if !ok {
+		return nil, fmt.Errorf("output for \"cert_pem\" is not a string")
+	}
+	return parseCert(got)
+}
+
+func parseCert(pemData string) (*x509.Certificate, error) {
+	pemData = strings.TrimLeft(pemData, "\r\n")
+	if !strings.HasPrefix(pemData, "-----BEGIN CERTIFICATE----") {
+		return nil, fmt.Errorf("key is missing cert PEM preamble")
+	}
+	block, _ := pem.Decode([]byte(pemData))
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing cert: %s", err)
+	}
+	return cert, nil
 }
 
 func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
@@ -151,7 +183,7 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
-				Config: locallySignedCertConfig(10, 2),
+				Config: locallySignedCertConfig(10, 2, false),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
 					got, ok := gotUntyped.(string)
@@ -163,7 +195,7 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 				},
 			},
 			{
-				Config: locallySignedCertConfig(10, 2),
+				Config: locallySignedCertConfig(10, 2, false),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
 					got, ok := gotUntyped.(string)
@@ -181,7 +213,7 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 			},
 			{
 				PreConfig: setTimeForTest("2019-06-14T19:00:00Z"),
-				Config:    locallySignedCertConfig(10, 2),
+				Config:    locallySignedCertConfig(10, 2, false),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
 					got, ok := gotUntyped.(string)
@@ -199,7 +231,7 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 			},
 			{
 				PreConfig: setTimeForTest("2019-06-14T21:00:00Z"),
-				Config:    locallySignedCertConfig(10, 2),
+				Config:    locallySignedCertConfig(10, 2, false),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
 					got, ok := gotUntyped.(string)
@@ -228,7 +260,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
-				Config: locallySignedCertConfig(10, 2),
+				Config: locallySignedCertConfig(10, 2, false),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
 					got, ok := gotUntyped.(string)
@@ -240,25 +272,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 				},
 			},
 			{
-				Config: locallySignedCertConfig(10, 3),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"cert_pem\" is not a string")
-					}
-
-					if got != previousCert {
-						return fmt.Errorf("certificate updated even though still time until early renewal")
-					}
-
-					previousCert = got
-					return nil
-				},
-			},
-			{
-				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
-				Config:    locallySignedCertConfig(10, 3),
+				Config: locallySignedCertConfig(10, 3, false),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
 					got, ok := gotUntyped.(string)
@@ -276,7 +290,25 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 			},
 			{
 				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
-				Config:    locallySignedCertConfig(10, 9),
+				Config:    locallySignedCertConfig(10, 3, false),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"cert_pem\" is not a string")
+					}
+
+					if got != previousCert {
+						return fmt.Errorf("certificate updated even though still time until early renewal")
+					}
+
+					previousCert = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				Config:    locallySignedCertConfig(10, 9, false),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
 					got, ok := gotUntyped.(string)
@@ -297,7 +329,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 	now = oldNow
 }
 
-func locallySignedCertConfig(validity uint32, earlyRenewal uint32) string {
+func locallySignedCertConfig(validity uint32, earlyRenewal uint32, setAuthorityKeyId bool) string {
 	return fmt.Sprintf(`
                     resource "tls_locally_signed_cert" "test" {
                         cert_request_pem = <<EOT
@@ -306,6 +338,7 @@ EOT
 
                         validity_period_hours = %d
                         early_renewal_hours = %d
+						set_authority_key_id = %t
 
                         allowed_uses = [
                             "key_encipherment",
@@ -325,5 +358,5 @@ EOT
                     output "cert_pem" {
                         value = "${tls_locally_signed_cert.test.cert_pem}"
                     }
-                `, testCertRequest, validity, earlyRenewal, testCACert, testCAPrivateKey)
+                `, testCertRequest, validity, earlyRenewal, setAuthorityKeyId, testCACert, testCAPrivateKey)
 }

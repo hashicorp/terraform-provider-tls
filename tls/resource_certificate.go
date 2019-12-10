@@ -137,6 +137,13 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Description: "If true, the generated certificate will include a subject key identifier.",
 			ForceNew:    true,
 		},
+
+		"set_authority_key_id": &schema.Schema{
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Description: "If true, the generated certificate will include an authority key identifier.",
+			ForceNew:    true,
+		},
 	}
 }
 
@@ -177,6 +184,10 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 		if err != nil {
 			return fmt.Errorf("failed to set subject key identifier: %s", err)
 		}
+	}
+
+	if d.Get("set_authority_key_id").(bool) && len(parent.SubjectKeyId) > 0 {
+		template.AuthorityKeyId = parent.SubjectKeyId
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
