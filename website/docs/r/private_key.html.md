@@ -49,8 +49,8 @@ default.
 The following attributes are exported:
 
 * `algorithm` - The algorithm that was selected for the key.
-* `private_key_pem` - The private key data in PEM format. For "ED25519" keys,
-  the key is in OpenSSH-compatible format.
+* `private_key_pem` - The private key data in PEM format.
+* `private_key_openssh` - The private key data in OpenSSH-compatible format.
 * `public_key_pem` - The public key data in PEM format.
 * `public_key_openssh` - The public key data in OpenSSH `authorized_keys`
   format, if the selected private key format is compatible. All RSA and ED25519

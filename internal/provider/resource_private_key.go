@@ -93,6 +93,12 @@ func resourcePrivateKey() *schema.Resource {
 				Sensitive: true,
 			},
 
+			"private_key_openssh": {
+				Type:      schema.TypeString,
+				Computed:  true,
+				Sensitive: true,
+			},
+
 			"public_key_pem": {
 				Type:     schema.TypeString,
 				Computed: true,
@@ -125,6 +131,7 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	var keyPemBlock *pem.Block
+	var openSSHKeyPemBlock *pem.Block
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
 		keyPemBlock = &pem.Block{
@@ -141,16 +148,29 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 			Bytes: keyBytes,
 		}
 	case *ed25519.PrivateKey:
+		keyBytes, err := x509.MarshalPKCS8PrivateKey(*k)
+		if err != nil {
+			return fmt.Errorf("error encoding key to PEM: %s", err)
+		}
+
 		keyPemBlock = &pem.Block{
+			Type:  "PRIVATE KEY",
+			Bytes: keyBytes,
+		}
+		openSSHKeyPemBlock = &pem.Block{
 			Type:  "OPENSSH PRIVATE KEY",
 			Bytes: marshalED25519PrivateKey(*k),
 		}
 	default:
 		return fmt.Errorf("unsupported private key type")
 	}
-	keyPem := string(pem.EncodeToMemory(keyPemBlock))
+	d.Set("private_key_pem", string(pem.EncodeToMemory(keyPemBlock)))
 
-	d.Set("private_key_pem", keyPem)
+	if openSSHKeyPemBlock == nil {
+		openSSHKeyPemBlock = keyPemBlock
+	}
+
+	d.Set("private_key_openssh", string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 
 	return readPublicKey(d, key)
 }
