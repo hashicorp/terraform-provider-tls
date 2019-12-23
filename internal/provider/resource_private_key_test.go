@@ -235,6 +235,9 @@ func TestPrivateKeyED25519(t *testing.T) {
                     output "private_key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
                     }
+                    output "private_key_openssh" {
+                        value = "${tls_private_key.test.private_key_openssh}"
+                    }
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
                     }
@@ -252,8 +255,18 @@ func TestPrivateKeyED25519(t *testing.T) {
 						return fmt.Errorf("output for \"private_key_pem\" is not a string")
 					}
 
-					if !strings.HasPrefix(gotPrivate, "-----BEGIN OPENSSH PRIVATE KEY----") {
-						return fmt.Errorf("private key is missing RSA key PEM preamble")
+					if !strings.HasPrefix(gotPrivate, "-----BEGIN PRIVATE KEY----") {
+						return fmt.Errorf("private key is missing ED25519 key PEM preamble")
+					}
+
+					gotPrivateOpenSSHUntyped := s.RootModule().Outputs["private_key_openssh"].Value
+					gotPrivateOpenSSH, ok := gotPrivateOpenSSHUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"private_key_openssh\" is not a string")
+					}
+
+					if !strings.HasPrefix(gotPrivateOpenSSH, "-----BEGIN OPENSSH PRIVATE KEY----") {
+						return fmt.Errorf("private key is missing OPENSSH key PEM preamble")
 					}
 
 					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"].Value
