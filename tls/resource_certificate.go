@@ -137,11 +137,25 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Description: "If true, the generated certificate will include a subject key identifier.",
 			ForceNew:    true,
 		},
+
+		"certificate_p12": {
+			Type:      schema.TypeString,
+			Computed:  true,
+			Sensitive: true,
+		},
+
+		"certificate_p12_password": {
+			Type:      schema.TypeString,
+			Optional:  true,
+			Default:   "",
+			Sensitive: true,
+		},
 	}
 }
 
 func createCertificate(d *schema.ResourceData, template, parent *x509.Certificate, pub crypto.PublicKey, priv interface{}) error {
 	var err error
+	var caCerts []*x509.Certificate
 
 	template.NotBefore = now()
 	template.NotAfter = template.NotBefore.Add(time.Duration(d.Get("validity_period_hours").(int)) * time.Hour)
@@ -184,6 +198,26 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 		return fmt.Errorf("error creating certificate: %s", err)
 	}
 	certPem := string(pem.EncodeToMemory(&pem.Block{Type: pemCertType, Bytes: certBytes}))
+
+	private_key, err := parsePrivateKey(d, "private_key_pem", "key_algorithm")
+	// Set PKCS12 data. This is only set if there is a private key present.
+	if err != nil {
+		cert, err := x509.ParseCertificate(certBytes)
+		if err != nil {
+			return err
+		}
+		caCerts = append(caCerts, parent)
+
+		password := d.Get("certificate_p12_password").(string)
+		pfxB64, err := toPfx(private_key, cert, caCerts, password)
+		if err != nil {
+			return err
+		}
+
+		d.Set("certificate_p12", string(pfxB64))
+	} else {
+		d.Set("certificate_p12", "")
+	}
 
 	validFromBytes, err := template.NotBefore.MarshalText()
 	if err != nil {
