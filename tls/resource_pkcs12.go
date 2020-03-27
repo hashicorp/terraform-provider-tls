@@ -2,10 +2,14 @@ package tls
 
 import (
 	"crypto"
+	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 func resourcePkcs12() *schema.Resource {
@@ -51,32 +55,33 @@ func resourcePkcs12() *schema.Resource {
 }
 
 func resourcePkcs12Create(d *schema.ResourceData, meta interface{}) error {
+	var cert *x509.Certificate
 
 	private_key, err := privateKeyFromPEM([]byte(d.Get("private_key_pem").(string)))
 	if err != nil {
 		return err
 	}
 
-	block, rest := pem.Decode([]byte(d.Get("certificate_pem").(string)))
+	block, _ := pem.Decode([]byte(d.Get("certificate_pem").(string)))
 
 	cert, err = x509.ParseCertificate(block.Bytes)
 	if err != nil {
 		return err
 	}
 
-	pemBundle = []byte(d.Get("ca_certificate_pem").(string))
-	caCerts, err = certificatesFromPEM(pemBundle)
+	pemData := []byte(d.Get("ca_certificate_pem").(string))
+	caCerts, err := certificatesFromPEM(pemData)
 	if err != nil {
 		return err
 	}
 	password := d.Get("certificate_p12_password").(string)
 
-	pfxB64, err := toPfx(private_key, cert, caCerts, password)
+	pkcs12B64, err := toPkcs12(private_key, cert, caCerts, password)
 	if err != nil {
 		return err
 	}
 
-	d.Set("certificate_p12", string(pfxB64))
+	d.Set("certificate_p12", string(pkcs12B64))
 	return nil
 }
 
@@ -95,34 +100,36 @@ func resourcePkcs12Delete(d *schema.ResourceData, meta interface{}) error {
 
 // privateKeyFromPEM converts a PEM block into a crypto.PrivateKey.
 func privateKeyFromPEM(pemData []byte) (crypto.PrivateKey, error) {
-	var result *pem.Block
+	var block *pem.Block
 	rest := pemData
+
 	for {
-		result, rest = pem.Decode(rest)
-		if result == nil {
+		block, rest = pem.Decode(rest)
+		if block == nil {
 			return nil, fmt.Errorf("Cannot decode supplied PEM data")
 		}
-		switch result.Type {
+		switch block.Type {
 		case "RSA PRIVATE KEY":
-			return x509.ParsePKCS1PrivateKey(result.Bytes)
+			return x509.ParsePKCS1PrivateKey(block.Bytes)
 		case "EC PRIVATE KEY":
-			return x509.ParseECPrivateKey(result.Bytes)
+			return x509.ParseECPrivateKey(block.Bytes)
 		}
 	}
 }
 
-func certificatesFromPEM(pemData []byte) ([]*Certificate, error) {
+func certificatesFromPEM(pemData []byte) ([]*x509.Certificate, error) {
 	var certificates []*x509.Certificate
-	var certDERBlock *pem.Block
+	var block *pem.Block
+	rest := pemData
 
 	for {
-		certDERBlock, bundle = pem.Decode(bundle)
-		if certDERBlock == nil {
+		block, rest = pem.Decode(rest)
+		if block == nil {
 			break
 		}
 
-		if certDERBlock.Type == "CERTIFICATE" {
-			cert, err := x509.ParseCertificate(certDERBlock.Bytes)
+		if block.Type == "CERTIFICATE" {
+			cert, err := x509.ParseCertificate(block.Bytes)
 			if err != nil {
 				return nil, err
 			}
@@ -130,9 +137,17 @@ func certificatesFromPEM(pemData []byte) ([]*Certificate, error) {
 		}
 	}
 
-	if len(certificates) == 0 {
-		return nil, errors.New("no certificates were found while parsing the bundle")
+	return certificates, nil
+}
+
+func toPkcs12(privateKey interface{}, cert *x509.Certificate, caCerts []*x509.Certificate, password string) ([]byte, error) {
+
+	pkcs12Data, err := pkcs12.Encode(rand.Reader, privateKey, cert, caCerts, password)
+	if err != nil {
+		return nil, err
 	}
 
-	return certificates, nil
+	buf := make([]byte, base64.StdEncoding.EncodedLen(len(pkcs12Data)))
+	base64.StdEncoding.Encode(buf, pkcs12Data)
+	return buf, nil
 }
