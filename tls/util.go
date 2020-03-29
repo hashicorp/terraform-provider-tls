@@ -10,12 +10,21 @@ import (
 )
 
 func decodePEM(d *schema.ResourceData, pemKey, pemType string) (*pem.Block, error) {
-	block, _ := pem.Decode([]byte(d.Get(pemKey).(string)))
+	block, err := decodePEMFromBytes([]byte(d.Get(pemKey).(string)), pemType)
+	if err != nil {
+		return nil, fmt.Errorf("Error decoding PEM: %s", err.Error())
+	}
+
+	return block, nil
+}
+
+func decodePEMFromBytes(data []byte, pemType string) (*pem.Block, error) {
+	block, _ := pem.Decode(data)
 	if block == nil {
-		return nil, fmt.Errorf("no PEM block found in %s", pemKey)
+		return nil, fmt.Errorf("no PEM block found")
 	}
 	if pemType != "" && block.Type != pemType {
-		return nil, fmt.Errorf("invalid PEM type in %s: %s", pemKey, block.Type)
+		return nil, fmt.Errorf("invalid PEM type %s", block.Type)
 	}
 
 	return block, nil

@@ -1,0 +1,89 @@
+package tls
+
+import (
+	"crypto/x509"
+	"encoding/pem"
+
+	//"errors"
+	"fmt"
+	"strings"
+	"testing"
+
+	//"time"
+
+	r "github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+)
+
+func TestCRL(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: certRevocationListConfig(1, 0),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+					if !strings.HasPrefix(got, "-----BEGIN X509 CRL----") {
+						return fmt.Errorf("key is missing cert PEM preamble")
+					}
+					block, _ := pem.Decode([]byte(got))
+					crl, err := x509.ParseCRL(block.Bytes)
+					if err != nil {
+						return fmt.Errorf("error parsing crl: %s", err)
+					}
+
+					// Verify testCertificate is in the CRL serial number list
+					testCertBlock, _ := pem.Decode([]byte(testCertificate))
+					testCert, err := x509.ParseCertificate(testCertBlock.Bytes)
+					if err != nil {
+						return fmt.Errorf("error parsing test cert: %s", err)
+					}
+					if testCert.SerialNumber.Cmp(crl.TBSCertList.RevokedCertificates[0].SerialNumber) != 0 {
+						return fmt.Errorf("revoked certificate serial number doesn't match")
+					}
+
+					// Verify CRL signature with CA
+					caBlock, _ := pem.Decode([]byte(testCACert))
+					caCert, err := x509.ParseCertificate(caBlock.Bytes)
+					if err != nil {
+						return fmt.Errorf("error parsing ca cert: %s", err)
+					}
+					err = caCert.CheckCRLSignature(crl)
+					if err != nil {
+						return fmt.Errorf("Wrong CRL signature %s", err)
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
+func certRevocationListConfig(validity uint32, earlyRenewal uint32) string {
+	return fmt.Sprintf(`
+	                locals {
+						cert_to_revoke = <<EOT
+%s
+EOT
+	                }
+                    resource "tls_x509_crl" "test" {
+                        certs_to_revoke = [local.cert_to_revoke]
+
+                        validity_period_hours = %d
+                        ca_cert_pem = <<EOT
+%s
+EOT
+                        ca_key_algorithm = "RSA"
+                        ca_private_key_pem = <<EOT
+%s
+EOT
+                    }
+                    output "crl_pem" {
+                        value = "${tls_x509_crl.test.crl_pem}"
+                    }
+                `, testCertificate, validity, testCACert, testCAPrivateKey)
+}
