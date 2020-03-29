@@ -63,6 +63,160 @@ func TestCRL(t *testing.T) {
 	})
 }
 
+func TestAccX509CrlRecreatesAfterExpired(t *testing.T) {
+	oldNow := now
+	var previousCrl string
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: certRevocationListConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+					previousCrl = got
+					return nil
+				},
+			},
+			{
+				Config: certRevocationListConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+
+					if got != previousCrl {
+						return fmt.Errorf("crl updated even though no time has passed")
+					}
+
+					previousCrl = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T19:00:00Z"),
+				Config:    certRevocationListConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+
+					if got != previousCrl {
+						return fmt.Errorf("crl updated even though not enough time has passed")
+					}
+
+					previousCrl = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T21:00:00Z"),
+				Config:    certRevocationListConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+
+					if got == previousCrl {
+						return fmt.Errorf("crl not updated even though passed early renewal")
+					}
+
+					previousCrl = got
+					return nil
+				},
+			},
+		},
+	})
+	now = oldNow
+}
+
+func TestAccX509CrlNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
+	oldNow := now
+	var previousCrl string
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: certRevocationListConfig(10, 2),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+					previousCrl = got
+					return nil
+				},
+			},
+			{
+				Config: certRevocationListConfig(10, 3),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+
+					if got != previousCrl {
+						return fmt.Errorf("crl updated even though still time until early renewal")
+					}
+
+					previousCrl = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				Config:    certRevocationListConfig(10, 3),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+
+					if got != previousCrl {
+						return fmt.Errorf("crl updated even though still time until early renewal")
+					}
+
+					previousCrl = got
+					return nil
+				},
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				Config:    certRevocationListConfig(10, 9),
+				Check: func(s *terraform.State) error {
+					gotUntyped := s.RootModule().Outputs["crl_pem"].Value
+					got, ok := gotUntyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"crl_pem\" is not a string")
+					}
+
+					if got == previousCrl {
+						return fmt.Errorf("crl not updated even though early renewal time has passed")
+					}
+
+					previousCrl = got
+					return nil
+				},
+			},
+		},
+	})
+	now = oldNow
+}
+
 func certRevocationListConfig(validity uint32, earlyRenewal uint32) string {
 	return fmt.Sprintf(`
 	                locals {
@@ -74,6 +228,8 @@ EOT
                         certs_to_revoke = [local.cert_to_revoke]
 
                         validity_period_hours = %d
+                        early_renewal_hours = %d
+
                         ca_cert_pem = <<EOT
 %s
 EOT
@@ -85,5 +241,5 @@ EOT
                     output "crl_pem" {
                         value = "${tls_x509_crl.test.crl_pem}"
                     }
-                `, testCertificate, validity, testCACert, testCAPrivateKey)
+                `, testCertificate, validity, earlyRenewal, testCACert, testCAPrivateKey)
 }

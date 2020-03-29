@@ -157,37 +157,3 @@ func ReadCRL(d *schema.ResourceData, meta interface{}) error {
 func UpdateCRL(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
-
-func CustomizeCrlDiff(d *schema.ResourceDiff, meta interface{}) error {
-	var readyForRenewal bool
-
-	endTimeStr := d.Get("validity_end_time").(string)
-	endTime := now()
-	err := endTime.UnmarshalText([]byte(endTimeStr))
-	if err != nil {
-		// If end time is invalid then we'll treat it as being at the time for renewal.
-		readyForRenewal = true
-	} else {
-		earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
-		endTime = endTime.Add(earlyRenewalPeriod)
-
-		currentTime := now()
-		timeToRenewal := endTime.Sub(currentTime)
-		if timeToRenewal <= 0 {
-			readyForRenewal = true
-		}
-	}
-
-	if readyForRenewal {
-		err = d.SetNew("ready_for_renewal", true)
-		if err != nil {
-			return err
-		}
-		err = d.ForceNew("ready_for_renewal")
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
