@@ -1,4 +1,4 @@
-module github.com/terraform-providers/terraform-provider-tls
+module github.com/hashicorp/terraform-provider-tls
 
 require (
 	github.com/hashicorp/terraform-plugin-sdk v1.0.0

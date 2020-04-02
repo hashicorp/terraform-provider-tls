@@ -3,20 +3,20 @@
 
 NOTES:
 
-* The provider has switched to the standalone TF SDK, there should be no noticeable impact on compatibility. ([#54](https://github.com/terraform-providers/terraform-provider-tls/issues/54))
+* The provider has switched to the standalone TF SDK, there should be no noticeable impact on compatibility. ([#54](https://github.com/hashicorp/terraform-provider-tls/issues/54))
 
 ## 2.1.0 (August 16, 2019)
 
 ENHANCEMENTS:
 
-* Certificate renewal is now handled as a "replace" action in the plan, rather than by behaving as if the expired certificate had been deleted. Although the effective behavior remains unchanged, renewal will now appear as a `-/+` action in the plan, rather than just as a `+`. ([#34](https://github.com/terraform-providers/terraform-provider-tls/issues/34))
-* Certificates can now have URIs as subject alternative names. ([#50](https://github.com/terraform-providers/terraform-provider-tls/issues/50))
-* Certificates can now optionally have the Subject Key ID field populated. ([#31](https://github.com/terraform-providers/terraform-provider-tls/issues/31))
+* Certificate renewal is now handled as a "replace" action in the plan, rather than by behaving as if the expired certificate had been deleted. Although the effective behavior remains unchanged, renewal will now appear as a `-/+` action in the plan, rather than just as a `+`. ([#34](https://github.com/hashicorp/terraform-provider-tls/issues/34))
+* Certificates can now have URIs as subject alternative names. ([#50](https://github.com/hashicorp/terraform-provider-tls/issues/50))
+* Certificates can now optionally have the Subject Key ID field populated. ([#31](https://github.com/hashicorp/terraform-provider-tls/issues/31))
 
 BUG FIXES:
 
-* More of the private key arguments are now marked as "sensitive" so that Terraform will know to hide their values when showing plans and state in response to various commands. ([#48](https://github.com/terraform-providers/terraform-provider-tls/issues/48))
-* In `tls_public_key`, don't panic if the PEM isn't valid PEM syntax at all. ([#40](https://github.com/terraform-providers/terraform-provider-tls/issues/40))
+* More of the private key arguments are now marked as "sensitive" so that Terraform will know to hide their values when showing plans and state in response to various commands. ([#48](https://github.com/hashicorp/terraform-provider-tls/issues/48))
+* In `tls_public_key`, don't panic if the PEM isn't valid PEM syntax at all. ([#40](https://github.com/hashicorp/terraform-provider-tls/issues/40))
 
 ## 2.0.1 (April 30, 2019)
 
@@ -38,14 +38,14 @@ FEATURES:
 BUG FIXES:
 * `tls_cert_request` and `tls_self_signed_cert`: changes to `subject` now
   correctly force the recreation of the resource, instead of returning an error
-  ([#18](https://github.com/terraform-providers/terraform-provider-tls/issues/18))
+  ([#18](https://github.com/hashicorp/terraform-provider-tls/issues/18))
 
 ## 1.1.0 (March 09, 2018)
 
 FEATURES:
 
 * **New Data Source:** `tls_public_key`
-  ([#11](https://github.com/terraform-providers/terraform-provider-tls/issues/11))
+  ([#11](https://github.com/hashicorp/terraform-provider-tls/issues/11))
 
 ## 1.0.1 (November 09, 2017)
 
@@ -53,10 +53,10 @@ BUG FIXES:
 
 * `tls_cert_request` and `tls_self_signed_cert` no longer cause a crash when
   `subject` isn't specified.
-  ([#7](https://github.com/terraform-providers/terraform-provider-tls/issues/7))
+  ([#7](https://github.com/hashicorp/terraform-provider-tls/issues/7))
 * `tls_cert_request` and `tls_self_signed_cert` no longer generate empty-string
   values for various subject fields when they are not set in configuration.
-  ([#10](https://github.com/terraform-providers/terraform-provider-tls/issues/10))
+  ([#10](https://github.com/hashicorp/terraform-provider-tls/issues/10))
 
 ## 1.0.0 (September 15, 2017)
 
