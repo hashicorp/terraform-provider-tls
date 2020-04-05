@@ -4,12 +4,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 
-	//"errors"
 	"fmt"
 	"strings"
 	"testing"
-
-	//"time"
 
 	r "github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
