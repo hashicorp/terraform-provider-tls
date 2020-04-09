@@ -28,6 +28,7 @@ func resourceCertRevocationList() *schema.Resource {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Default:     0,
+			ForceNew:    true,
 			Description: "Number of hours before the CRL expiry when a new CRL will be generated",
 		},
 		"validity_period_hours": {
@@ -81,10 +82,10 @@ func resourceCertRevocationList() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Create:        CreateCRL,
-		Delete:        DeleteCRL,
-		Read:          ReadCRL,
-		Update:        UpdateCRL,
+		Create: CreateCRL,
+		Delete: DeleteCRL,
+		Read:   ReadCRL,
+		//Update:        UpdateCRL,
 		CustomizeDiff: CustomizeCertificateDiff,
 		Schema:        s,
 	}
@@ -145,6 +146,6 @@ func ReadCRL(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func UpdateCRL(d *schema.ResourceData, meta interface{}) error {
-	return nil
-}
+//func UpdateCRL(d *schema.ResourceData, meta interface{}) error {
+//return nil
+//}

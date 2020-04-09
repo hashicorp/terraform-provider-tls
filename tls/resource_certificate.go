@@ -213,37 +213,33 @@ func ReadCertificate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func CustomizeCertificateDiff(d *schema.ResourceDiff, meta interface{}) error {
-	var readyForRenewal bool
-
 	endTimeStr := d.Get("validity_end_time").(string)
 	endTime := now()
 	err := endTime.UnmarshalText([]byte(endTimeStr))
 	if err != nil {
 		// If end time is invalid then we'll treat it as being at the time for renewal.
-		readyForRenewal = true
-	} else {
-		earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
-		endTime = endTime.Add(earlyRenewalPeriod)
-
-		currentTime := now()
-		timeToRenewal := endTime.Sub(currentTime)
-		if timeToRenewal <= 0 {
-			readyForRenewal = true
-		}
+		return markForRenewal(d)
 	}
 
-	if readyForRenewal {
-		err = d.SetNew("ready_for_renewal", true)
-		if err != nil {
-			return err
-		}
-		err = d.ForceNew("ready_for_renewal")
-		if err != nil {
-			return err
-		}
+	earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
+	endTime = endTime.Add(earlyRenewalPeriod)
+
+	currentTime := now()
+	timeToRenewal := endTime.Sub(currentTime)
+	if timeToRenewal <= 0 {
+		return markForRenewal(d)
 	}
 
 	return nil
+}
+
+func markForRenewal(d *schema.ResourceDiff) error {
+	err := d.SetNew("ready_for_renewal", true)
+	if err != nil {
+		return err
+	}
+
+	return d.ForceNew("ready_for_renewal")
 }
 
 func UpdateCertificate(d *schema.ResourceData, meta interface{}) error {
