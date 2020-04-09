@@ -2,7 +2,6 @@ package tls
 
 import (
 	"crypto/rand"
-	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"strings"
@@ -76,7 +75,7 @@ func resourceCertRevocationList() *schema.Resource {
 		"ca_key_algorithm": &schema.Schema{
 			Type:        schema.TypeString,
 			Required:    true,
-			Description: "Name of the algorithm used to generate the certificate's private key",
+			Description: "Name of the algorithm used to generate the CRL's private key",
 			ForceNew:    true,
 		},
 	}
@@ -93,20 +92,14 @@ func resourceCertRevocationList() *schema.Resource {
 
 func CreateCRL(d *schema.ResourceData, meta interface{}) error {
 	certsToRevoke := make([]pkix.RevokedCertificate, 0)
-	if value := d.Get("certs_to_revoke").([]interface{}); len(value) > 0 {
-		for _, vi := range value {
-			block, err := decodePEMFromBytes([]byte(vi.(string)), "")
-			if err != nil {
-				return err
-			}
-			certificate, err := x509.ParseCertificate(block.Bytes)
-			if err != nil {
-				return err
-			}
-			certsToRevoke = append(certsToRevoke, pkix.RevokedCertificate{
-				SerialNumber: certificate.SerialNumber,
-			})
+	for _, vi := range d.Get("certs_to_revoke").([]interface{}) {
+		certificate, err := decodeCertificateFromBytes([]byte(vi.(string)))
+		if err != nil {
+			return err
 		}
+		certsToRevoke = append(certsToRevoke, pkix.RevokedCertificate{
+			SerialNumber: certificate.SerialNumber,
+		})
 	}
 	caKey, err := parsePrivateKey(d, "ca_private_key_pem", "ca_key_algorithm")
 	if err != nil {
@@ -134,9 +127,7 @@ func CreateCRL(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	crlPem := string(pem.EncodeToMemory(&pem.Block{Type: "X509 CRL", Bytes: crlBytes}))
-	if err != nil {
-		return err
-	}
+
 	d.SetId(hashForState(string(crlBytes)))
 	d.Set("crl_pem", crlPem)
 	d.Set("ready_for_renewal", false)

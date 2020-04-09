@@ -30,6 +30,14 @@ func decodePEMFromBytes(data []byte, pemType string) (*pem.Block, error) {
 	return block, nil
 }
 
+func decodeCertificateFromBytes(data []byte) (*x509.Certificate, error) {
+	block, err := decodePEMFromBytes(data, "")
+	if err != nil {
+		return nil, err
+	}
+	return x509.ParseCertificate(block.Bytes)
+}
+
 func parsePrivateKey(d *schema.ResourceData, pemKey, algoKey string) (interface{}, error) {
 	algoName := d.Get(algoKey).(string)
 
