@@ -29,7 +29,7 @@ func resourceCertRevocationList() *schema.Resource {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Default:     0,
-			Description: "Number of hours before the certificates expiry when a new certificate will be generated",
+			Description: "Number of hours before the CRL expiry when a new CRL will be generated",
 		},
 		"validity_period_hours": {
 			Type:        schema.TypeInt,
