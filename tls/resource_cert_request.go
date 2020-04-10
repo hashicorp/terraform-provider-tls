@@ -50,6 +50,14 @@ func resourceCertRequest() *schema.Resource {
 				},
 			},
 
+			"extension": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: "Extension to add to the certificate, can have multiple",
+				ForceNew:    true,
+				Elem:        extensionSchema,
+			},
+
 			"key_algorithm": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -125,6 +133,14 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("invalid URI %#v", uriI.(string))
 		}
 		certReq.URIs = append(certReq.URIs, uri)
+	}
+	extensionsI := d.Get("extension").([]interface{})
+	for _, extensionI := range extensionsI {
+		extension, err := extensionFromResourceData(extensionI.(map[string]interface{}))
+		if err != nil {
+			return err
+		}
+		certReq.ExtraExtensions = append(certReq.ExtraExtensions, *extension)
 	}
 
 	certReqBytes, err := x509.CreateCertificateRequest(rand.Reader, &certReq, key)

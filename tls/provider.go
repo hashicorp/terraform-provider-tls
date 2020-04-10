@@ -3,10 +3,15 @@ package tls
 import (
 	"crypto/sha1"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/hex"
+	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
 
@@ -118,6 +123,112 @@ var nameSchema *schema.Resource = &schema.Resource{
 			Type:     schema.TypeString,
 			Optional: true,
 			ForceNew: true,
+		},
+	},
+}
+
+func extensionFromResourceData(extensionMap map[string]interface{}) (*pkix.Extension, error) {
+	result := &pkix.Extension{}
+
+	// Handle the oid
+	oidParts := strings.Split(extensionMap["oid"].(string), ".")
+	oid := make(asn1.ObjectIdentifier, len(oidParts), len(oidParts))
+	for i, part := range oidParts {
+		intPart, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid Extension OID %#v", extensionMap["oid"].(string))
+		}
+		oid[i] = intPart
+	}
+	result.Id = oid
+
+	// Handle the critical flag
+	result.Critical = extensionMap["critical"].(bool)
+
+	// Handle the value
+	valueField := extensionMap["type"].(string) + "_value"
+	switch valueField {
+	case "integer_value":
+		value := extensionMap["integer_value"].(int)
+		marshalledValue, err := asn1.Marshal(value)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal value %#v", value)
+		}
+		result.Value = marshalledValue
+	case "boolean_value":
+		value := extensionMap["boolean_value"].(bool)
+		marshalledValue, err := asn1.Marshal(value)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal value %#v", value)
+		}
+		result.Value = marshalledValue
+	case "printable_string_value":
+		value := extensionMap["printable_string_value"].(string)
+		marshalledValue, err := asn1.MarshalWithParams(value, "printable")
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal value %#v", value)
+		}
+		result.Value = marshalledValue
+	case "utf8_string_value":
+		value := extensionMap["utf8_string_value"].(string)
+		marshalledValue, err := asn1.MarshalWithParams(value, "utf8")
+		if err != nil {
+			return nil, fmt.Errorf("Failed to marshal value %#v", value)
+		}
+		result.Value = marshalledValue
+	}
+
+	return result, nil
+}
+
+var supportedExtensionTypes = []string{"integer", "boolean", "printable_string", "utf8_string"}
+
+var extensionSchema *schema.Resource = &schema.Resource{
+	Schema: map[string]*schema.Schema{
+		"oid": {
+			Type:         schema.TypeString,
+			Description:  "The oid of the extension in dot format",
+			Required:     true,
+			ForceNew:     true,
+			ValidateFunc: validation.StringMatch(regexp.MustCompile(`\d+(\.\d+)*`), "Extension oid must use the dot notation"),
+		},
+		"critical": {
+			Type:        schema.TypeBool,
+			Description: "Whether the extension should be treated as critical",
+			Optional:    true,
+			Default:     false,
+			ForceNew:    true,
+		},
+		"integer_value": {
+			Type:        schema.TypeInt,
+			Description: "Fill this field if the extension value should be encoded as an ASN.1 INTEGER",
+			Optional:    true,
+			ForceNew:    true,
+		},
+		"boolean_value": {
+			Type:        schema.TypeBool,
+			Description: "Fill this field if the extension value should be encoded as an ASN.1 BOOLEAN",
+			Optional:    true,
+			ForceNew:    true,
+		},
+		"printable_string_value": {
+			Type:        schema.TypeString,
+			Description: "Fill this field if the extension value should be encoded as an ASN.1 PrintableString",
+			Optional:    true,
+			ForceNew:    true,
+		},
+		"utf8_string_value": {
+			Type:        schema.TypeString,
+			Description: "Fill this field if the extension value should be encoded as an ASN.1 UTF8String",
+			Optional:    true,
+			ForceNew:    true,
+		},
+		"type": {
+			Type:         schema.TypeString,
+			Description:  "The type of the value. One of: " + strings.Join(supportedExtensionTypes[:], ", "),
+			Required:     true,
+			ForceNew:     true,
+			ValidateFunc: validation.StringInSlice(supportedExtensionTypes[:], false),
 		},
 	},
 }

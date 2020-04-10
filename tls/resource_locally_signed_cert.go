@@ -77,6 +77,7 @@ func CreateLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
 		IPAddresses:           certReq.IPAddresses,
 		URIs:                  certReq.URIs,
 		BasicConstraintsValid: true,
+		ExtraExtensions:       certReq.Extensions, // pass the all the pre-existing extension requests
 	}
 
 	return createCertificate(d, &cert, caCert, certReq.PublicKey, caKey)
