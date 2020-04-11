@@ -76,7 +76,7 @@ func resourceCertRevocationList() *schema.Resource {
 		"ca_key_algorithm": &schema.Schema{
 			Type:        schema.TypeString,
 			Required:    true,
-			Description: "Name of the algorithm used to generate the CRL's private key",
+			Description: "Name of the algorithm used by the CA private key",
 			ForceNew:    true,
 		},
 	}
