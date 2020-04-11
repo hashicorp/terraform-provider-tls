@@ -33,15 +33,6 @@ func TestCRL(t *testing.T) {
 						return fmt.Errorf("error parsing crl: %s", err)
 					}
 
-					// Verify testCertificate is in the CRL serial number list.
-					testCert, err := decodeCertificateFromBytes([]byte(testCertificate))
-					if err != nil {
-						return fmt.Errorf("error parsing test cert: %s", err)
-					}
-					if testCert.SerialNumber.Cmp(crl.TBSCertList.RevokedCertificates[0].SerialNumber) != 0 {
-						return fmt.Errorf("revoked certificate serial number doesn't match")
-					}
-
 					// Verify CRL signature with CA.
 					caCert, err := decodeCertificateFromBytes([]byte(testCACert))
 					if err != nil {
@@ -50,6 +41,9 @@ func TestCRL(t *testing.T) {
 					err = caCert.CheckCRLSignature(crl)
 					if err != nil {
 						return fmt.Errorf("Wrong CRL signature %s", err)
+					}
+					if caCert.SerialNumber.Cmp(crl.TBSCertList.RevokedCertificates[0].SerialNumber) != 0 {
+						return fmt.Errorf("revoked certificate serial number doesn't match")
 					}
 					return nil
 				},
@@ -278,7 +272,7 @@ EOT
                     output "crl_pem" {
                         value = "${tls_x509_crl.test.crl_pem}"
                     }
-                `, testCertificate, validity, earlyRenewal, testCACert, testCAPrivateKey)
+                `, testCACert, validity, earlyRenewal, testCACert, testCAPrivateKey)
 }
 
 func certRevocationListEmptyConfig(validity uint32, earlyRenewal uint32) string {
