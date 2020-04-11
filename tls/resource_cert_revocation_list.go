@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"strings"
 	"time"
 
@@ -28,7 +29,6 @@ func resourceCertRevocationList() *schema.Resource {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Default:     0,
-			ForceNew:    true,
 			Description: "Number of hours before the CRL expiry when a new CRL will be generated",
 		},
 		"validity_period_hours": {
@@ -82,10 +82,10 @@ func resourceCertRevocationList() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Create: CreateCRL,
-		Delete: DeleteCRL,
-		Read:   ReadCRL,
-		//Update:        UpdateCRL,
+		Create:        CreateCRL,
+		Delete:        DeleteCRL,
+		Read:          ReadCRL,
+		Update:        UpdateCRL,
 		CustomizeDiff: CustomizeCertificateDiff,
 		Schema:        s,
 	}
@@ -96,7 +96,7 @@ func CreateCRL(d *schema.ResourceData, meta interface{}) error {
 	for _, vi := range d.Get("certs_to_revoke").([]interface{}) {
 		certificate, err := decodeCertificateFromBytes([]byte(vi.(string)))
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to parse %q field: %w", "certs_to_revoke", err)
 		}
 		certsToRevoke = append(certsToRevoke, pkix.RevokedCertificate{
 			SerialNumber: certificate.SerialNumber,
@@ -104,11 +104,11 @@ func CreateCRL(d *schema.ResourceData, meta interface{}) error {
 	}
 	caKey, err := parsePrivateKey(d, "ca_private_key_pem", "ca_key_algorithm")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse %q field: %w", "ca_private_key_pem", err)
 	}
 	caCert, err := parseCertificate(d, "ca_cert_pem")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse %q field: %w", "ca_cert_pem", err)
 	}
 
 	notBefore := now()
@@ -124,7 +124,7 @@ func CreateCRL(d *schema.ResourceData, meta interface{}) error {
 
 	crlBytes, err := caCert.CreateCRL(rand.Reader, caKey, certsToRevoke, notBefore, notAfter)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create crl: %w", err)
 	}
 
 	crlPem := string(pem.EncodeToMemory(&pem.Block{Type: "X509 CRL", Bytes: crlBytes}))
@@ -146,6 +146,6 @@ func ReadCRL(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-//func UpdateCRL(d *schema.ResourceData, meta interface{}) error {
-//return nil
-//}
+func UpdateCRL(d *schema.ResourceData, meta interface{}) error {
+	return nil
+}
