@@ -270,7 +270,7 @@ EOT
 EOT
                     }
                     output "crl_pem" {
-                        value = "${tls_x509_crl.test.crl_pem}"
+                        value = tls_x509_crl.test.crl_pem
                     }
                 `, testCACert, validity, earlyRenewal, testCACert, testCAPrivateKey)
 }
