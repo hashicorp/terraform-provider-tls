@@ -17,6 +17,7 @@ func Provider() terraform.ResourceProvider {
 			"tls_locally_signed_cert": resourceLocallySignedCert(),
 			"tls_self_signed_cert":    resourceSelfSignedCert(),
 			"tls_cert_request":        resourceCertRequest(),
+			"tls_x509_crl":            resourceCertRevocationList(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
 			"tls_public_key": dataSourcePublicKey(),
