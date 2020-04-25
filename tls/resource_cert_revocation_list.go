@@ -92,6 +92,8 @@ func resourceCertRevocationList() *schema.Resource {
 }
 
 func CreateCRL(d *schema.ResourceData, meta interface{}) error {
+	notBefore := now()
+
 	certsToRevoke := make([]pkix.RevokedCertificate, 0)
 	for _, vi := range d.Get("certs_to_revoke").([]interface{}) {
 		certificate, err := decodeCertificateFromBytes([]byte(vi.(string)))
@@ -99,7 +101,8 @@ func CreateCRL(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("failed to parse %q field: %w", "certs_to_revoke", err)
 		}
 		certsToRevoke = append(certsToRevoke, pkix.RevokedCertificate{
-			SerialNumber: certificate.SerialNumber,
+			SerialNumber:   certificate.SerialNumber,
+			RevocationTime: notBefore,
 		})
 	}
 	caKey, err := parsePrivateKey(d, "ca_private_key_pem", "ca_key_algorithm")
@@ -111,7 +114,6 @@ func CreateCRL(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("failed to parse %q field: %w", "ca_cert_pem", err)
 	}
 
-	notBefore := now()
 	notAfter := notBefore.Add(time.Duration(d.Get("validity_period_hours").(int)) * time.Hour)
 	validFromBytes, err := notBefore.MarshalText()
 	if err != nil {
