@@ -4,17 +4,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
+func TestMain(m *testing.M) {
+	acctest.UseBinaryDriver("tls", Provider)
+	resource.TestMain(m)
+}
+
 func TestProvider(t *testing.T) {
-	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
+	if err := Provider().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
 
-var testProviders = map[string]terraform.ResourceProvider{
+var testProviders = map[string]*schema.Provider{
 	"tls": Provider(),
 }
 

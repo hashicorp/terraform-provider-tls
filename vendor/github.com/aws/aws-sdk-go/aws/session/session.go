@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/corehandlers"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/processcreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/csm"
 	"github.com/aws/aws-sdk-go/aws/defaults"
@@ -407,10 +406,7 @@ func loadCustomCABundle(s *Session, bundle io.Reader) error {
 		}
 	}
 	if t == nil {
-		// Nil transport implies `http.DefaultTransport` should be used. Since
-		// the SDK cannot modify, nor copy the `DefaultTransport` specifying
-		// the values the next closest behavior.
-		t = getCABundleTransport()
+		t = &http.Transport{}
 	}
 
 	p, err := loadCertPool(bundle)
@@ -456,7 +452,7 @@ func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg share
 		}
 	}
 
-	if cfg.EnableEndpointDiscovery == nil {
+	if aws.BoolValue(envCfg.EnableEndpointDiscovery) {
 		if envCfg.EnableEndpointDiscovery != nil {
 			cfg.WithEndpointDiscovery(*envCfg.EnableEndpointDiscovery)
 		} else if envCfg.EnableSharedConfig && sharedCfg.EnableEndpointDiscovery != nil {
@@ -537,10 +533,6 @@ func mergeConfigSrcs(cfg, userCfg *aws.Config, envCfg envConfig, sharedCfg share
 		} else if len(sharedCfg.Creds.AccessKeyID) > 0 {
 			cfg.Credentials = credentials.NewStaticCredentialsFromCreds(
 				sharedCfg.Creds,
-			)
-		} else if len(sharedCfg.CredentialProcess) > 0 {
-			cfg.Credentials = processcreds.NewCredentials(
-				sharedCfg.CredentialProcess,
 			)
 		} else {
 			// Fallback to default credentials provider, include mock errors
