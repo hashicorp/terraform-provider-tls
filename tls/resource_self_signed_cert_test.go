@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -209,11 +210,10 @@ EOT
 }
 
 func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
-	oldNow := now
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		PreCheck:  func() { setTimeForTest("2019-06-14T12:00:00Z") },
 		Steps: []r.TestStep{
 			{
 				Config: selfSignedCertConfig(10, 2),
@@ -245,7 +245,7 @@ func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 				},
 			},
 			{
-				PreConfig: setTimeForTest("2019-06-14T19:00:00Z"),
+				PreConfig: func() { setTimeForTest("2019-06-14T19:00:00Z") },
 				Config:    selfSignedCertConfig(10, 2),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
@@ -263,7 +263,7 @@ func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 				},
 			},
 			{
-				PreConfig: setTimeForTest("2019-06-14T21:00:00Z"),
+				PreConfig: func() { setTimeForTest("2019-06-14T21:00:00Z") },
 				Config:    selfSignedCertConfig(10, 2),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
@@ -282,15 +282,14 @@ func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 			},
 		},
 	})
-	now = oldNow
+	os.Unsetenv("TF_TLS_TIME_NOW")
 }
 
 func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
-	oldNow := now
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		PreCheck:  func() { setTimeForTest("2019-06-14T12:00:00Z") },
 		Steps: []r.TestStep{
 			{
 				Config: selfSignedCertConfig(10, 2),
@@ -322,7 +321,7 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 				},
 			},
 			{
-				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				PreConfig: func() { setTimeForTest("2019-06-14T16:00:00Z") },
 				Config:    selfSignedCertConfig(10, 3),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
@@ -340,7 +339,7 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 				},
 			},
 			{
-				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				PreConfig: func() { setTimeForTest("2019-06-14T16:00:00Z") },
 				Config:    selfSignedCertConfig(10, 9),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
@@ -359,13 +358,13 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 			},
 		},
 	})
-	now = oldNow
+	os.Unsetenv("TF_TLS_TIME_NOW")
 }
 
 func TestAccSelfSignedCertSetSubjectKeyID(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		PreCheck:  func() { setTimeForTest("2019-06-14T12:00:00Z") },
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -402,7 +401,7 @@ EOT
 			},
 		},
 	})
-
+	os.Unsetenv("TF_TLS_TIME_NOW")
 }
 
 func selfSignedCertConfig(validity uint32, earlyRenewal uint32) string {

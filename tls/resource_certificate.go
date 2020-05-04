@@ -13,7 +13,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
+	"os"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -55,6 +57,14 @@ type rsaPublicKey struct {
 }
 
 var now = func() time.Time {
+	if timeStr := os.Getenv("TF_TLS_TIME_NOW"); timeStr != "" {
+		t, err := time.Parse(time.RFC3339, timeStr)
+		if err != nil {
+			panic(err)
+		}
+		log.Printf("[WARN] TF_TLS_TIME_NOW: %q overriding time.Now(). This should never be set in production!", timeStr)
+		return t
+	}
 	return time.Now()
 }
 
@@ -132,7 +142,7 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Computed: true,
 		},
 
-		"set_subject_key_id": &schema.Schema{
+		"set_subject_key_id": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "If true, the generated certificate will include a subject key identifier.",

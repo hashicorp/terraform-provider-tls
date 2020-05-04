@@ -5,6 +5,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -144,11 +145,10 @@ func TestLocallySignedCert(t *testing.T) {
 }
 
 func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
-	oldNow := now
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		PreCheck:  func() { setTimeForTest("2019-06-14T12:00:00Z") },
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertConfig(10, 2),
@@ -180,7 +180,7 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 				},
 			},
 			{
-				PreConfig: setTimeForTest("2019-06-14T19:00:00Z"),
+				PreConfig: func() { setTimeForTest("2019-06-14T19:00:00Z") },
 				Config:    locallySignedCertConfig(10, 2),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
@@ -198,7 +198,7 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 				},
 			},
 			{
-				PreConfig: setTimeForTest("2019-06-14T21:00:00Z"),
+				PreConfig: func() { setTimeForTest("2019-06-14T21:00:00Z") },
 				Config:    locallySignedCertConfig(10, 2),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
@@ -217,15 +217,14 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 			},
 		},
 	})
-	now = oldNow
+	os.Unsetenv("TF_TLS_TIME_NOW")
 }
 
 func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
-	oldNow := now
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		PreCheck:  func() { setTimeForTest("2019-06-14T12:00:00Z") },
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertConfig(10, 2),
@@ -257,7 +256,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 				},
 			},
 			{
-				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				PreConfig: func() { setTimeForTest("2019-06-14T16:00:00Z") },
 				Config:    locallySignedCertConfig(10, 3),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
@@ -275,7 +274,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 				},
 			},
 			{
-				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
+				PreConfig: func() { setTimeForTest("2019-06-14T16:00:00Z") },
 				Config:    locallySignedCertConfig(10, 9),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["cert_pem"].Value
@@ -294,7 +293,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 			},
 		},
 	})
-	now = oldNow
+	os.Unsetenv("TF_TLS_TIME_NOW")
 }
 
 func locallySignedCertConfig(validity uint32, earlyRenewal uint32) string {

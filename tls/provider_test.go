@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -102,11 +103,9 @@ UI+cIbsQJcr9i0SADwhqs7XYIcEz9jDqrdezenaXdGtXYg==
 -----END CERTIFICATE-----
 `
 
-func setTimeForTest(timeStr string) func() {
-	return func() {
-		now = func() time.Time {
-			t, _ := time.Parse(time.RFC3339, timeStr)
-			return t
-		}
+func setTimeForTest(timeStr string) {
+	if _, err := time.Parse(time.RFC3339, timeStr); err != nil {
+		panic(err)
 	}
+	os.Setenv("TF_TLS_TIME_NOW", timeStr)
 }
