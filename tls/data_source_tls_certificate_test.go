@@ -26,6 +26,7 @@ func TestAccTlsCertificate_dataSource(t *testing.T) {
 				Config: fmt.Sprintf(`
 data "tls_certificate" "test" {
   url = "https://%s"
+  verify_chain = false
 }
 `, host),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -78,7 +79,7 @@ func newTlsServer() (*tlsServer, string, error) {
 }
 
 func (t *tlsServer) serve() {
-	err := t.server.ServeTLS(t.listener, "test_fixtures/tls_certs/public.pem", "test_fixtures/tls_certs/private.pem")
+	err := t.server.ServeTLS(t.listener, "testdata/tls_certs/public.pem", "testdata/tls_certs/private.pem")
 	if err != nil {
 		log.Println("Failed to serve TLS server", err)
 	}

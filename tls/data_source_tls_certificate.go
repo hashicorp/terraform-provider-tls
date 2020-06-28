@@ -18,6 +18,11 @@ func dataSourceTlsCertificate() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"verify_chain": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 			"certificates": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -82,7 +87,9 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 		u.Host += ":443"
 	}
 
-	conn, err := tls.Dial("tcp", u.Host, &tls.Config{InsecureSkipVerify: true})
+	verifyChain := d.Get("verify_chain").(bool)
+
+	conn, err := tls.Dial("tcp", u.Host, &tls.Config{InsecureSkipVerify: !verifyChain})
 	if err != nil {
 		return err
 	}

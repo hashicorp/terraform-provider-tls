@@ -34,6 +34,7 @@ resource "aws_iam_openid_connect_provider" "example" {
 The following arguments are supported:
 
 * `url` - (Required) The URL of the website to get the certificates from.
+* `verify_chain` - (Optional) Whether to verify the certificate chain while parsing it or not
 
 
 ## Attributes Reference
