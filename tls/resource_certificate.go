@@ -202,21 +202,22 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	private_key, err := parsePrivateKey(d, "private_key_pem", "key_algorithm")
 	// Set PKCS12 data. This is only set if there is a private key present.
 	if err != nil {
+		d.Set("certificate_p12", "")
+	} else {
 		cert, err := x509.ParseCertificate(certBytes)
 		if err != nil {
-			return err
+			return fmt.Errorf("certificate parse error: %s", err)
 		}
-		caCerts = append(caCerts, parent)
+
+		// caCerts = append(caCerts, parent)
 
 		password := d.Get("certificate_p12_password").(string)
 		pfxB64, err := toPfx(private_key, cert, caCerts, password)
 		if err != nil {
-			return err
+			return fmt.Errorf("to pfx error: %s", err)
 		}
 
 		d.Set("certificate_p12", string(pfxB64))
-	} else {
-		d.Set("certificate_p12", "")
 	}
 
 	validFromBytes, err := template.NotBefore.MarshalText()
