@@ -1,4 +1,9 @@
 ## 2.2.0 (Unreleased)
+
+NEW FEATURES:
+
+* Add `tls_certificate` data source [GH-62]
+
 ## 2.1.1 (September 25, 2019)
 
 NOTES:
