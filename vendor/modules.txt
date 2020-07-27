@@ -361,7 +361,7 @@ google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
 google.golang.org/grpc/test/bufconn
-# software.sslmate.com/src/go-pkcs12 v0.0.0-20190322163127-6e380ad96778
+# software.sslmate.com/src/go-pkcs12 v0.0.0-20200619203921-c9ed90bd32dc
 ## explicit
 software.sslmate.com/src/go-pkcs12
 software.sslmate.com/src/go-pkcs12/internal/rc2

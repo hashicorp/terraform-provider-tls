@@ -212,12 +212,12 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 		// caCerts = append(caCerts, parent)
 
 		password := d.Get("certificate_p12_password").(string)
-		pfxB64, err := toPfx(private_key, cert, caCerts, password)
+		pkcs12B64, err := toPkcs12(private_key, cert, caCerts, password)
 		if err != nil {
 			return fmt.Errorf("to pfx error: %s", err)
 		}
 
-		d.Set("certificate_p12", string(pfxB64))
+		d.Set("certificate_p12", string(pkcs12B64))
 	}
 
 	validFromBytes, err := template.NotBefore.MarshalText()

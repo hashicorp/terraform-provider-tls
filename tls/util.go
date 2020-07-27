@@ -107,18 +107,14 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 	return nil
 }
 
-// packs an issued certificate (and any supplied intermediates) into a PFX file.
-// The private key is included in the archive if it is a non-zero value.
-//
-// The returned archive is base64-encoded.
-func toPfx(privateKey interface{}, cert *x509.Certificate, caCerts []*x509.Certificate, password string) ([]byte, error) {
+func toPkcs12(privateKey interface{}, cert *x509.Certificate, caCerts []*x509.Certificate, password string) ([]byte, error) {
 
-	pfxData, err := pkcs12.Encode(rand.Reader, privateKey, cert, caCerts, password)
+	pkcs12Data, err := pkcs12.Encode(rand.Reader, privateKey, cert, caCerts, password)
 	if err != nil {
 		return nil, err
 	}
 
-	buf := make([]byte, base64.StdEncoding.EncodedLen(len(pfxData)))
-	base64.StdEncoding.Encode(buf, pfxData)
+	buf := make([]byte, base64.StdEncoding.EncodedLen(len(pkcs12Data)))
+	base64.StdEncoding.Encode(buf, pkcs12Data)
 	return buf, nil
 }

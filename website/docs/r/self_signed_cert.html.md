@@ -94,7 +94,7 @@ The following arguments are supported:
   the subject key identifier. Defaults to `false`, in which case the subject
   key identifier is not set at all.
 
-* `certificate_p12_password` - (Optional) Password to be used when generating the PFX file
+* `certificate_p12_password` - (Optional) Password to be used when generating the P12 file
   stored in certificate_p12. Defaults to an empty string.
 
 The `allowed_uses` list accepts the following keywords, combining the set of flags defined by
@@ -133,8 +133,8 @@ The following attributes are exported:
   [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
 * `validity_end_time` - The time until which the certificate is invalid, as an
   [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
-* `certificate_p12` -The certificate, intermediate, and the private key archived as a PFX file
-  (PKCS12 format, generally used by Microsoft products). The data is base64 encoded (including padding),
+* `certificate_p12` -The certificate, intermediate, and the private key archived as a p12 file.
+  The data is base64 encoded (including padding),
   and its password is configurable via the certificate_p12_password argument.
   This field is empty if creating a locally signed certificate from a CSR.
 
