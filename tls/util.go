@@ -2,6 +2,7 @@ package tls
 
 import (
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 
@@ -90,6 +91,9 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 	d.SetId(hashForState(string((pubKeyBytes))))
 	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
 
+	b16PubKeyBytes := hex.EncodeToString(pubKeyBytes)
+	d.Set("public_key_b16", string(b16PubKeyBytes))
+
 	sshPubKey, err := ssh.NewPublicKey(publicKey(rsaKey))
 	if err == nil {
 		// Not all EC types can be SSH keys, so we'll produce this only
@@ -97,6 +101,7 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
 		d.Set("public_key_openssh", string(sshPubKeyBytes))
 		d.Set("public_key_fingerprint_md5", ssh.FingerprintLegacyMD5(sshPubKey))
+
 	} else {
 		d.Set("public_key_openssh", "")
 		d.Set("public_key_fingerprint_md5", "")
