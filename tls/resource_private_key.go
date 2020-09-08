@@ -87,6 +87,11 @@ func resourcePrivateKey() *schema.Resource {
 				Computed: true,
 			},
 
+			"public_key_b16": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"public_key_openssh": {
 				Type:     schema.TypeString,
 				Computed: true,
