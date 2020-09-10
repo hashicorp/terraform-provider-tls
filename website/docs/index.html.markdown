@@ -27,7 +27,7 @@ Use the navigation to the left to read about the available resources.
 ## Example Usage
 
 ```hcl
-## This example create a self-signed certificate for a development
+## This example creates a self-signed certificate for a development
 ## environment.
 ## THIS IS NOT RECOMMENDED FOR PRODUCTION SERVICES.
 ## See the detailed documentation of each resource for further

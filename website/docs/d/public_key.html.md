@@ -1,7 +1,7 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_public_key"
-sidebar_current: "docs-tls-resource-private-key"
+sidebar_current: "docs-tls-datasource-public-key"
 description: |-
   Get a public key from a PEM-encoded private key.
 ---

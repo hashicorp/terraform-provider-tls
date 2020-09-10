@@ -1,4 +1,9 @@
-## 2.2.0 (Unreleased)
+## 2.2.0 (July 24, 2020)
+
+NEW FEATURES:
+
+* Add `tls_certificate` data source ([#62](https://github.com/terraform-providers/terraform-provider-tls/issues/62))
+
 ## 2.1.1 (September 25, 2019)
 
 NOTES:
