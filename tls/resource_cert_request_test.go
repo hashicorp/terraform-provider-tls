@@ -2,6 +2,8 @@ package tls
 
 import (
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"strings"
@@ -43,7 +45,25 @@ func TestCertRequest(t *testing.T) {
                         uris = [
                             "spiffe://example-trust-domain/workload",
                             "spiffe://example-trust-domain/workload2",
-                        ]
+						]
+						
+						extension {
+							oid 			= "1.2.3.4.5.6"
+							integer_value 	= 17
+							type 			= "integer"
+						}
+
+						extension {
+							oid 					= "1.3.5.7.9.11"
+							printable_string_value 	= "hello"
+							type 					= "printable_string"
+						}
+
+						extension {
+							oid 					= "0.2.4.6.8.10"
+							utf8_string_value 		= "š™£"
+							type 					= "utf8_string"
+						}
 
                         key_algorithm = "RSA"
                         private_key_pem = <<EOT
@@ -128,6 +148,35 @@ EOT
 						return fmt.Errorf("incorrect URI 1: expected %v, got %v", expected, got)
 					}
 
+					// Convert the Extension structure to one that is easier to query
+					var extra_extensions = map[string]*pkix.Extension{}
+					for index, value := range csr.Extensions {
+						extra_extensions[value.Id.String()] = &csr.Extensions[index]
+					}
+					if extra_extensions["1.2.3.4.5.6"] == nil {
+						return fmt.Errorf("Extension 1.2.3.4.5.6 was not added")
+					}
+					var integer_extension_value int
+					asn1.Unmarshal(extra_extensions["1.2.3.4.5.6"].Value, &integer_extension_value)
+					if expected, got := 17, integer_extension_value; got != expected {
+						return fmt.Errorf("Incorrect value for extension 1.2.3.4.5.6: expected %v, got %v", expected, got)
+					}
+					if extra_extensions["1.3.5.7.9.11"] == nil {
+						return fmt.Errorf("Extension 1.3.5.7.9.11 was not added")
+					}
+					var printable_string_extension_value string
+					asn1.Unmarshal(extra_extensions["1.3.5.7.9.11"].Value, &printable_string_extension_value)
+					if expected, got := "hello", printable_string_extension_value; got != expected {
+						return fmt.Errorf("Incorrect value for extension 1.3.5.7.9.11: expected %v, got %v", expected, got)
+					}
+					if extra_extensions["0.2.4.6.8.10"] == nil {
+						return fmt.Errorf("Extension 0.2.4.6.8.10 was not added")
+					}
+					var utf8_string_extension_value string
+					asn1.Unmarshal(extra_extensions["0.2.4.6.8.10"].Value, &utf8_string_extension_value)
+					if expected, got := "š™£", utf8_string_extension_value; got != expected {
+						return fmt.Errorf("Incorrect value for extension 0.2.4.6.8.10: expected %v, got %v", expected, got)
+					}
 					return nil
 				},
 			},

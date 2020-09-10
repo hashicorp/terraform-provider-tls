@@ -49,6 +49,14 @@ func resourceSelfSignedCert() *schema.Resource {
 		},
 	}
 
+	s["extension"] = &schema.Schema{
+		Type:        schema.TypeList,
+		Optional:    true,
+		Description: "Extension to add to the certificate, can have multiple",
+		ForceNew:    true,
+		Elem:        extensionSchema,
+	}
+
 	s["key_algorithm"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
@@ -120,6 +128,14 @@ func CreateSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("invalid URI %#v", uriStrI.(string))
 		}
 		cert.URIs = append(cert.URIs, uri)
+	}
+	extensionsI := d.Get("extension").([]interface{})
+	for _, extensionI := range extensionsI {
+		extension, err := extensionFromResourceData(extensionI.(map[string]interface{}))
+		if err != nil {
+			return err
+		}
+		cert.ExtraExtensions = append(cert.ExtraExtensions, *extension)
 	}
 
 	return createCertificate(d, &cert, &cert, publicKey(key), key)
