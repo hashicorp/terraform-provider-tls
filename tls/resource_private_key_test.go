@@ -27,6 +27,9 @@ func TestPrivateKeyRSA(t *testing.T) {
                     output "public_key_openssh" {
                         value = "${tls_private_key.test.public_key_openssh}"
                     }
+                    output "public_key_b16" {
+                        value = "${tls_private_key.test.public_key_b16}"
+                    }
                     output "public_key_fingerprint_md5" {
                         value = "${tls_private_key.test.public_key_fingerprint_md5}"
                     }
@@ -61,6 +64,15 @@ func TestPrivateKeyRSA(t *testing.T) {
 					}
 					if !strings.HasPrefix(gotPublicSSH, "ssh-rsa ") {
 						return fmt.Errorf("SSH public key is missing ssh-rsa prefix")
+					}
+
+					gotPublicb16Untyped := s.RootModule().Outputs["public_key_b16"].Value
+					gotPublicb16, ok := gotPublicb16Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_b16\" is not a string")
+					}
+					if len(gotPublicb16) < 256 {
+						return fmt.Errorf("B16 DER encoded Public Key should be longer")
 					}
 
 					gotPublicFingerprintUntyped := s.RootModule().Outputs["public_key_fingerprint_md5"].Value

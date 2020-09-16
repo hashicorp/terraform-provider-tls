@@ -77,29 +77,34 @@ func resourcePrivateKey() *schema.Resource {
 			},
 
 			"private_key_pem": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Sensitive:   true,
+				Description: "(Unencrypted) PEM formatted private key",
 			},
 
 			"public_key_pem": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Public Key as X.509 SubjectPublicKeyInfo in ASN.1/DER, in PEM (base64) wrapper",
 			},
 
 			"public_key_b16": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Public Key as X.509 SubjectPublicKeyInfo in ASN.1/DER, hex (base16) encoded",
 			},
 
 			"public_key_openssh": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "Public Key as OpenSSH XDR-like SSH wire format, (in base64)",
 			},
 
 			"public_key_fingerprint_md5": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The (OpenSSH) Public Key's fingerprint as described by RFC 4716 § 4.",
 			},
 		},
 	}
