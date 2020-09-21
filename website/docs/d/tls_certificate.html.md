@@ -49,6 +49,7 @@ The following attributes are exported:
     * `certificates.#.is_ca` - `true` if this certificate is a ca certificate.
     * `certificates.#.issuer` - Who verified and signed the certificate, roughly following
     [RFC2253](https://tools.ietf.org/html/rfc2253).
+    * `certificates.#.pem` - The certificate, PEM-encoded.
     * `certificates.#.public_key_algorithm` - The algorithm used to create the certificate.
     * `certificates.#.serial_number` - Number that uniquely identifies the certificate with the CA's system. The `format`
     function can be used to convert this base 10 number into other bases, such as hex.
