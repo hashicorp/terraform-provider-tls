@@ -1,4 +1,4 @@
-package tls
+package provider
 
 import (
 	"crypto/sha1"
@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func Provider() *schema.Provider {
+func New() *schema.Provider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
 			"tls_private_key":         resourcePrivateKey(),

@@ -1,4 +1,4 @@
-package tls
+package provider
 
 import (
 	"crypto/sha1"
