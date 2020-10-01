@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -15,7 +16,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 const pemCertType = "CERTIFICATE"
@@ -212,7 +213,7 @@ func ReadCertificate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func CustomizeCertificateDiff(d *schema.ResourceDiff, meta interface{}) error {
+func CustomizeCertificateDiff(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
 	var readyForRenewal bool
 
 	endTimeStr := d.Get("validity_end_time").(string)
