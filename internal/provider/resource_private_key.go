@@ -2,6 +2,7 @@ package provider
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -21,19 +22,25 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 		return rsa.GenerateKey(rand.Reader, rsaBits)
 	},
 	"ECDSA": func(d *schema.ResourceData) (interface{}, error) {
-		curve := d.Get("ecdsa_curve").(string)
-		switch curve {
+		var ec elliptic.Curve = nil
+		switch d.Get("ecdsa_curve").(string) {
 		case "P224":
-			return ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+			ec = elliptic.P224()
 		case "P256":
-			return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			ec = elliptic.P256()
 		case "P384":
-			return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+			ec = elliptic.P384()
 		case "P521":
-			return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
-		default:
-			return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
+			ec = elliptic.P521()
 		}
+		if ec != nil {
+			return ecdsa.GenerateKey(ec, rand.Reader)
+		}
+		return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
+	},
+	"ED25519": func(d *schema.ResourceData) (interface{}, error) {
+		priv, _, err := ed25519.GenerateKey(rand.Reader)
+		return priv, err
 	},
 }
 
@@ -43,6 +50,9 @@ var keyParsers map[string]keyParser = map[string]keyParser{
 	},
 	"ECDSA": func(der []byte) (interface{}, error) {
 		return x509.ParseECPrivateKey(der)
+	},
+	"ED25519": func(der []byte) (interface{}, error) {
+		return x509.ParsePKCS8PrivateKey(der)
 	},
 }
 
@@ -129,6 +139,15 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 			Type:  "EC PRIVATE KEY",
 			Bytes: keyBytes,
 		}
+	case *ed25519.PrivateKey:
+		keyBytes, err := x509.MarshalPKCS8PrivateKey(k)
+		if err != nil {
+			return fmt.Errorf("error encoding key to PEM: %s", err)
+		}
+		keyPemBlock = &pem.Block{
+			Type:  "ED25519 PRIVATE KEY",
+			Bytes: keyBytes,
+		}
 	default:
 		return fmt.Errorf("unsupported private key type")
 	}
@@ -154,6 +173,8 @@ func publicKey(priv interface{}) interface{} {
 		return &k.PublicKey
 	case *ecdsa.PrivateKey:
 		return &k.PublicKey
+	case *ed25519.PrivateKey:
+		return k.Public()
 	default:
 		return nil
 	}

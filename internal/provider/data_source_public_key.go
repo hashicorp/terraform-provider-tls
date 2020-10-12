@@ -40,7 +40,7 @@ func dataSourcePublicKey() *schema.Resource {
 
 func dataSourcePublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 	// Read private key
-	bytes := []byte("")
+	var bytes []byte
 	if v, ok := d.GetOk("private_key_pem"); ok {
 		bytes = []byte(v.(string))
 	} else {
@@ -49,7 +49,19 @@ func dataSourcePublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 	// decode PEM encoding to ANS.1 PKCS1 DER
 	keyPemBlock, _ := pem.Decode(bytes)
 
-	if keyPemBlock == nil || (keyPemBlock.Type != "RSA PRIVATE KEY" && keyPemBlock.Type != "EC PRIVATE KEY") {
+	keyAlgo := ""
+	if keyPemBlock != nil {
+		switch keyPemBlock.Type {
+		case "RSA PRIVATE KEY":
+			keyAlgo = "RSA"
+		case "EC PRIVATE KEY":
+			keyAlgo = "ECDSA"
+		case "ED25519 PRIVATE KEY":
+			keyAlgo = "ED25519"
+		}
+	}
+
+	if keyAlgo == "" {
 		typ := "unknown"
 
 		if keyPemBlock != nil {
@@ -59,14 +71,10 @@ func dataSourcePublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("failed to decode PEM block containing private key of type %#v", typ)
 	}
 
-	keyAlgo := ""
-	switch keyPemBlock.Type {
-	case "RSA PRIVATE KEY":
-		keyAlgo = "RSA"
-	case "EC PRIVATE KEY":
-		keyAlgo = "ECDSA"
+	err := d.Set("algorithm", keyAlgo)
+	if err != nil {
+		return fmt.Errorf("error setting the algo: %s", err)
 	}
-	d.Set("algorithm", keyAlgo)
 	// Converts a private key from its ASN.1 PKCS#1 DER encoded form
 	key, err := parsePrivateKey(d, "private_key_pem", "algorithm")
 	if err != nil {
