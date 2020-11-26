@@ -1,4 +1,4 @@
-module github.com/terraform-providers/terraform-provider-tls
+module github.com/terraform-providers/terraform-provider-tls/v3
 
 go 1.14
 
