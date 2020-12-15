@@ -96,9 +96,17 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 	defer conn.Close()
 	state := conn.ConnectionState()
 
+	var sha1_fingerprint string
 	var certs []interface{}
 	for i := len(state.PeerCertificates) - 1; i >= 0; i-- {
 		certs = append(certs, parsePeerCertificate(state.PeerCertificates[i]))
+		sfp := certs[i].(struct{ sha1_fingerprint string }).sha1_fingerprint
+		if i == 0 {
+			sha1_fingerprint = sfp
+		} else {
+			sha1_fingerprint = sfp + certs[i-1].(struct{ sha1_fingerprint string }).sha1_fingerprint
+			sha1_fingerprint = fmt.Sprintf("%x", sha1.Sum([]byte(sha1_fingerprint)))
+		}
 	}
 
 	err = d.Set("certificates", certs)
@@ -106,7 +114,7 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 		return err
 	}
 
-	d.SetId(time.Now().UTC().String())
+	d.SetId(sha1_fingerprint)
 
 	return nil
 }
