@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"net/url"
@@ -96,16 +97,21 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 	defer conn.Close()
 	state := conn.ConnectionState()
 
-	var sha1_fingerprint string
+	var sha1Fingerprint string
 	var certs []interface{}
-	for i := len(state.PeerCertificates) - 1; i >= 0; i-- {
+	for i, j := len(state.PeerCertificates)-1, 0; i >= 0; i, j = i-1, j+1 {
 		certs = append(certs, parsePeerCertificate(state.PeerCertificates[i]))
-		sfp := certs[i].(struct{ sha1_fingerprint string }).sha1_fingerprint
-		if i == 0 {
-			sha1_fingerprint = sfp
+
+		cert, ok := certs[j].(map[string]interface{})
+		if !ok {
+			return errors.New("unable to calculate cumulative sha1 fingerprints")
+		}
+		sfp := cert["sha1_fingerprint"].(string)
+		if j == 0 {
+			sha1Fingerprint = sfp
 		} else {
-			sha1_fingerprint = sfp + certs[i-1].(struct{ sha1_fingerprint string }).sha1_fingerprint
-			sha1_fingerprint = fmt.Sprintf("%x", sha1.Sum([]byte(sha1_fingerprint)))
+			sha1Fingerprint = sha1Fingerprint + sfp
+			sha1Fingerprint = fmt.Sprintf("%x", sha1.Sum([]byte(sha1Fingerprint)))
 		}
 	}
 
@@ -114,7 +120,7 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 		return err
 	}
 
-	d.SetId(sha1_fingerprint)
+	d.SetId(sha1Fingerprint)
 
 	return nil
 }
