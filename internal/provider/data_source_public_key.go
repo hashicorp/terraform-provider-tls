@@ -49,7 +49,7 @@ func dataSourcePublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 	// decode PEM encoding to ANS.1 PKCS1 DER
 	keyPemBlock, _ := pem.Decode(bytes)
 
-	if keyPemBlock == nil || (keyPemBlock.Type != "RSA PRIVATE KEY" && keyPemBlock.Type != "EC PRIVATE KEY") {
+	if keyPemBlock == nil || (keyPemBlock.Type != "RSA PRIVATE KEY" && keyPemBlock.Type != "EC PRIVATE KEY" && keyPemBlock.Type != "PRIVATE KEY") {
 		typ := "unknown"
 
 		if keyPemBlock != nil {
@@ -65,9 +65,11 @@ func dataSourcePublicKeyRead(d *schema.ResourceData, meta interface{}) error {
 		keyAlgo = "RSA"
 	case "EC PRIVATE KEY":
 		keyAlgo = "ECDSA"
+	case "PRIVATE KEY":
+		keyAlgo = "PKCS#8"
 	}
 	d.Set("algorithm", keyAlgo)
-	// Converts a private key from its ASN.1 PKCS#1 DER encoded form
+	// Converts a private key from its ASN.1 PKCS#1/PKCS# DER encoded form
 	key, err := parsePrivateKey(d, "private_key_pem", "algorithm")
 	if err != nil {
 		return fmt.Errorf("error converting key to algo: %s - %s", keyAlgo, err)

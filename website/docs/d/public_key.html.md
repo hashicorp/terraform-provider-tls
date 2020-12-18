@@ -23,7 +23,7 @@ data "tls_public_key" "example" {
 
 The following arguments are supported:
 
-* `private_key_pem` - (Required) The private key to use. Currently-supported key types are "RSA" or "ECDSA".
+* `private_key_pem` - (Required) The private key to use. Currently-supported key types are "RSA", "ECDSA", or "PKCS#8".
 
 
 ## Attributes Reference

@@ -33,6 +33,14 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 				),
 			},
 			{
+				Config: fmt.Sprintf(testAccDataSourcePublicKeyConfig, testPrivatePKCS8Key),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(expectedPublic)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(expectedPublicSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(expectedPublicFingerprintMD5)),
+				),
+			},
+			{
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "RSA"
