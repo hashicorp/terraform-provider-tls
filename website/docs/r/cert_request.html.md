@@ -42,7 +42,7 @@ resource "tls_cert_request" "example" {
 
 The following arguments are supported:
 
-* `key_algorithm` - (Required) The name of the algorithm for the key provided
+* `key_algorithm` - (Required) The name of the algorithm (or format if PKCS#8 ) for the key provided
 in `private_key_pem`.
 
 * `private_key_pem` - (Required) PEM-encoded private key data. This can be

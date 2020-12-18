@@ -51,8 +51,8 @@ resource "tls_self_signed_cert" "example" {
 
 The following arguments are supported:
 
-* `key_algorithm` - (Required) The name of the algorithm for the key provided
-  in `private_key_pem`.
+* `key_algorithm` - (Required) The name of the algorithm or format (if PKCS#8) 
+   for the key provided in `private_key_pem`.
 
 * `private_key_pem` - (Required) PEM-encoded private key data. This can be
   read from a separate file using the ``file`` interpolation function. If the
