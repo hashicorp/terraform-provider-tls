@@ -143,16 +143,16 @@ EOT
 %s
 EOT
                     }
-                    output "key_pem_3" {
+                    output "key_pem_2" {
                         value = "${tls_cert_request.test2.cert_request_pem}"
                     }
                 `, testPrivateKey),
 				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_3"].Value
+					gotUntyped := s.RootModule().Outputs["key_pem_2"].Value
 
 					got, ok := gotUntyped.(string)
 					if !ok {
-						return fmt.Errorf("output for \"key_pem_3\" is not a string")
+						return fmt.Errorf("output for \"key_pem_2\" is not a string")
 					}
 
 					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE REQUEST----") {
