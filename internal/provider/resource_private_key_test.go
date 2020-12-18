@@ -21,6 +21,9 @@ func TestPrivateKeyRSA(t *testing.T) {
                     output "private_key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
                     }
+                    output "private_key_pkcs8_pem" {
+                        value = "${tls_private_key.test.private_key_pkcs8_pem}"
+                    }
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
                     }
@@ -43,6 +46,16 @@ func TestPrivateKeyRSA(t *testing.T) {
 					}
 					if len(gotPrivate) > 1700 {
 						return fmt.Errorf("private key PEM looks too long for a 2048-bit key (got %v characters)", len(gotPrivate))
+					}
+
+					gotPrivatePKCS8Untyped := s.RootModule().Outputs["private_key_pkcs8_pem"].Value
+					gotPrivatePKCS8, ok := gotPrivatePKCS8Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"private_key_pkcs8_pem\" is not a string")
+					}
+
+					if !strings.HasPrefix(gotPrivatePKCS8, "-----BEGIN PRIVATE KEY----") {
+						return fmt.Errorf("private key is missing RSA key PEM preamble")
 					}
 
 					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"].Value
@@ -83,7 +96,10 @@ func TestPrivateKeyRSA(t *testing.T) {
                     }
                     output "key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
-                    }
+					}
+					output "private_key_pkcs8_pem" {
+                        value = "${tls_private_key.test.private_key_pkcs8_pem}"
+					}
                 `,
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem"].Value
@@ -97,6 +113,17 @@ func TestPrivateKeyRSA(t *testing.T) {
 					if len(got) < 1700 {
 						return fmt.Errorf("key PEM looks too short for a 4096-bit key (got %v characters)", len(got))
 					}
+
+					gotPrivatePKCS8Untyped := s.RootModule().Outputs["private_key_pkcs8_pem"].Value
+					gotPrivatePKCS8, ok := gotPrivatePKCS8Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"private_key_pkcs8_pem\" is not a string")
+					}
+
+					if !strings.HasPrefix(gotPrivatePKCS8, "-----BEGIN PRIVATE KEY----") {
+						return fmt.Errorf("private key is missing RSA key PEM preamble")
+					}
+
 					return nil
 				},
 			},
@@ -115,7 +142,10 @@ func TestPrivateKeyECDSA(t *testing.T) {
                     }
                     output "private_key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
-                    }
+					}
+					output "private_key_pkcs8_pem" {
+                        value = "${tls_private_key.test.private_key_pkcs8_pem}"
+					}
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
                     }
@@ -135,6 +165,16 @@ func TestPrivateKeyECDSA(t *testing.T) {
 
 					if !strings.HasPrefix(gotPrivate, "-----BEGIN EC PRIVATE KEY----") {
 						return fmt.Errorf("Private key is missing EC key PEM preamble")
+					}
+
+					gotPrivatePKCS8Untyped := s.RootModule().Outputs["private_key_pkcs8_pem"].Value
+					gotPrivatePKCS8, ok := gotPrivatePKCS8Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"private_key_pkcs8_pem\" is not a string")
+					}
+
+					if !strings.HasPrefix(gotPrivatePKCS8, "-----BEGIN PRIVATE KEY----") {
+						return fmt.Errorf("private key is missing RSA key PEM preamble")
 					}
 
 					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"].Value
@@ -168,6 +208,9 @@ func TestPrivateKeyECDSA(t *testing.T) {
                     }
                     output "private_key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
+					}
+					output "private_key_pkcs8_pem" {
+                        value = "${tls_private_key.test.private_key_pkcs8_pem}"
                     }
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
@@ -187,6 +230,16 @@ func TestPrivateKeyECDSA(t *testing.T) {
 					}
 					if !strings.HasPrefix(gotPrivate, "-----BEGIN EC PRIVATE KEY----") {
 						return fmt.Errorf("Private key is missing EC key PEM preamble")
+					}
+
+					gotPrivatePKCS8Untyped := s.RootModule().Outputs["private_key_pkcs8_pem"].Value
+					gotPrivatePKCS8, ok := gotPrivatePKCS8Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"private_key_pkcs8_pem\" is not a string")
+					}
+
+					if !strings.HasPrefix(gotPrivatePKCS8, "-----BEGIN PRIVATE KEY----") {
+						return fmt.Errorf("private key is missing RSA key PEM preamble")
 					}
 
 					gotPublicUntyped := s.RootModule().Outputs["public_key_pem"].Value
