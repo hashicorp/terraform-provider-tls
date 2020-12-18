@@ -35,23 +35,6 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 			return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
 		}
 	},
-	// "PKCS#8": func(d *schema.ResourceData) (interface{}, error) {
-	// 	// Either RSA or ECDSA works
-	// 	curve := d.Get("ecdsa_curve").(string)
-	// 	switch curve {
-	// 	case "P224":
-	// 		return ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
-	// 	case "P256":
-	// 		return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	// 	case "P384":
-	// 		return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	// 	case "P521":
-	// 		return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
-	// 	default:
-	// 		rsaBits := d.Get("rsa_bits").(int)
-	// 		return rsa.GenerateKey(rand.Reader, rsaBits)
-	// 	}
-	// },
 }
 
 var keyParsers map[string]keyParser = map[string]keyParser{
