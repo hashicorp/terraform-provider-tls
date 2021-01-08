@@ -4,6 +4,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"net"
+	"regexp"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/crypto/ssh"
@@ -101,5 +104,50 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 		d.Set("public_key_openssh", "")
 		d.Set("public_key_fingerprint_md5", "")
 	}
+	return nil
+}
+
+func hostKeyCallback(publicKey *ssh.PublicKey) func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		*publicKey = key
+		return nil
+	}
+}
+
+func dialSSHServer(serverUri string) (key ssh.PublicKey, err error) {
+	hostSuffixMatch, _ := regexp.MatchString(`:[0-9]*$`, serverUri)
+	if hostSuffixMatch == false {
+		serverUri = serverUri + ":22"
+	}
+	timeoutDur, _ := time.ParseDuration("15s")
+	sshDialer := net.Dialer{Timeout: timeoutDur}
+	sshDialerConn, err := sshDialer.Dial("tcp", serverUri)
+	if err != nil {
+		return nil, err
+	}
+	defer sshDialerConn.Close()
+
+	sshClientConfig := ssh.ClientConfig{
+		HostKeyAlgorithms: []string{"ssh-rsa"},
+		HostKeyCallback:   hostKeyCallback(&key),
+	}
+	sshClientConn, _, _, err := ssh.NewClientConn(sshDialerConn, serverUri, &sshClientConfig)
+	if err == nil {
+		sshClientConn.Close()
+	}
+	return key, nil
+}
+
+func readSSHServerPublicKey(d *schema.ResourceData, serverUri string) error {
+	sshPubKey, err := dialSSHServer(serverUri)
+	if err != nil {
+		return fmt.Errorf("failed to marshal public key error: %s", err)
+	}
+	sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
+
+	d.SetId(hashForState(string((sshPubKeyBytes))))
+	d.Set("public_key_pem", "")
+	d.Set("public_key_openssh", string(sshPubKeyBytes))
+	d.Set("public_key_fingerprint_md5", ssh.FingerprintLegacyMD5(sshPubKey))
 	return nil
 }
