@@ -18,8 +18,9 @@ func New() *schema.Provider {
 			"tls_cert_request":        resourceCertRequest(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{
-			"tls_public_key":  dataSourcePublicKey(),
-			"tls_certificate": dataSourceTlsCertificate(),
+			"tls_public_key":   dataSourcePublicKey(),
+			"tls_certificate":  dataSourceTlsCertificate(),
+			"tls_ssh_key_scan": dataSourceSshKeyScan(),
 		},
 	}
 }
