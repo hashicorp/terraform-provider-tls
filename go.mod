@@ -1,6 +1,6 @@
 module github.com/terraform-providers/terraform-provider-tls
 
-go 1.14
+go 1.16
 
 require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.4.3

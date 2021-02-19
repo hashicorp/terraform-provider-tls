@@ -1,3 +1,7 @@
+## 3.1.0 (Unreleased)
+
+Binary releases of this provider now include the darwin-arm64 platform. This version contains no further changes.
+
 ## 3.0.0 (October 14, 2020)
 
 Binary releases of this provider will now include the linux-arm64 platform.
