@@ -93,6 +93,7 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: !verifyChain},
+		Proxy:           http.ProxyFromEnvironment,
 	}
 	client := &http.Client{Transport: tr}
 	resp, err := client.Get("https://" + u.Host)
