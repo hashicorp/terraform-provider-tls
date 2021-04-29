@@ -99,6 +99,8 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
+
 	peerCerts := resp.TLS.PeerCertificates
 
 	var certs []interface{}
