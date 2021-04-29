@@ -5,9 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceTlsCertificate() *schema.Resource {
@@ -89,16 +91,19 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 
 	verifyChain := d.Get("verify_chain").(bool)
 
-	conn, err := tls.Dial("tcp", u.Host, &tls.Config{InsecureSkipVerify: !verifyChain})
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: !verifyChain},
+	}
+	client := &http.Client{Transport: tr}
+	resp, err := client.Get("https://" + u.Host)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
-	state := conn.ConnectionState()
+	peerCerts := resp.TLS.PeerCertificates
 
 	var certs []interface{}
-	for i := len(state.PeerCertificates) - 1; i >= 0; i-- {
-		certs = append(certs, parsePeerCertificate(state.PeerCertificates[i]))
+	for i := len(peerCerts) - 1; i >= 0; i-- {
+		certs = append(certs, parsePeerCertificate(peerCerts[i]))
 	}
 
 	err = d.Set("certificates", certs)
