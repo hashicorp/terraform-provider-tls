@@ -1,12 +1,15 @@
 package provider
 
 import (
+	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/crypto/ssh"
+	"software.sslmate.com/src/go-pkcs12"
 )
 
 func decodePEM(d *schema.ResourceData, pemKey, pemType string) (*pem.Block, error) {
@@ -102,4 +105,14 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 		d.Set("public_key_fingerprint_md5", "")
 	}
 	return nil
+}
+
+func createB64Pfx(privateKey interface{}, certificate *x509.Certificate, caCerts []*x509.Certificate, password string) ([]byte, error) {
+	pfxData, err := pkcs12.Encode(rand.Reader, privateKey, certificate, caCerts, password)
+	if err != nil {
+		return nil, err
+	}
+	b64Buffer := make([]byte, base64.StdEncoding.EncodedLen(len(pfxData)))
+	base64.StdEncoding.Encode(b64Buffer, pfxData)
+	return b64Buffer, nil
 }

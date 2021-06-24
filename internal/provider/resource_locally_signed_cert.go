@@ -47,6 +47,19 @@ func resourceLocallySignedCert() *schema.Resource {
 		},
 	}
 
+	s["key_algorithm"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Algorithm of private key for requested certificate (provide to have PFX bundle generated)",
+	}
+
+	s["private_key_pem"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Private key for requested certificate (provide to have PFX bundle generated)",
+		Sensitive:   true,
+	}
+
 	return &schema.Resource{
 		Create:        CreateLocallySignedCert,
 		Delete:        DeleteCertificate,

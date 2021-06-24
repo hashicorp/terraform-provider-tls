@@ -117,6 +117,19 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Computed: true,
 		},
 
+		"cert_pfx": {
+			Type:      schema.TypeString,
+			Computed:  true,
+			Sensitive: true,
+		},
+
+		"cert_pfx_password": {
+			Type:      schema.TypeString,
+			Default:   "",
+			Optional:  true,
+			Sensitive: true,
+		},
+
 		"ready_for_renewal": {
 			Type:     schema.TypeBool,
 			Computed: true,
@@ -193,6 +206,23 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	validToBytes, err := template.NotAfter.MarshalText()
 	if err != nil {
 		return fmt.Errorf("error serializing validity_end_time: %s", err)
+	}
+
+	private_key, err := parsePrivateKey(d, "private_key_pem", "key_algorithm")
+	if err != nil {
+		d.Set("cert_pfx", "")
+	} else {
+		var caCerts []*x509.Certificate
+		cert, err := x509.ParseCertificate(certBytes)
+		if err != nil {
+			return fmt.Errorf("error parsing certificate: %s", err)
+		}
+		caCerts = append(caCerts, parent)
+		pfx, err := createB64Pfx(private_key, cert, caCerts, d.Get("cert_pfx_password").(string))
+		if err != nil {
+			return fmt.Errorf("error creating pfx: %s", err)
+		}
+		d.Set("cert_pfx", string(pfx))
 	}
 
 	d.SetId(template.SerialNumber.String())
