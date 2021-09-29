@@ -2,10 +2,12 @@ package provider
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"testing"
 
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
@@ -222,3 +224,102 @@ func TestPrivateKeyECDSA(t *testing.T) {
 		},
 	})
 }
+
+type keyLens struct {
+	algorithm   string
+	rsa_bits    int
+	ecdsa_curve string
+}
+
+var testAccProviders map[string]*schema.Provider
+var testAccProvider *schema.Provider
+
+func init() {
+	testAccProvider = New()
+	testAccProviders = map[string]*schema.Provider{
+		"tls": testAccProvider,
+	}
+}
+
+func TestAccImportKey(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		PreCheck:  func() {},
+		Providers: testAccProviders,
+		Steps: []r.TestStep{
+			{
+				Config: testAccResourceKeyConfig,
+				Check: r.ComposeTestCheckFunc(
+					testAccResourceKeyCheck("tls_private_key.rsa", &keyLens{
+						algorithm:   "RSA",
+						rsa_bits:    2048,
+						ecdsa_curve: "P224",
+					}),
+					testAccResourceKeyCheck("tls_private_key.ecdsa", &keyLens{
+						algorithm:   "ECDSA",
+						rsa_bits:    2048,
+						ecdsa_curve: "P224",
+					}),
+				),
+			},
+			{
+				ResourceName:      "tls_private_key.rsa",
+				ImportState:       true,
+				ImportStateIdFunc: importStateIdFunc(t, testPrivateKey),
+			},
+			{
+				ResourceName:      "tls_private_key.ecdsa",
+				ImportState:       true,
+				ImportStateIdFunc: importStateIdFunc(t, testPrivateKeyECDSA),
+			},
+		},
+	})
+}
+func importStateIdFunc(t *testing.T, key string) func(*terraform.State) (string, error) {
+	return func(state *terraform.State) (string, error) {
+		file, err := ioutil.TempFile(t.TempDir(), state.Lineage)
+		file.Write([]byte(key))
+		if err != nil {
+			return "", fmt.Errorf("could not write file: %w", err)
+		}
+		return file.Name(), nil
+	}
+}
+func testAccResourceKeyCheck(id string, want *keyLens) r.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[id]
+		if !ok {
+			return fmt.Errorf("Not found: %s", id)
+		}
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		algorithm := rs.Primary.Attributes["algorithm"]
+		rsa_bits := rs.Primary.Attributes["rsa_bits"]
+		ecdsa_curve := rs.Primary.Attributes["ecdsa_curve"]
+
+		if got, want := algorithm, want.algorithm; got != want {
+			return fmt.Errorf("algorithm is %s; want %s", got, want)
+		}
+		if got, want := rsa_bits, want.rsa_bits; got != fmt.Sprint(want) {
+			return fmt.Errorf("rsa_bits is %v; want %v", got, want)
+		}
+		if got, want := ecdsa_curve, want.ecdsa_curve; got != want {
+			return fmt.Errorf("ecdsa_curve is %s; want %s", got, want)
+		}
+
+		return nil
+	}
+}
+
+const (
+	testAccResourceKeyConfig = `
+resource "tls_private_key" "rsa" {
+  algorithm = "RSA"
+}
+
+resource "tls_private_key" "ecdsa" {
+  algorithm = "ECDSA"
+}
+`
+)

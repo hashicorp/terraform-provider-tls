@@ -1,9 +1,12 @@
 package provider
 
 import (
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/crypto/ssh"
@@ -37,6 +40,18 @@ func parsePrivateKey(d *schema.ResourceData, pemKey, algoKey string) (interface{
 	key, err := keyFunc(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode %s: %s", pemKey, err)
+	}
+
+	switch key.(type) {
+	case *rsa.PrivateKey:
+		d.Set("rsa_bits", key.(*rsa.PrivateKey).Size()*8)
+		d.Set("ecdsa_curve", "P224")
+	case *ecdsa.PrivateKey:
+		d.Set("rsa_bits", 2048)
+		name := key.(*ecdsa.PrivateKey).Params().Name
+		d.Set("ecdsa_curve", strings.ReplaceAll(name, "-", ""))
+	default:
+		return nil, fmt.Errorf("unknown key type")
 	}
 
 	return key, nil
