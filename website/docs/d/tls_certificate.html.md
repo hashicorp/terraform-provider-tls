@@ -9,7 +9,7 @@ description: |-
 # Data Source: tls_certificate
 
 Use this data source to get information, such as SHA1 fingerprint or serial number, about the TLS certificates that
-protect an HTTPS website. Note that the certificate chain isn't verified.
+protect an HTTPS website. Information about local TLS certificate could also be found. Note that the certificate chain isn't verified.
 
 ## Example Usage
 
@@ -19,7 +19,8 @@ resource "aws_eks_cluster" "example" {
 }
 
 data "tls_certificate" "example" {
-  url = "${aws_eks_cluster.example.identity.0.oidc.0.issuer}"
+  input = "${aws_eks_cluster.example.identity.0.oidc.0.issuer}"
+  type  = "remote"
 }
 
 resource "aws_iam_openid_connect_provider" "example" {
@@ -33,7 +34,8 @@ resource "aws_iam_openid_connect_provider" "example" {
 
 The following arguments are supported:
 
-* `url` - (Required) The URL of the website to get the certificates from.
+* `input` - (Required) The input for the data source. It can either be the URL of the website to get the certificates from or string containing the content of the PEM file.
+* `type` - (Required) The type of the input. Must be either `local` or `remote`.
 * `verify_chain` - (Optional) Whether to verify the certificate chain while parsing it or not
 
 
