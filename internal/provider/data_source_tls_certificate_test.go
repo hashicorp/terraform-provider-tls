@@ -25,10 +25,47 @@ func TestAccTlsCertificate_dataSource(t *testing.T) {
 
 				Config: fmt.Sprintf(`
 data "tls_certificate" "test" {
-  url = "https://%s"
-  verify_chain = false
+ input = "https://%s"
+ verify_chain = false
+ type = "remote"
 }
 `, host),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
+
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.serial_number", "60512478256160404377639062250777657301"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.version", "3"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=Root CA,O=Test Org,L=Here"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=Root CA,O=Test Org,L=Here"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_before", "2019-11-07T15:47:48Z"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_after", "2019-12-17T15:47:48Z"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "5829a9bcc57f317719c5c98d1f48d6c9957cb44e"),
+
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.serial_number", "266244246501122064554217434340898012243"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.version", "3"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=Root CA,O=Test Org,L=Here"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=Child Cert,O=Child Co.,L=Everywhere"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_before", "2019-11-08T09:01:36Z"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_after", "2019-11-08T19:01:36Z"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
+				),
+			},
+
+			{
+
+				Config: `
+data "tls_certificate" "test" {
+ input =  file("testdata/tls_certs/public.pem")
+ verify_chain = false
+ type = "local"
+}
+`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
 

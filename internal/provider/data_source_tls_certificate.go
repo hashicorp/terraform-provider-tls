@@ -4,8 +4,10 @@ import (
 	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"net/url"
 	"time"
 )
@@ -14,9 +16,15 @@ func dataSourceTlsCertificate() *schema.Resource {
 	return &schema.Resource{
 		Read: dataSourceTlsCertificateRead,
 		Schema: map[string]*schema.Schema{
-			"url": {
+			"input": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"type": {
+				Type:         schema.TypeString,
+				Description:  "Type of input. Must be either \"local\" or \"remote\".",
+				Required:     true,
+				ValidateFunc: validation.StringInSlice([]string{"local", "remote"}, false),
 			},
 			"verify_chain": {
 				Type:     schema.TypeBool,
@@ -76,38 +84,49 @@ func dataSourceTlsCertificate() *schema.Resource {
 }
 
 func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
-	u, err := url.Parse(d.Get("url").(string))
-	if err != nil {
-		return err
-	}
-	if u.Scheme != "https" {
-		return fmt.Errorf("invalid scheme")
-	}
-	if u.Port() == "" {
-		u.Host += ":443"
-	}
-
-	verifyChain := d.Get("verify_chain").(bool)
-
-	conn, err := tls.Dial("tcp", u.Host, &tls.Config{InsecureSkipVerify: !verifyChain})
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	state := conn.ConnectionState()
-
+	inputType := d.Get("type")
 	var certs []interface{}
-	for i := len(state.PeerCertificates) - 1; i >= 0; i-- {
-		certs = append(certs, parsePeerCertificate(state.PeerCertificates[i]))
-	}
+	switch inputType {
+	case "remote":
+		u, err := url.Parse(d.Get("input").(string))
+		if err != nil {
+			return err
+		}
+		if u.Scheme != "https" {
+			return fmt.Errorf("invalid scheme")
+		}
+		if u.Port() == "" {
+			u.Host += ":443"
+		}
 
-	err = d.Set("certificates", certs)
+		verifyChain := d.Get("verify_chain").(bool)
+
+		conn, err := tls.Dial("tcp", u.Host, &tls.Config{InsecureSkipVerify: !verifyChain})
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		state := conn.ConnectionState()
+		for i := len(state.PeerCertificates) - 1; i >= 0; i-- {
+			certs = append(certs, parsePeerCertificate(state.PeerCertificates[i]))
+		}
+
+	case "local":
+		pemTxt := d.Get("input").(string)
+		parsedCert := decodePem(pemTxt)
+		for i := len(parsedCert.Certificate) - 1; i >= 0; i-- {
+			x509Cert, err := x509.ParseCertificate(parsedCert.Certificate[i])
+			if err != nil {
+				return err
+			}
+			certs = append(certs, parsePeerCertificate(x509Cert))
+		}
+	}
+	err := d.Set("certificates", certs)
 	if err != nil {
 		return err
 	}
-
 	d.SetId(time.Now().UTC().String())
-
 	return nil
 }
 
@@ -126,4 +145,19 @@ func parsePeerCertificate(cert *x509.Certificate) map[string]interface{} {
 	}
 
 	return ret
+}
+func decodePem(certInput string) tls.Certificate {
+	var cert tls.Certificate
+	certPEMBlock := []byte(certInput)
+	var certDERBlock *pem.Block
+	for {
+		certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
+		if certDERBlock == nil {
+			break
+		}
+		if certDERBlock.Type == "CERTIFICATE" {
+			cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
+		}
+	}
+	return cert
 }
