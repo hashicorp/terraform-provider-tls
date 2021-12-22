@@ -8,8 +8,8 @@ description: |-
 
 # Data Source: tls_certificate
 
-Use this data source to get information, such as SHA1 fingerprint or serial number, about the TLS certificates that
-protect an HTTPS website. Information about local TLS certificate could also be found. Note that the certificate chain isn't verified.
+Reads the information of TLS certificate (SHA1 fingerprint, serial number, issuer, expiration date etc). Certificate can
+reside locally or remote i.e. protecting HTTPS website
 
 ## Example Usage
 
