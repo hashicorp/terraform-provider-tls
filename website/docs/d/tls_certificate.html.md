@@ -9,7 +9,7 @@ description: |-
 # Data Source: tls_certificate
 
 Reads the information of TLS certificate (SHA1 fingerprint, serial number, issuer, expiration date etc). Certificate can
-reside locally or remote i.e. protecting HTTPS website
+reside locally or remotely i.e. protecting HTTPS website
 
 ## Example Usage
 
