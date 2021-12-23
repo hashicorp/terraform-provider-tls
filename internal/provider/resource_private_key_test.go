@@ -19,7 +19,8 @@ func TestPrivateKeyRSA(t *testing.T) {
                         algorithm = "RSA"
                     }
                     output "private_key_pem" {
-                        value = "${tls_private_key.test.private_key_pem}"
+                        value     = "${tls_private_key.test.private_key_pem}"
+                        sensitive = true
                     }
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
@@ -79,10 +80,11 @@ func TestPrivateKeyRSA(t *testing.T) {
 				Config: `
                     resource "tls_private_key" "test" {
                         algorithm = "RSA"
-                        rsa_bits = 4096
+                        rsa_bits  = 4096
                     }
                     output "key_pem" {
-                        value = "${tls_private_key.test.private_key_pem}"
+                        value     = "${tls_private_key.test.private_key_pem}"
+                        sensitive = true
                     }
                 `,
 				Check: func(s *terraform.State) error {
@@ -114,7 +116,8 @@ func TestPrivateKeyECDSA(t *testing.T) {
                         algorithm = "ECDSA"
                     }
                     output "private_key_pem" {
-                        value = "${tls_private_key.test.private_key_pem}"
+                        value     = "${tls_private_key.test.private_key_pem}"
+                        sensitive = true
                     }
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
@@ -163,11 +166,12 @@ func TestPrivateKeyECDSA(t *testing.T) {
 			{
 				Config: `
                     resource "tls_private_key" "test" {
-                        algorithm = "ECDSA"
+                        algorithm   = "ECDSA"
                         ecdsa_curve = "P256"
                     }
                     output "private_key_pem" {
-                        value = "${tls_private_key.test.private_key_pem}"
+                        value     = "${tls_private_key.test.private_key_pem}"
+                        sensitive = true
                     }
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
