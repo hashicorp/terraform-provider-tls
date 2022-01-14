@@ -20,7 +20,8 @@ func TestPrivateKeyRSA(t *testing.T) {
                     }
                     output "private_key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
-                    }
+			            sensitive = true
+					}
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
                     }
@@ -83,7 +84,8 @@ func TestPrivateKeyRSA(t *testing.T) {
                     }
                     output "key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
-                    }
+						sensitive = true
+					}
                 `,
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem"].Value
@@ -115,6 +117,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
                     }
                     output "private_key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
+						sensitive = true
                     }
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"
@@ -168,6 +171,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
                     }
                     output "private_key_pem" {
                         value = "${tls_private_key.test.private_key_pem}"
+						sensitive = true
                     }
                     output "public_key_pem" {
                         value = "${tls_private_key.test.public_key_pem}"

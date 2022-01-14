@@ -1,13 +1,20 @@
 package provider
 
 import (
+	"context"
 	"crypto/sha1"
 	"crypto/x509/pkix"
 	"encoding/hex"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+type TlsProvConfig struct {
+	useProxy bool
+}
 
 func New() *schema.Provider {
 	return &schema.Provider{
@@ -21,6 +28,7 @@ func New() *schema.Provider {
 			"tls_public_key":  dataSourcePublicKey(),
 			"tls_certificate": dataSourceTlsCertificate(),
 		},
+		ConfigureContextFunc: providerConfigure,
 	}
 }
 
@@ -30,6 +38,17 @@ func hashForState(value string) string {
 	}
 	hash := sha1.Sum([]byte(strings.TrimSpace(value)))
 	return hex.EncodeToString(hash[:])
+}
+
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	_, ok := os.LookupEnv("TF_TLS_USE_ENV_PROXY")
+	cfg := TlsProvConfig{useProxy: false}
+	if ok {
+		cfg.useProxy = true
+	}
+	return &cfg, diags
 }
 
 func nameFromResourceData(nameMap map[string]interface{}) (*pkix.Name, error) {
