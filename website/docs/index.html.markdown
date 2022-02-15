@@ -10,7 +10,7 @@ description: |-
 
 The TLS provider provides utilities for working with *Transport Layer Security*
 keys and certificates. It provides resources that
-allow private keys, certificates and certficate requests to be
+allow private keys, certificates and certificate requests to be
 created as part of a Terraform deployment.
 
 Another name for Transport Layer Security is *Secure Sockets Layer*,
