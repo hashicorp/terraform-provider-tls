@@ -24,7 +24,7 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 		return rsa.GenerateKey(rand.Reader, rsaBits)
 	},
 	"ECDSA": func(d *schema.ResourceData) (interface{}, error) {
-		var ec elliptic.Curve = nil
+		var ec elliptic.Curve
 		switch d.Get("ecdsa_curve").(string) {
 		case "P224":
 			ec = elliptic.P224()
@@ -34,11 +34,10 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 			ec = elliptic.P384()
 		case "P521":
 			ec = elliptic.P521()
+		default:
+			return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
 		}
-		if ec != nil {
-			return ecdsa.GenerateKey(ec, rand.Reader)
-		}
-		return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
+		return ecdsa.GenerateKey(ec, rand.Reader)
 	},
 	"ED25519": func(d *schema.ResourceData) (interface{}, error) {
 		_, priv, err := ed25519.GenerateKey(rand.Reader)
