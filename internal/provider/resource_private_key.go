@@ -13,8 +13,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-type keyAlgo func(d *schema.ResourceData) (interface{}, error)
-type keyParser func([]byte) (interface{}, error)
+type (
+	keyAlgo   func(d *schema.ResourceData) (interface{}, error)
+	keyParser func([]byte) (interface{}, error)
+)
 
 var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 	"RSA": func(d *schema.ResourceData) (interface{}, error) {
@@ -39,7 +41,7 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 		return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
 	},
 	"ED25519": func(d *schema.ResourceData) (interface{}, error) {
-		priv, _, err := ed25519.GenerateKey(rand.Reader)
+		_, priv, err := ed25519.GenerateKey(rand.Reader)
 		return priv, err
 	},
 }
@@ -139,7 +141,7 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 			Type:  "EC PRIVATE KEY",
 			Bytes: keyBytes,
 		}
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		keyBytes, err := x509.MarshalPKCS8PrivateKey(k)
 		if err != nil {
 			return fmt.Errorf("error encoding key to PEM: %s", err)
@@ -173,7 +175,7 @@ func publicKey(priv interface{}) interface{} {
 		return &k.PublicKey
 	case *ecdsa.PrivateKey:
 		return &k.PublicKey
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		return k.Public()
 	default:
 		return nil
