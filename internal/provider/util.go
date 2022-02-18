@@ -99,16 +99,18 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 	d.SetId(hashForState(string(pubKeyBytes)))
 	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
 
+	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
+	// so this will return an error: in that case, we set the below fields to emptry strings
 	sshPubKey, err := ssh.NewPublicKey(publicKey(rsaKey))
 	if err == nil {
-		// Not all EC types can be SSH keys, so we'll produce this only
-		// if an appropriate type was selected.
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
 		d.Set("public_key_openssh", string(sshPubKeyBytes))
 		d.Set("public_key_fingerprint_md5", ssh.FingerprintLegacyMD5(sshPubKey))
+		d.Set("public_key_fingerprint_sha256", ssh.FingerprintSHA256(sshPubKey))
 	} else {
 		d.Set("public_key_openssh", "")
 		d.Set("public_key_fingerprint_md5", "")
+		d.Set("public_key_fingerprint_sha256", "")
 	}
 	return nil
 }

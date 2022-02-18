@@ -121,6 +121,11 @@ func resourcePrivateKey() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"public_key_fingerprint_sha256": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
