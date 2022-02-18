@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
@@ -13,15 +14,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-type keyAlgo func(d *schema.ResourceData) (interface{}, error)
-type keyParser func([]byte) (interface{}, error)
+// keyGenerator extracts data from the given *schema.ResourceData,
+// and generates a new public/private key-pair according to the
+// selected algorithm
+type keyGenerator func(d *schema.ResourceData) (crypto.PrivateKey, error)
 
-var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
-	"RSA": func(d *schema.ResourceData) (interface{}, error) {
+// keyParser parses a private key from the given []byte,
+// according to the selected algorithm
+type keyParser func([]byte) (crypto.PrivateKey, error)
+
+var keyGenerators = map[Algorithm]keyGenerator{
+	RSA: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
 		rsaBits := d.Get("rsa_bits").(int)
 		return rsa.GenerateKey(rand.Reader, rsaBits)
 	},
-	"ECDSA": func(d *schema.ResourceData) (interface{}, error) {
+	ECDSA: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
 		curve := d.Get("ecdsa_curve").(string)
 		switch curve {
 		case "P224":
@@ -36,7 +43,7 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 			return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
 		}
 	},
-	"ED25519": func(d *schema.ResourceData) (interface{}, error) {
+	ED25519: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
 		_, key, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate ed25519 key: %s", err)
@@ -45,14 +52,14 @@ var keyAlgos map[string]keyAlgo = map[string]keyAlgo{
 	},
 }
 
-var keyParsers map[string]keyParser = map[string]keyParser{
-	"RSA": func(der []byte) (interface{}, error) {
+var keyParsers = map[Algorithm]keyParser{
+	RSA: func(der []byte) (crypto.PrivateKey, error) {
 		return x509.ParsePKCS1PrivateKey(der)
 	},
-	"ECDSA": func(der []byte) (interface{}, error) {
+	ECDSA: func(der []byte) (crypto.PrivateKey, error) {
 		return x509.ParseECPrivateKey(der)
 	},
-	"ED25519": func(der []byte) (interface{}, error) {
+	ED25519: func(der []byte) (crypto.PrivateKey, error) {
 		return x509.ParsePKCS8PrivateKey(der)
 	},
 }
@@ -117,15 +124,18 @@ func resourcePrivateKey() *schema.Resource {
 	}
 }
 
-func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
-	keyAlgoName := d.Get("algorithm").(string)
-	var keyFunc keyAlgo
+func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
+	keyAlgoName := Algorithm(d.Get("algorithm").(string))
+
+	// Identify the correct (Private) Key Generator
+	var keyGen keyGenerator
 	var ok bool
-	if keyFunc, ok = keyAlgos[keyAlgoName]; !ok {
+	if keyGen, ok = keyGenerators[keyAlgoName]; !ok {
 		return fmt.Errorf("invalid key_algorithm %#v", keyAlgoName)
 	}
 
-	key, err := keyFunc(d)
+	// Generate the new Key
+	key, err := keyGen(d)
 	if err != nil {
 		return err
 	}
@@ -175,12 +185,12 @@ func CreatePrivateKey(d *schema.ResourceData, meta interface{}) error {
 	return readPublicKey(d, key)
 }
 
-func DeletePrivateKey(d *schema.ResourceData, meta interface{}) error {
+func DeletePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	d.SetId("")
 	return nil
 }
 
-func ReadPrivateKey(d *schema.ResourceData, meta interface{}) error {
+func ReadPrivateKey(d *schema.ResourceData, _ interface{}) error {
 	return nil
 }
 

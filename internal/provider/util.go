@@ -9,6 +9,15 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+// Algorithm represents the type of private key algorithm currently supported
+type Algorithm string
+
+const (
+	RSA     Algorithm = "RSA"
+	ECDSA   Algorithm = "ECDSA"
+	ED25519 Algorithm = "ED25519"
+)
+
 func decodePEM(d *schema.ResourceData, pemKey, pemType string) (*pem.Block, error) {
 	block, _ := pem.Decode([]byte(d.Get(pemKey).(string)))
 	if block == nil {
@@ -22,7 +31,7 @@ func decodePEM(d *schema.ResourceData, pemKey, pemType string) (*pem.Block, erro
 }
 
 func parsePrivateKey(d *schema.ResourceData, pemKey, algoKey string) (interface{}, error) {
-	algoName := d.Get(algoKey).(string)
+	algoName := Algorithm(d.Get(algoKey).(string))
 
 	keyFunc, ok := keyParsers[algoName]
 	if !ok {
@@ -87,7 +96,7 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 		Bytes: pubKeyBytes,
 	}
 
-	d.SetId(hashForState(string((pubKeyBytes))))
+	d.SetId(hashForState(string(pubKeyBytes)))
 	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
 
 	sshPubKey, err := ssh.NewPublicKey(publicKey(rsaKey))
