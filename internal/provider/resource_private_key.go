@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/terraform-providers/terraform-provider-tls/internal/openssh"
 )
 
 // keyGenerator extracts data from the given *schema.ResourceData,
@@ -140,8 +141,9 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		return err
 	}
 
+	// Marshall the Key in PEM block
 	var keyPemBlock *pem.Block
-	var openSSHKeyPemBlock *pem.Block
+	doMarshallOpenSSHKeyPemBlock := true
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
 		keyPemBlock = &pem.Block{
@@ -153,9 +155,15 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		if err != nil {
 			return fmt.Errorf("error encoding key to PEM: %s", err)
 		}
+
 		keyPemBlock = &pem.Block{
 			Type:  "EC PRIVATE KEY",
 			Bytes: keyBytes,
+		}
+
+		// GOTCHA: `x/crypto/ssh` doesn't handle elliptic curve P-224
+		if k.Curve.Params().Name == "P-224" {
+			doMarshallOpenSSHKeyPemBlock = false
 		}
 	case *ed25519.PrivateKey:
 		keyBytes, err := x509.MarshalPKCS8PrivateKey(*k)
@@ -167,20 +175,20 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 			Type:  "PRIVATE KEY",
 			Bytes: keyBytes,
 		}
-		openSSHKeyPemBlock = &pem.Block{
-			Type:  "OPENSSH PRIVATE KEY",
-			Bytes: marshalED25519PrivateKey(*k),
-		}
 	default:
 		return fmt.Errorf("unsupported private key type")
 	}
 	d.Set("private_key_pem", string(pem.EncodeToMemory(keyPemBlock)))
 
-	if openSSHKeyPemBlock == nil {
-		openSSHKeyPemBlock = keyPemBlock
+	// Marshall the Key in OpenSSH PEM block, if enabled
+	d.Set("private_key_openssh", "")
+	if doMarshallOpenSSHKeyPemBlock {
+		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(key, "")
+		if err != nil {
+			return err
+		}
+		d.Set("private_key_openssh", string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 	}
-
-	d.Set("private_key_openssh", string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 
 	return readPublicKey(d, key)
 }
