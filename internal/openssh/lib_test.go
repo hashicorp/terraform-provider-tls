@@ -20,7 +20,7 @@ func TestOpenSSHFormat_MarshalAndUnmarshal_RSA(t *testing.T) {
 	rsaOrig, err := rsa.GenerateKey(rand.Reader, 4096)
 	assert.NoError(err)
 
-	// Marshall it to OpenSSH PEM format
+	// Marshal it to OpenSSH PEM format
 	pemOpenSSHPrvKey, err := MarshalPrivateKey(rsaOrig, "")
 	assert.NoError(err)
 	pemOpenSSHPrvKeyBytes := pem.EncodeToMemory(pemOpenSSHPrvKey)
@@ -43,7 +43,7 @@ func TestOpenSSHFormat_MarshalAndUnmarshal_ECDSA(t *testing.T) {
 	ecdsaOrig, err := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	assert.NoError(err)
 
-	// Marshall it to OpenSSH PEM format
+	// Marshal it to OpenSSH PEM format
 	pemOpenSSHPrvKey, err := MarshalPrivateKey(ecdsaOrig, "")
 	assert.NoError(err)
 	pemOpenSSHPrvKeyBytes := pem.EncodeToMemory(pemOpenSSHPrvKey)
@@ -64,7 +64,7 @@ func TestOpenSSHFormat_MarshalAndUnmarshal_ED25519(t *testing.T) {
 	_, ed25519Orig, err := ed25519.GenerateKey(rand.Reader)
 	assert.NoError(err)
 
-	// Marshall it to OpenSSH PEM format
+	// Marshal it to OpenSSH PEM format
 	pemOpenSSHPrvKey, err := MarshalPrivateKey(ed25519Orig, "")
 	assert.NoError(err)
 	pemOpenSSHPrvKeyBytes := pem.EncodeToMemory(pemOpenSSHPrvKey)
