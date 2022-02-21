@@ -13,7 +13,7 @@ import (
 	testifyAssert "github.com/stretchr/testify/assert"
 )
 
-func TestOpenSSHFormat_MarshalAndUnmarshall_RSA(t *testing.T) {
+func TestOpenSSHFormat_MarshalAndUnmarshal_RSA(t *testing.T) {
 	assert := testifyAssert.New(t)
 
 	// Given an RSA private key
@@ -36,7 +36,7 @@ func TestOpenSSHFormat_MarshalAndUnmarshall_RSA(t *testing.T) {
 	assert.True(rsaParsed.Equal(rsaOrig))
 }
 
-func TestOpenSSHFormat_MarshalAndUnmarshall_ECDSA(t *testing.T) {
+func TestOpenSSHFormat_MarshalAndUnmarshal_ECDSA(t *testing.T) {
 	assert := testifyAssert.New(t)
 
 	// Given an ECDSA private key
@@ -57,7 +57,7 @@ func TestOpenSSHFormat_MarshalAndUnmarshall_ECDSA(t *testing.T) {
 	assert.True(ecdsaParsed.Equal(ecdsaOrig))
 }
 
-func TestOpenSSHFormat_MarshalAndUnmarshall_ED25519(t *testing.T) {
+func TestOpenSSHFormat_MarshalAndUnmarshal_ED25519(t *testing.T) {
 	assert := testifyAssert.New(t)
 
 	// Given an ED25519 private key
