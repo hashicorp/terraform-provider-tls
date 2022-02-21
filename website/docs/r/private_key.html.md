@@ -55,12 +55,9 @@ RSA key in bits. Defaults to `2048`.
 curve to use. Currently-supported values are `P224` (default), `P256`, `P384` or `P521`.
 
 ~> **Limitations when using `ECDSA` with `P224` curve**
-This provider exposes attributes that can be used by [OpenSSH](https://www.openssh.com/): 
-`.public_key_openssh`, `.private_key_openssh`, `.public_key_fingerprint_md5` and `.public_key_fingerprint_sha256`.
+When using `ECDSA` with `P224`, `.public_key_openssh`, `.private_key_openssh`, `.public_key_fingerprint_md5` and `.public_key_fingerprint_sha256` will have a value of `""`.
 The SSH ECC Algorithm Integration ([RFC 5656](https://datatracker.ietf.org/doc/html/rfc5656))
-restricts support for elliptic curves to "nistp256", "nistp384" and "nistp521".
-This means that, even thought `ECDSA` and `P224` are supported here, the OpenSSH-specific fields will
-be left empty.
+restricts support for elliptic curves to "nistp256", "nistp384" and "nistp521", so these [OpenSSH](https://www.openssh.com/)-specific attributes will be left blank.
 
 ## Attributes Reference
 
