@@ -4,10 +4,12 @@ import (
 	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"net/url"
 	"time"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceTlsCertificate() *schema.Resource {
@@ -68,6 +70,10 @@ func dataSourceTlsCertificate() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"cert_pem": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -112,6 +118,10 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 }
 
 func parsePeerCertificate(cert *x509.Certificate) map[string]interface{} {
+
+	certBytes := cert.Raw
+	certPem := string(pem.EncodeToMemory(&pem.Block{Type: pemCertType, Bytes: certBytes}))
+
 	ret := map[string]interface{}{
 		"signature_algorithm":  cert.SignatureAlgorithm.String(),
 		"public_key_algorithm": cert.PublicKeyAlgorithm.String(),
@@ -123,6 +133,7 @@ func parsePeerCertificate(cert *x509.Certificate) map[string]interface{} {
 		"not_before":           cert.NotBefore.Format(time.RFC3339),
 		"not_after":            cert.NotAfter.Format(time.RFC3339),
 		"sha1_fingerprint":     fmt.Sprintf("%x", sha1.Sum(cert.Raw)),
+		"cert_pem":             certPem,
 	}
 
 	return ret
