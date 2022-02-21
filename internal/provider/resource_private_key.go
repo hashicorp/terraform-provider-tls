@@ -123,13 +123,13 @@ func resourcePrivateKey() *schema.Resource {
 
 			"public_key_fingerprint_md5": {
 				Type:        schema.TypeString,
-				Description: "Fingerprint of the public key as MD5 hashing",
+				Description: "Fingerprint of the public key data in OpenSSH MD5 hash format",
 				Computed:    true,
 			},
 
 			"public_key_fingerprint_sha256": {
 				Type:        schema.TypeString,
-				Description: "Fingerprint of the public key as SHA256 hashing",
+				Description: "Fingerprint of the public key data in OpenSSH SHA256 hash format",
 				Computed:    true,
 			},
 		},
