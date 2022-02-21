@@ -85,8 +85,8 @@ func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.Certi
 	return certReq, nil
 }
 
-func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
-	pubKey := publicKey(rsaKey)
+func readPublicKey(d *schema.ResourceData, prvKey interface{}) error {
+	pubKey := publicKey(prvKey)
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
 		return fmt.Errorf("failed to marshal public key error: %s", err)
@@ -101,7 +101,7 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 
 	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
 	// so this will return an error: in that case, we set the below fields to emptry strings
-	sshPubKey, err := ssh.NewPublicKey(publicKey(rsaKey))
+	sshPubKey, err := ssh.NewPublicKey(publicKey(prvKey))
 	if err == nil {
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
 		d.Set("public_key_openssh", string(sshPubKeyBytes))

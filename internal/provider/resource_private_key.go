@@ -90,41 +90,47 @@ func resourcePrivateKey() *schema.Resource {
 			"ecdsa_curve": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "ECDSA curve to use when generating a key",
+				Description: "Curve to use when generating an ECDSA key",
 				ForceNew:    true,
 				Default:     "P224",
 			},
 
 			"private_key_pem": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Description: "Private key data in PEM format",
+				Computed:    true,
+				Sensitive:   true,
 			},
 
 			"private_key_openssh": {
-				Type:      schema.TypeString,
-				Computed:  true,
-				Sensitive: true,
+				Type:        schema.TypeString,
+				Description: "Private key data in OpenSSH-compatible PEM format",
+				Computed:    true,
+				Sensitive:   true,
 			},
 
 			"public_key_pem": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Public key data in PEM format",
+				Computed:    true,
 			},
 
 			"public_key_openssh": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Public key data in OpenSSH-compatible PEM format",
+				Computed:    true,
 			},
 
 			"public_key_fingerprint_md5": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Fingerprint of the public key as MD5 hashing",
+				Computed:    true,
 			},
 
 			"public_key_fingerprint_sha256": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Fingerprint of the public key as SHA256 hashing",
+				Computed:    true,
 			},
 		},
 	}
@@ -203,7 +209,7 @@ func DeletePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	return nil
 }
 
-func ReadPrivateKey(d *schema.ResourceData, _ interface{}) error {
+func ReadPrivateKey(_ *schema.ResourceData, _ interface{}) error {
 	return nil
 }
 
