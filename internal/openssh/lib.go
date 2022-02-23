@@ -20,23 +20,9 @@ import (
 // that provides a solution for https://github.com/golang/go/issues/37132, that highlights
 // the need for methods to marshal private keys to the OpenSSH format in `x/crypto/ssh`.
 //
-// This provides utilities to serialize a Private Keys in OpenSSH format: once
-// this goes mainstream, we can remove this module.
-
-// Constants represents the algorithm names for key types supported by this package.
-const (
-	KeyAlgoRSA = "ssh-rsa"
-
-	CurveNIST256 = "nistp256"
-	CurveNIST384 = "nistp384"
-	CurveNIST521 = "nistp521"
-
-	KeyAlgoECDSA256 = "ecdsa-sha2-nistp256"
-	KeyAlgoECDSA384 = "ecdsa-sha2-nistp384"
-	KeyAlgoECDSA521 = "ecdsa-sha2-nistp521"
-
-	KeyAlgoED25519 = "ssh-ed25519"
-)
+// TODO: https://github.com/hashicorp/terraform-provider-tls/issues/154
+//   This provides utilities to serialize a Private Keys in OpenSSH format:
+//   once this goes mainstream, we can remove this module.
 
 const magic = "openssh-key-v1\x00"
 
@@ -44,7 +30,8 @@ const magic = "openssh-key-v1\x00"
 //
 // See: https://coolaj86.com/articles/the-openssh-private-key-format/
 //
-// NOTE: `x/crypto/ssh` doesn't handle elliptic curve P-224, and so this applies to this function as well.
+// NOTE: OpenSSH doesn't handle elliptic curve P-224, so `x/crypto/ssh` doesn't either
+// and this applies to this function as well.
 func MarshalPrivateKey(key crypto.PrivateKey, comment string) (*pem.Block, error) {
 	return marshalOpenSSHPrivateKey(key, comment, unencryptedOpenSSHMarshaller)
 }
@@ -105,7 +92,7 @@ func marshalOpenSSHPrivateKey(key crypto.PrivateKey, comment string, openSSHMars
 			E       *big.Int
 			N       *big.Int
 		}{
-			KeyAlgoRSA,
+			ssh.KeyAlgoRSA,
 			E, k.PublicKey.N,
 		}
 		w.PubKey = ssh.Marshal(pubKey)
@@ -124,7 +111,7 @@ func marshalOpenSSHPrivateKey(key crypto.PrivateKey, comment string, openSSHMars
 			k.D, k.Precomputed.Qinv, k.Primes[0], k.Primes[1],
 			comment,
 		}
-		pk1.Keytype = KeyAlgoRSA
+		pk1.Keytype = ssh.KeyAlgoRSA
 		pk1.Rest = ssh.Marshal(key)
 	case ed25519.PrivateKey:
 		pub := make([]byte, ed25519.PublicKeySize)
@@ -137,7 +124,7 @@ func marshalOpenSSHPrivateKey(key crypto.PrivateKey, comment string, openSSHMars
 			KeyType string
 			Pub     []byte
 		}{
-			KeyAlgoED25519, pub,
+			ssh.KeyAlgoED25519, pub,
 		}
 		w.PubKey = ssh.Marshal(pubKey)
 
@@ -150,20 +137,20 @@ func marshalOpenSSHPrivateKey(key crypto.PrivateKey, comment string, openSSHMars
 			pub, priv,
 			comment,
 		}
-		pk1.Keytype = KeyAlgoED25519
+		pk1.Keytype = ssh.KeyAlgoED25519
 		pk1.Rest = ssh.Marshal(key)
 	case *ecdsa.PrivateKey:
 		var curve, keyType string
 		switch name := k.Curve.Params().Name; name {
 		case "P-256":
-			curve = CurveNIST256
-			keyType = KeyAlgoECDSA256
+			curve = "nistp256"
+			keyType = ssh.KeyAlgoECDSA256
 		case "P-384":
-			curve = CurveNIST384
-			keyType = KeyAlgoECDSA384
+			curve = "nistp384"
+			keyType = ssh.KeyAlgoECDSA384
 		case "P-521":
-			curve = CurveNIST521
-			keyType = KeyAlgoECDSA521
+			curve = "nistp521"
+			keyType = ssh.KeyAlgoECDSA521
 		default:
 			return nil, errors.New("ssh: unhandled elliptic curve " + name)
 		}
