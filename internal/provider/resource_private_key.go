@@ -12,6 +12,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/terraform-providers/terraform-provider-tls/internal/openssh"
 )
 
@@ -30,24 +31,24 @@ var keyGenerators = map[Algorithm]keyGenerator{
 		return rsa.GenerateKey(rand.Reader, rsaBits)
 	},
 	ECDSA: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
-		curve := d.Get("ecdsa_curve").(string)
+		curve := ECDSACurve(d.Get("ecdsa_curve").(string))
 		switch curve {
-		case "P224":
+		case P224:
 			return ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
-		case "P256":
+		case P256:
 			return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		case "P384":
+		case P384:
 			return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-		case "P521":
+		case P521:
 			return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 		default:
-			return nil, fmt.Errorf("invalid ecdsa_curve; must be P224, P256, P384 or P521")
+			return nil, fmt.Errorf("invalid ECDSA curve; supported values are: %v", SupportedECDSACurves())
 		}
 	},
 	ED25519: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
 		_, key, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate ed25519 key: %s", err)
+			return nil, fmt.Errorf("failed to generate ED25519 key: %s", err)
 		}
 		return &key, err
 	},
@@ -73,10 +74,11 @@ func resourcePrivateKey() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"algorithm": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Name of the algorithm to use to generate the private key",
-				ForceNew:    true,
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "Name of the algorithm to use to generate the private key",
+				ForceNew:         true,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(SupportedAlgorithmsStr(), false)),
 			},
 
 			"rsa_bits": {
@@ -88,11 +90,12 @@ func resourcePrivateKey() *schema.Resource {
 			},
 
 			"ecdsa_curve": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Curve to use when generating an ECDSA key",
-				ForceNew:    true,
-				Default:     "P224",
+				Type:             schema.TypeString,
+				Optional:         true,
+				Description:      "Curve to use when generating an ECDSA key",
+				ForceNew:         true,
+				Default:          P224,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(SupportedECDSACurvesStr(), false)),
 			},
 
 			"private_key_pem": {
@@ -196,7 +199,7 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	if doMarshallOpenSSHKeyPemBlock {
 		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(key, "")
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to marshal private key into OpenSSH format: %w", err)
 		}
 		d.Set("private_key_openssh", string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 	}
