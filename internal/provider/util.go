@@ -9,15 +9,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// Algorithm represents the type of private key algorithm currently supported
-type Algorithm string
-
-const (
-	RSA     Algorithm = "RSA"
-	ECDSA   Algorithm = "ECDSA"
-	ED25519 Algorithm = "ED25519"
-)
-
 func decodePEM(d *schema.ResourceData, pemKey, pemType string) (*pem.Block, error) {
 	block, _ := pem.Decode([]byte(d.Get(pemKey).(string)))
 	if block == nil {
