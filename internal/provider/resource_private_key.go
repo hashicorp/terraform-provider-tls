@@ -155,9 +155,9 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		return err
 	}
 
-	// Marshall the Key in PEM block
+	// Marshal the Key in PEM block
 	var keyPemBlock *pem.Block
-	doMarshallOpenSSHKeyPemBlock := true
+	doMarshalOpenSSHKeyPemBlock := true
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
 		keyPemBlock = &pem.Block{
@@ -177,7 +177,7 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 
 		// GOTCHA: `x/crypto/ssh` doesn't handle elliptic curve P-224
 		if k.Curve.Params().Name == "P-224" {
-			doMarshallOpenSSHKeyPemBlock = false
+			doMarshalOpenSSHKeyPemBlock = false
 		}
 	case *ed25519.PrivateKey:
 		keyBytes, err := x509.MarshalPKCS8PrivateKey(*k)
@@ -194,9 +194,9 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	}
 	d.Set("private_key_pem", string(pem.EncodeToMemory(keyPemBlock)))
 
-	// Marshall the Key in OpenSSH PEM block, if enabled
+	// Marshal the Key in OpenSSH PEM block, if enabled
 	d.Set("private_key_openssh", "")
-	if doMarshallOpenSSHKeyPemBlock {
+	if doMarshalOpenSSHKeyPemBlock {
 		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(key, "")
 		if err != nil {
 			return fmt.Errorf("unable to marshal private key into OpenSSH format: %w", err)
