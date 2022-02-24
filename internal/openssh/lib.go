@@ -1,3 +1,16 @@
+// Copyright 2022 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the
+// https://github.com/golang/crypto/blob/master/LICENSE file.
+//
+// This module cherry-picks from https://go-review.googlesource.com/c/crypto/+/218620,
+// that provides a solution for https://github.com/golang/go/issues/37132, that highlights
+// the need for methods to marshal private keys to the OpenSSH format in `x/crypto/ssh`.
+//
+// TODO: https://github.com/hashicorp/terraform-provider-tls/issues/154
+//   This provides utilities to serialize a Private Keys in OpenSSH format:
+//   once this goes mainstream, we can remove this module.
+
 package openssh
 
 import (
@@ -15,14 +28,6 @@ import (
 
 	"golang.org/x/crypto/ssh"
 )
-
-// This module cherry-picks from https://go-review.googlesource.com/c/crypto/+/218620,
-// that provides a solution for https://github.com/golang/go/issues/37132, that highlights
-// the need for methods to marshal private keys to the OpenSSH format in `x/crypto/ssh`.
-//
-// TODO: https://github.com/hashicorp/terraform-provider-tls/issues/154
-//   This provides utilities to serialize a Private Keys in OpenSSH format:
-//   once this goes mainstream, we can remove this module.
 
 const magic = "openssh-key-v1\x00"
 
