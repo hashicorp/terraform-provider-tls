@@ -69,7 +69,7 @@ func TestAccPublicKey_dataSource(t *testing.T) {
 
 const testAccDataSourcePublicKeyConfig = `
 data "tls_public_key" "test" {
-  private_key_pem = <<EOF
+	private_key_pem = <<EOF
 	%s
 	EOF
 }

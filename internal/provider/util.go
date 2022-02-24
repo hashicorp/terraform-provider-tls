@@ -22,7 +22,7 @@ func decodePEM(d *schema.ResourceData, pemKey, pemType string) (*pem.Block, erro
 }
 
 func parsePrivateKey(d *schema.ResourceData, pemKey, algoKey string) (interface{}, error) {
-	algoName := d.Get(algoKey).(string)
+	algoName := Algorithm(d.Get(algoKey).(string))
 
 	keyFunc, ok := keyParsers[algoName]
 	if !ok {
@@ -76,8 +76,8 @@ func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.Certi
 	return certReq, nil
 }
 
-func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
-	pubKey := publicKey(rsaKey)
+func readPublicKey(d *schema.ResourceData, prvKey interface{}) error {
+	pubKey := publicKey(prvKey)
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
 		return fmt.Errorf("failed to marshal public key error: %s", err)
@@ -87,19 +87,21 @@ func readPublicKey(d *schema.ResourceData, rsaKey interface{}) error {
 		Bytes: pubKeyBytes,
 	}
 
-	d.SetId(hashForState(string((pubKeyBytes))))
+	d.SetId(hashForState(string(pubKeyBytes)))
 	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
 
-	sshPubKey, err := ssh.NewPublicKey(publicKey(rsaKey))
+	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
+	// so this will return an error: in that case, we set the below fields to emptry strings
+	sshPubKey, err := ssh.NewPublicKey(publicKey(prvKey))
 	if err == nil {
-		// Not all EC types can be SSH keys, so we'll produce this only
-		// if an appropriate type was selected.
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
 		d.Set("public_key_openssh", string(sshPubKeyBytes))
 		d.Set("public_key_fingerprint_md5", ssh.FingerprintLegacyMD5(sshPubKey))
+		d.Set("public_key_fingerprint_sha256", ssh.FingerprintSHA256(sshPubKey))
 	} else {
 		d.Set("public_key_openssh", "")
 		d.Set("public_key_fingerprint_md5", "")
+		d.Set("public_key_fingerprint_sha256", "")
 	}
 	return nil
 }

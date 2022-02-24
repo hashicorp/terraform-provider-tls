@@ -17,28 +17,41 @@ func dataSourcePublicKey() *schema.Resource {
 				Sensitive:   true,
 				Description: "PEM formatted string to use as the private key",
 			},
+
 			"algorithm": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Name of the algorithm to use to generate the private key",
 			},
+
 			"public_key_pem": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Public key data in PEM format",
+				Computed:    true,
 			},
+
 			"public_key_openssh": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Public key data in OpenSSH-compatible PEM format",
+				Computed:    true,
 			},
+
 			"public_key_fingerprint_md5": {
-				Type:     schema.TypeString,
-				Computed: true,
+				Type:        schema.TypeString,
+				Description: "Fingerprint of the public key data in OpenSSH MD5 hash format",
+				Computed:    true,
+			},
+
+			"public_key_fingerprint_sha256": {
+				Type:        schema.TypeString,
+				Description: "Fingerprint of the public key data in OpenSSH SHA256 hash format",
+				Computed:    true,
 			},
 		},
 	}
 }
 
-func dataSourcePublicKeyRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourcePublicKeyRead(d *schema.ResourceData, _ interface{}) error {
 	// Read private key
 	bytes := []byte("")
 	if v, ok := d.GetOk("private_key_pem"); ok {
