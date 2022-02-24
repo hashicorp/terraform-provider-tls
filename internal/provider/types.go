@@ -1,6 +1,6 @@
 package provider
 
-// Algorithm represents a type of private key algorithm
+// Algorithm represents a type of private key algorithm.
 type Algorithm string
 
 const (
@@ -9,7 +9,7 @@ const (
 	ED25519 Algorithm = "ED25519"
 )
 
-// SupportedAlgorithms returns a slice of Algorithm currently supported by this provider
+// SupportedAlgorithms returns a slice of Algorithm currently supported by this provider.
 func SupportedAlgorithms() []Algorithm {
 	return []Algorithm{
 		RSA,
@@ -18,7 +18,7 @@ func SupportedAlgorithms() []Algorithm {
 	}
 }
 
-// SupportedAlgorithmsStr returns the same content of SupportedAlgorithms but as a slice of string
+// SupportedAlgorithmsStr returns the same content of SupportedAlgorithms but as a slice of string.
 func SupportedAlgorithmsStr() []string {
 	supported := SupportedAlgorithms()
 	supportedStr := make([]string, len(supported))
@@ -28,7 +28,7 @@ func SupportedAlgorithmsStr() []string {
 	return supportedStr
 }
 
-// ECDSACurve represents a type of ECDSA elliptic curve
+// ECDSACurve represents a type of ECDSA elliptic curve.
 type ECDSACurve string
 
 const (
@@ -38,7 +38,7 @@ const (
 	P521 ECDSACurve = "P521"
 )
 
-// SupportedECDSACurves returns an array of ECDSACurve currently supported by this provider
+// SupportedECDSACurves returns an array of ECDSACurve currently supported by this provider.
 func SupportedECDSACurves() []ECDSACurve {
 	return []ECDSACurve{
 		P224,
@@ -48,7 +48,7 @@ func SupportedECDSACurves() []ECDSACurve {
 	}
 }
 
-// SupportedECDSACurvesStr returns the same content of SupportedECDSACurves but as a slice of string
+// SupportedECDSACurvesStr returns the same content of SupportedECDSACurves but as a slice of string.
 func SupportedECDSACurvesStr() []string {
 	supported := SupportedECDSACurves()
 	supportedStr := make([]string, len(supported))

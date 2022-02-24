@@ -88,20 +88,34 @@ func readPublicKey(d *schema.ResourceData, prvKey interface{}) error {
 	}
 
 	d.SetId(hashForState(string(pubKeyBytes)))
-	d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock)))
+
+	if err := d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock))); err != nil {
+		return fmt.Errorf("error setting value on key 'public_key_pem': %s", err)
+	}
 
 	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
 	// so this will return an error: in that case, we set the below fields to emptry strings
 	sshPubKey, err := ssh.NewPublicKey(publicKey(prvKey))
+	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
-		d.Set("public_key_openssh", string(sshPubKeyBytes))
-		d.Set("public_key_fingerprint_md5", ssh.FingerprintLegacyMD5(sshPubKey))
-		d.Set("public_key_fingerprint_sha256", ssh.FingerprintSHA256(sshPubKey))
-	} else {
-		d.Set("public_key_openssh", "")
-		d.Set("public_key_fingerprint_md5", "")
-		d.Set("public_key_fingerprint_sha256", "")
+
+		pubKeySSH = string(sshPubKeyBytes)
+		pubKeySSHFingerprintMD5 = ssh.FingerprintLegacyMD5(sshPubKey)
+		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
 	}
+
+	if err := d.Set("public_key_openssh", pubKeySSH); err != nil {
+		return fmt.Errorf("error setting value on key 'public_key_openssh': %s", err)
+	}
+
+	if err := d.Set("public_key_fingerprint_md5", pubKeySSHFingerprintMD5); err != nil {
+		return fmt.Errorf("error setting value on key 'public_key_fingerprint_md5': %s", err)
+	}
+
+	if err := d.Set("public_key_fingerprint_sha256", pubKeySSHFingerprintSHA256); err != nil {
+		return fmt.Errorf("error setting value on key 'public_key_fingerprint_sha256': %s", err)
+	}
+
 	return nil
 }

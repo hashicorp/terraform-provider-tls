@@ -53,7 +53,7 @@ func dataSourcePublicKey() *schema.Resource {
 
 func dataSourcePublicKeyRead(d *schema.ResourceData, _ interface{}) error {
 	// Read private key
-	bytes := []byte("")
+	var bytes []byte
 	if v, ok := d.GetOk("private_key_pem"); ok {
 		bytes = []byte(v.(string))
 	} else {
@@ -79,7 +79,10 @@ func dataSourcePublicKeyRead(d *schema.ResourceData, _ interface{}) error {
 	case "EC PRIVATE KEY":
 		keyAlgo = "ECDSA"
 	}
-	d.Set("algorithm", keyAlgo)
+	if err := d.Set("algorithm", keyAlgo); err != nil {
+		return fmt.Errorf("error setting value on key 'algorithm': %s", err)
+	}
+
 	// Converts a private key from its ASN.1 PKCS#1 DER encoded form
 	key, err := parsePrivateKey(d, "private_key_pem", "algorithm")
 	if err != nil {

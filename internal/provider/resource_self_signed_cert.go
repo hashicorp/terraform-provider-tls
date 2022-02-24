@@ -91,10 +91,7 @@ func CreateSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
 	if !ok {
 		return fmt.Errorf("subject block cannot be empty")
 	}
-	subject, err := nameFromResourceData(subjectConf)
-	if err != nil {
-		return fmt.Errorf("invalid subject block: %s", err)
-	}
+	subject := nameFromResourceData(subjectConf)
 
 	cert := x509.Certificate{
 		Subject:               *subject,

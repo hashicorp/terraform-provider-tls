@@ -18,11 +18,11 @@ import (
 
 // keyGenerator extracts data from the given *schema.ResourceData,
 // and generates a new public/private key-pair according to the
-// selected algorithm
+// selected algorithm.
 type keyGenerator func(d *schema.ResourceData) (crypto.PrivateKey, error)
 
 // keyParser parses a private key from the given []byte,
-// according to the selected algorithm
+// according to the selected algorithm.
 type keyParser func([]byte) (crypto.PrivateKey, error)
 
 var keyGenerators = map[Algorithm]keyGenerator{
@@ -192,16 +192,23 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	default:
 		return fmt.Errorf("unsupported private key type")
 	}
-	d.Set("private_key_pem", string(pem.EncodeToMemory(keyPemBlock)))
+
+	if err := d.Set("private_key_pem", string(pem.EncodeToMemory(keyPemBlock))); err != nil {
+		return fmt.Errorf("error setting value on key 'private_key_pem': %s", err)
+	}
 
 	// Marshal the Key in OpenSSH PEM block, if enabled
-	d.Set("private_key_openssh", "")
+	prvKeyOpenSSH := ""
 	if doMarshalOpenSSHKeyPemBlock {
 		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(key, "")
 		if err != nil {
 			return fmt.Errorf("unable to marshal private key into OpenSSH format: %w", err)
 		}
-		d.Set("private_key_openssh", string(pem.EncodeToMemory(openSSHKeyPemBlock)))
+
+		prvKeyOpenSSH = string(pem.EncodeToMemory(openSSHKeyPemBlock))
+	}
+	if err := d.Set("private_key_openssh", prvKeyOpenSSH); err != nil {
+		return fmt.Errorf("error setting value on key 'private_key_openssh': %s", err)
 	}
 
 	return readPublicKey(d, key)
