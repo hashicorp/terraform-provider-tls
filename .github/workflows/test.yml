@@ -29,7 +29,7 @@ jobs:
         check-latest: true
 
     - name: Check out code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Linting (golangci-lint)
       uses: golangci/golangci-lint-action@v2
@@ -68,7 +68,7 @@ jobs:
         check-latest: true
 
     - name: Check out code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Setup Terraform ${{ matrix.terraform }}
       uses: hashicorp/setup-terraform@v1
