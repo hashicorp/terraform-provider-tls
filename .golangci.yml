@@ -12,6 +12,6 @@ linters:
     - misspell
     - nilerr
     - predeclared
-#    - tenv # TODO: Enable when upgrading Go 1.16 to 1.17
+    - tenv
     - unconvert
     - unparam
