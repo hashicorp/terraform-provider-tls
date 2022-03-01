@@ -1,4 +1,4 @@
-name: Run (acceptance) tests
+name: Test
 
 on:
   pull_request:
@@ -31,13 +31,10 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
-    - name: Go fmt
-      run: |
-        make fmt
-
-    - name: Go vet
-      run: |
-        make vet
+    - name: Linting (golangci-lint)
+      uses: golangci/golangci-lint-action@v2
+      with:
+        version: latest
 
     - name: Compile
       run: |

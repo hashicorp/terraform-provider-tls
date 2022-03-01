@@ -26,7 +26,7 @@ func TestOpenSSHFormat_MarshalAndUnmarshal_RSA(t *testing.T) {
 	pemOpenSSHPrvKeyBytes := pem.EncodeToMemory(pemOpenSSHPrvKey)
 
 	// Parse it back into an RSA private key
-	rawPrivateKey, err := ssh.ParseRawPrivateKey(pemOpenSSHPrvKeyBytes)
+	rawPrivateKey, _ := ssh.ParseRawPrivateKey(pemOpenSSHPrvKeyBytes)
 	rsaParsed, ok := rawPrivateKey.(*rsa.PrivateKey)
 	if !ok {
 		t.Errorf("Failed to type assert RSA private key: %v", rawPrivateKey)
@@ -58,7 +58,7 @@ func TestOpenSSHFormat_MarshalAndUnmarshal_ECDSA(t *testing.T) {
 	pemOpenSSHPrvKeyBytes := pem.EncodeToMemory(pemOpenSSHPrvKey)
 
 	// Parse it back into an ECDSA private key
-	rawPrivateKey, err := ssh.ParseRawPrivateKey(pemOpenSSHPrvKeyBytes)
+	rawPrivateKey, _ := ssh.ParseRawPrivateKey(pemOpenSSHPrvKeyBytes)
 	ecdsaParsed, ok := rawPrivateKey.(*ecdsa.PrivateKey)
 	if !ok {
 		t.Errorf("Failed to type assert ECDSA private key: %v", rawPrivateKey)
@@ -85,7 +85,7 @@ func TestOpenSSHFormat_MarshalAndUnmarshal_ED25519(t *testing.T) {
 	pemOpenSSHPrvKeyBytes := pem.EncodeToMemory(pemOpenSSHPrvKey)
 
 	// Parse it back into an ED25519 private key
-	rawPrivateKey, err := ssh.ParseRawPrivateKey(pemOpenSSHPrvKeyBytes)
+	rawPrivateKey, _ := ssh.ParseRawPrivateKey(pemOpenSSHPrvKeyBytes)
 	ed25519Parsed, ok := rawPrivateKey.(*ed25519.PrivateKey)
 	if !ok {
 		t.Errorf("Failed to type assert ED25519 private key: %v", rawPrivateKey)

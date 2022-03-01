@@ -97,10 +97,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	if !ok {
 		return fmt.Errorf("subject block cannot be empty")
 	}
-	subject, err := nameFromResourceData(subjectConf)
-	if err != nil {
-		return fmt.Errorf("invalid subject block: %s", err)
-	}
+	subject := nameFromResourceData(subjectConf)
 
 	certReq := x509.CertificateRequest{
 		Subject: *subject,
@@ -129,12 +126,15 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 
 	certReqBytes, err := x509.CreateCertificateRequest(rand.Reader, &certReq, key)
 	if err != nil {
-		return fmt.Errorf("Error creating certificate request: %s", err)
+		return fmt.Errorf("error creating certificate request: %s", err)
 	}
 	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: pemCertReqType, Bytes: certReqBytes}))
 
 	d.SetId(hashForState(string(certReqBytes)))
-	d.Set("cert_request_pem", certReqPem)
+
+	if err := d.Set("cert_request_pem", certReqPem); err != nil {
+		return fmt.Errorf("error setting value on key 'cert_request_pem': %s", err)
+	}
 
 	return nil
 }
