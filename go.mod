@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.10.1
-	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
 )
 
 require (
@@ -44,9 +44,9 @@ require (
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/zclconf/go-cty v1.9.1 // indirect
-	golang.org/x/net v0.0.0-20210326060303-6b1517762897 // indirect
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
-	golang.org/x/text v0.3.5 // indirect
+	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/genproto v0.0.0-20200711021454-869866162049 // indirect
 	google.golang.org/grpc v1.32.0 // indirect
