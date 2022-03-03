@@ -222,16 +222,3 @@ func DeletePrivateKey(d *schema.ResourceData, _ interface{}) error {
 func ReadPrivateKey(_ *schema.ResourceData, _ interface{}) error {
 	return nil
 }
-
-func publicKey(priv interface{}) interface{} {
-	switch k := priv.(type) {
-	case *rsa.PrivateKey:
-		return &k.PublicKey
-	case *ecdsa.PrivateKey:
-		return &k.PublicKey
-	case *ed25519.PrivateKey:
-		return k.Public()
-	default:
-		return nil
-	}
-}

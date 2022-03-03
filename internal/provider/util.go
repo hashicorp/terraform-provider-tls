@@ -1,6 +1,10 @@
 package provider
 
 import (
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -21,10 +25,10 @@ func decodePEM(d *schema.ResourceData, pemKey, pemType string) (*pem.Block, erro
 	return block, nil
 }
 
-func parsePrivateKey(d *schema.ResourceData, pemKey, algoKey string) (interface{}, error) {
+func parsePrivateKey(d *schema.ResourceData, pemKey, algoKey string) (crypto.PrivateKey, error) {
 	algoName := Algorithm(d.Get(algoKey).(string))
 
-	keyFunc, ok := keyParsers[algoName]
+	parser, ok := keyParsers[algoName]
 	if !ok {
 		return nil, fmt.Errorf("invalid %s: %#v", algoKey, algoName)
 	}
@@ -34,7 +38,7 @@ func parsePrivateKey(d *schema.ResourceData, pemKey, algoKey string) (interface{
 		return nil, err
 	}
 
-	key, err := keyFunc(block.Bytes)
+	key, err := parser(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode %s: %s", pemKey, err)
 	}
@@ -76,14 +80,16 @@ func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.Certi
 	return certReq, nil
 }
 
-func readPublicKey(d *schema.ResourceData, prvKey interface{}) error {
-	pubKey := publicKey(prvKey)
+// setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
+// encodes related attributes on the given schema.ResourceData.
+func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) error {
+	pubKey := toPublicKey(prvKey)
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
 		return fmt.Errorf("failed to marshal public key error: %s", err)
 	}
 	pubKeyPemBlock := &pem.Block{
-		Type:  "PUBLIC KEY",
+		Type:  PublicKey.String(),
 		Bytes: pubKeyBytes,
 	}
 
@@ -95,7 +101,7 @@ func readPublicKey(d *schema.ResourceData, prvKey interface{}) error {
 
 	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
 	// so this will return an error: in that case, we set the below fields to emptry strings
-	sshPubKey, err := ssh.NewPublicKey(publicKey(prvKey))
+	sshPubKey, err := ssh.NewPublicKey(toPublicKey(prvKey))
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
@@ -118,4 +124,19 @@ func readPublicKey(d *schema.ResourceData, prvKey interface{}) error {
 	}
 
 	return nil
+}
+
+// toPublicKey takes a crypto.PrivateKey and extracts the corresponding crypto.PublicKey,
+// after having figured out its type.
+func toPublicKey(prvKey crypto.PrivateKey) crypto.PublicKey {
+	switch k := prvKey.(type) {
+	case *rsa.PrivateKey:
+		return &k.PublicKey
+	case *ecdsa.PrivateKey:
+		return &k.PublicKey
+	case *ed25519.PrivateKey:
+		return k.Public()
+	default:
+		return nil
+	}
 }
