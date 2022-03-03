@@ -68,9 +68,9 @@ var keyParsers = map[Algorithm]keyParser{
 
 func resourcePrivateKey() *schema.Resource {
 	return &schema.Resource{
-		Create: CreatePrivateKey,
-		Delete: DeletePrivateKey,
-		Read:   ReadPrivateKey,
+		Create: createResourcePrivateKey,
+		Delete: deleteResourcePrivateKey,
+		Read:   readResourcePrivateKey,
 
 		Schema: map[string]*schema.Schema{
 			"algorithm": {
@@ -139,7 +139,7 @@ func resourcePrivateKey() *schema.Resource {
 	}
 }
 
-func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
+func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	keyAlgoName := Algorithm(d.Get("algorithm").(string))
 
 	// Identify the correct (Private) Key Generator
@@ -211,14 +211,14 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		return fmt.Errorf("error setting value on key 'private_key_openssh': %s", err)
 	}
 
-	return readPublicKey(d, key)
+	return setPublicKeyAttributes(d, key)
 }
 
-func DeletePrivateKey(d *schema.ResourceData, _ interface{}) error {
+func deleteResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	d.SetId("")
 	return nil
 }
 
-func ReadPrivateKey(_ *schema.ResourceData, _ interface{}) error {
+func readResourcePrivateKey(_ *schema.ResourceData, _ interface{}) error {
 	return nil
 }
