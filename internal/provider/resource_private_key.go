@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -71,6 +72,9 @@ func resourcePrivateKey() *schema.Resource {
 		Create: CreatePrivateKey,
 		Delete: DeletePrivateKey,
 		Read:   ReadPrivateKey,
+		Importer: &schema.ResourceImporter{
+			State: importKey,
+		},
 
 		Schema: map[string]*schema.Schema{
 			"algorithm": {
@@ -234,4 +238,40 @@ func publicKey(priv interface{}) interface{} {
 	default:
 		return nil
 	}
+}
+
+func importKey(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	path := d.Id()
+	bytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
+	}
+	keyPemBlock, _ := pem.Decode(bytes)
+
+	if keyPemBlock == nil {
+		return nil, fmt.Errorf("failed to decode PEM block")
+	}
+
+	keyAlgo := ""
+	switch keyPemBlock.Type {
+	case "RSA PRIVATE KEY":
+		keyAlgo = "RSA"
+	case "EC PRIVATE KEY":
+		keyAlgo = "ECDSA"
+	default:
+		return nil, fmt.Errorf("private key of type unknown type")
+	}
+	d.Set("algorithm", keyAlgo)
+	d.Set("private_key_pem", string(pem.EncodeToMemory(keyPemBlock)))
+
+	key, err := parsePrivateKey(d, "private_key_pem", "algorithm")
+	if err != nil {
+		return nil, fmt.Errorf("error converting key to algo: %s - %s", keyAlgo, err)
+	}
+	err = readPublicKey(d, key)
+	if err != nil {
+		return nil, fmt.Errorf("error reading public key: %w", err)
+	}
+
+	return []*schema.ResourceData{d}, nil
 }

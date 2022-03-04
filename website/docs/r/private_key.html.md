@@ -109,3 +109,11 @@ terraform taint tls_private_key.example
 ```
 
 A new key will then be generated on the next ``terraform apply``.
+
+## Import
+
+Import is supported for private key files in PEM format using the following syntax:
+
+```shell
+terraform import tls_private_key.example key.pem
+```
