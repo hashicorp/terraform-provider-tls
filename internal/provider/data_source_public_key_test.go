@@ -45,7 +45,7 @@ func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 						algorithm = "RSA"
 					}
 					data "tls_public_key" "test" {
-						private_key_pem = "${tls_private_key.test.private_key_pem}"
+						private_key_pem = tls_private_key.test.private_key_pem
 					}
 				`,
 				Check: resource.TestCheckResourceAttrPair(
@@ -60,7 +60,7 @@ func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 						ecdsa_curve = "P384"
 					}
 					data "tls_public_key" "ecdsaPubKey" {
-						private_key_pem = "${tls_private_key.ecdsaPrvKey.private_key_pem}"
+						private_key_pem = tls_private_key.ecdsaPrvKey.private_key_pem
 					}
 				`,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -98,7 +98,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 						algorithm = "RSA"
 					}
 					data "tls_public_key" "rsaPubKey" {
-						private_key_openssh = "${tls_private_key.rsaPrvKey.private_key_openssh}"
+						private_key_openssh = tls_private_key.rsaPrvKey.private_key_openssh
 					}
 				`,
 				Check: resource.TestCheckResourceAttrPair(
@@ -112,7 +112,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 						algorithm   = "ED25519"
 					}
 					data "tls_public_key" "ed25519PubKey" {
-						private_key_openssh = "${tls_private_key.ed25519PrvKey.private_key_openssh}"
+						private_key_openssh = tls_private_key.ed25519PrvKey.private_key_openssh
 					}
 				`,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -131,7 +131,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 	})
 }
 
-func TestAccPublicKey_dataSource_NotBothPEM(t *testing.T) {
+func TestAccPublicKey_dataSource_errorCases(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers: testProviders,
 		Steps: []resource.TestStep{
@@ -142,7 +142,14 @@ func TestAccPublicKey_dataSource_NotBothPEM(t *testing.T) {
 						private_key_openssh = "does not matter"
 					}
 				`,
-				ExpectError: regexp.MustCompile("either provide private key via `private_key_pem` or `private_key_openssh`, not both"),
+				ExpectError: regexp.MustCompile("Invalid combination of arguments"),
+			},
+			{
+				Config: `
+					data "tls_public_key" "test" {
+					}
+				`,
+				ExpectError: regexp.MustCompile("Invalid combination of arguments"),
 			},
 		},
 	})

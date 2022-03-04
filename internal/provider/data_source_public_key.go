@@ -13,17 +13,19 @@ func dataSourcePublicKey() *schema.Resource {
 		Read: readDataSourcePublicKey,
 		Schema: map[string]*schema.Schema{
 			"private_key_pem": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Sensitive:   true,
-				Description: "Private key data in PEM format; either this or `private_key_openssh` must be set",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ExactlyOneOf: []string{"private_key_pem", "private_key_openssh"},
+				Description:  "Private key data in PEM format; either this or `private_key_openssh` must be set",
 			},
 
 			"private_key_openssh": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Sensitive:   true,
-				Description: "Private key data in OpenSSH-compatible PEM format; either this or `private_key_pem` must be set",
+				Type:         schema.TypeString,
+				Optional:     true,
+				Sensitive:    true,
+				ExactlyOneOf: []string{"private_key_pem", "private_key_openssh"},
+				Description:  "Private key data in OpenSSH-compatible PEM format; either this or `private_key_pem` must be set",
 			},
 
 			"algorithm": {
@@ -60,17 +62,9 @@ func dataSourcePublicKey() *schema.Resource {
 }
 
 func readDataSourcePublicKey(d *schema.ResourceData, _ interface{}) error {
-	prvKeyPEMArg, prvKeyPEMArgOK := d.GetOk("private_key_pem")
-	prvKeyOpenSSHPEMArg, prvKeyOpenSSHPEMArgOK := d.GetOk("private_key_openssh")
-
-	// Confirm that not both ways to provide a private key were used at the same time
-	if prvKeyPEMArgOK && prvKeyOpenSSHPEMArgOK {
-		return fmt.Errorf("either provide private key via `private_key_pem` or `private_key_openssh`, not both")
-	}
-
 	// First, attempt to read private key from `private_key_pem` argument (PEM format)
-	if prvKeyPEMArgOK {
-		prvKeyPEMBytes := []byte(prvKeyPEMArg.(string))
+	if prvKeyArg, ok := d.GetOk("private_key_pem"); ok {
+		prvKeyPEMBytes := []byte(prvKeyArg.(string))
 
 		prvKey, err := privateKeyFromPEM(d, prvKeyPEMBytes)
 		if err != nil {
@@ -81,8 +75,8 @@ func readDataSourcePublicKey(d *schema.ResourceData, _ interface{}) error {
 	}
 
 	// Second, attempt to read private key from `private_key_openssh` argument (OpenSSH PEM format)
-	if prvKeyOpenSSHPEMArgOK {
-		prvKeyOpenSSHPEMBytes := []byte(prvKeyOpenSSHPEMArg.(string))
+	if prvKeyArg, ok := d.GetOk("private_key_openssh"); ok {
+		prvKeyOpenSSHPEMBytes := []byte(prvKeyArg.(string))
 
 		prvKey, err := ssh.ParseRawPrivateKey(prvKeyOpenSSHPEMBytes)
 		if err != nil {
