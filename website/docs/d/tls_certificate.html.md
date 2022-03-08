@@ -1,7 +1,6 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_certificate"
-sidebar_current: "docs-tls-datasource-tls-certificate"
 description: |-
   Get information about the TLS certificates securing a host.
 ---

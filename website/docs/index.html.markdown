@@ -1,7 +1,6 @@
 ---
 layout: "tls"
 page_title: "Provider: TLS"
-sidebar_current: "docs-tls-index"
 description: |-
   The TLS provider provides utilities for working with Transport Layer Security keys and certificates.
 ---
