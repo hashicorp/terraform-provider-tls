@@ -68,9 +68,9 @@ var keyParsers = map[Algorithm]keyParser{
 
 func resourcePrivateKey() *schema.Resource {
 	return &schema.Resource{
-		Create: CreatePrivateKey,
-		Delete: DeletePrivateKey,
-		Read:   ReadPrivateKey,
+		Create: createResourcePrivateKey,
+		Delete: deleteResourcePrivateKey,
+		Read:   readResourcePrivateKey,
 
 		Schema: map[string]*schema.Schema{
 			"algorithm": {
@@ -139,7 +139,7 @@ func resourcePrivateKey() *schema.Resource {
 	}
 }
 
-func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
+func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	keyAlgoName := Algorithm(d.Get("algorithm").(string))
 
 	// Identify the correct (Private) Key Generator
@@ -161,7 +161,7 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
 		keyPemBlock = &pem.Block{
-			Type:  "RSA PRIVATE KEY",
+			Type:  PrivateKeyRSA.String(),
 			Bytes: x509.MarshalPKCS1PrivateKey(k),
 		}
 	case *ecdsa.PrivateKey:
@@ -171,7 +171,7 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		}
 
 		keyPemBlock = &pem.Block{
-			Type:  "EC PRIVATE KEY",
+			Type:  PrivateKeyECDSA.String(),
 			Bytes: keyBytes,
 		}
 
@@ -186,7 +186,7 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		}
 
 		keyPemBlock = &pem.Block{
-			Type:  "PRIVATE KEY",
+			Type:  PrivateKeyED25519.String(),
 			Bytes: keyBytes,
 		}
 	default:
@@ -211,27 +211,14 @@ func CreatePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		return fmt.Errorf("error setting value on key 'private_key_openssh': %s", err)
 	}
 
-	return readPublicKey(d, key)
+	return setPublicKeyAttributes(d, key)
 }
 
-func DeletePrivateKey(d *schema.ResourceData, _ interface{}) error {
+func deleteResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	d.SetId("")
 	return nil
 }
 
-func ReadPrivateKey(_ *schema.ResourceData, _ interface{}) error {
+func readResourcePrivateKey(_ *schema.ResourceData, _ interface{}) error {
 	return nil
-}
-
-func publicKey(priv interface{}) interface{} {
-	switch k := priv.(type) {
-	case *rsa.PrivateKey:
-		return &k.PublicKey
-	case *ecdsa.PrivateKey:
-		return &k.PublicKey
-	case *ed25519.PrivateKey:
-		return k.Public()
-	default:
-		return nil
-	}
 }

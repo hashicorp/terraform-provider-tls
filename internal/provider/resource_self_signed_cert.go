@@ -119,5 +119,5 @@ func CreateSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
 		cert.URIs = append(cert.URIs, uri)
 	}
 
-	return createCertificate(d, &cert, &cert, publicKey(key), key)
+	return createCertificate(d, &cert, &cert, toPublicKey(key), key)
 }
