@@ -1,7 +1,6 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_private_key"
-sidebar_current: "docs-tls-resource-private-key"
 description: |-
   Creates a PEM (and OpenSSH) formatted private key.
 ---

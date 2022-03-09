@@ -1,7 +1,6 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_cert_request"
-sidebar_current: "docs-tls-data-source-cert-request"
 description: |-
   Creates a PEM-encoded certificate request.
 ---
