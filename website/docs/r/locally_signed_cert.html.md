@@ -1,7 +1,6 @@
 ---
 layout: "tls"
 page_title: "TLS: tls_locally_signed_cert"
-sidebar_current: "docs-tls-resource-locally-signed-cert"
 description: |-
   Creates a locally-signed TLS certificate in PEM format.
 ---

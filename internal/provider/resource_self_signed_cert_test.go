@@ -138,7 +138,7 @@ EOT
                     output "key_pem_2" {
                         value = "${tls_self_signed_cert.test2.cert_pem}"
                     }
-                `, testPrivateKey),
+                `, testPrivateKeyPEM),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem_2"].Value
 					got, ok := gotUntyped.(string)
@@ -384,7 +384,7 @@ EOT
 				output "cert_pem" {
 					value = "${tls_self_signed_cert.test.cert_pem}"
 				}
-				`, testPrivateKey),
+				`, testPrivateKeyPEM),
 				Check: func(s *terraform.State) error {
 					certPEM := s.RootModule().Outputs["cert_pem"].Value
 					block, _ := pem.Decode([]byte(certPEM.(string)))
@@ -453,5 +453,5 @@ EOT
                     output "key_pem_1" {
                         value = "${tls_self_signed_cert.test1.cert_pem}"
                     }
-                `, validity, earlyRenewal, testPrivateKey)
+                `, validity, earlyRenewal, testPrivateKeyPEM)
 }

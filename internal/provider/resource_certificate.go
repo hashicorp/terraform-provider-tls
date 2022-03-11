@@ -132,7 +132,7 @@ func resourceCertificateCommonSchema() map[string]*schema.Schema {
 			Computed: true,
 		},
 
-		"set_subject_key_id": &schema.Schema{
+		"set_subject_key_id": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Description: "If true, the generated certificate will include a subject key identifier.",
@@ -145,7 +145,8 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	var err error
 
 	template.NotBefore = now()
-	template.NotAfter = template.NotBefore.Add(time.Duration(d.Get("validity_period_hours").(int)) * time.Hour)
+	validityPeriodHours := d.Get("validity_period_hours").(int)
+	template.NotAfter = template.NotBefore.Add(time.Duration(validityPeriodHours) * time.Hour)
 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	template.SerialNumber, err = rand.Int(rand.Reader, serialNumberLimit)
@@ -196,10 +197,18 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	}
 
 	d.SetId(template.SerialNumber.String())
-	d.Set("cert_pem", certPem)
-	d.Set("ready_for_renewal", false)
-	d.Set("validity_start_time", string(validFromBytes))
-	d.Set("validity_end_time", string(validToBytes))
+	if err := d.Set("cert_pem", certPem); err != nil {
+		return fmt.Errorf("error setting value on key 'cert_pem': %s", err)
+	}
+	if err := d.Set("ready_for_renewal", false); err != nil {
+		return fmt.Errorf("error setting value on key 'ready_for_renewal': %s", err)
+	}
+	if err := d.Set("validity_start_time", string(validFromBytes)); err != nil {
+		return fmt.Errorf("error setting value on key 'validity_start_time': %s", err)
+	}
+	if err := d.Set("validity_end_time", string(validToBytes)); err != nil {
+		return fmt.Errorf("error setting value on key 'validity_end_time': %s", err)
+	}
 
 	return nil
 }
@@ -223,7 +232,8 @@ func CustomizeCertificateDiff(ctx context.Context, d *schema.ResourceDiff, meta 
 		// If end time is invalid then we'll treat it as being at the time for renewal.
 		readyForRenewal = true
 	} else {
-		earlyRenewalPeriod := time.Duration(-d.Get("early_renewal_hours").(int)) * time.Hour
+		earlyRenewalHours := d.Get("early_renewal_hours").(int)
+		earlyRenewalPeriod := time.Duration(-earlyRenewalHours) * time.Hour
 		endTime = endTime.Add(earlyRenewalPeriod)
 
 		currentTime := now()

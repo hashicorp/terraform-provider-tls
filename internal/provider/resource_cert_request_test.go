@@ -53,7 +53,7 @@ EOT
                     output "key_pem_1" {
                         value = "${tls_cert_request.test1.cert_request_pem}"
                     }
-                `, testPrivateKey),
+                `, testPrivateKeyPEM),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
 
@@ -146,7 +146,7 @@ EOT
                     output "key_pem_2" {
                         value = "${tls_cert_request.test2.cert_request_pem}"
                     }
-                `, testPrivateKey),
+                `, testPrivateKeyPEM),
 				Check: func(s *terraform.State) error {
 					gotUntyped := s.RootModule().Outputs["key_pem_2"].Value
 

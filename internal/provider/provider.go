@@ -32,7 +32,7 @@ func hashForState(value string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func nameFromResourceData(nameMap map[string]interface{}) (*pkix.Name, error) {
+func nameFromResourceData(nameMap map[string]interface{}) *pkix.Name {
 	result := &pkix.Name{}
 
 	if value := nameMap["common_name"]; value != "" {
@@ -66,7 +66,7 @@ func nameFromResourceData(nameMap map[string]interface{}) (*pkix.Name, error) {
 		result.SerialNumber = value.(string)
 	}
 
-	return result, nil
+	return result
 }
 
 var nameSchema *schema.Resource = &schema.Resource{
