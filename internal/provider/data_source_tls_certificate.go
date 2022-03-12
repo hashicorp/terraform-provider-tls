@@ -2,6 +2,7 @@ package provider
 
 import (
 	"crypto/sha1"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -68,6 +69,18 @@ func dataSourceTlsCertificate() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"sha1_fingerprint_rfc4716": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"sha256_fingerprint": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"sha256_fingerprint_rfc4716": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -111,18 +124,34 @@ func dataSourceTlsCertificateRead(d *schema.ResourceData, _ interface{}) error {
 	return nil
 }
 
+func rfc4716hex(data []byte) string {
+	var fingerprint string
+	for i := 0; i < len(data); i++ {
+		fingerprint = fmt.Sprintf("%s%0.2x", fingerprint, data[i])
+		if i != len(data)-1 {
+			fingerprint = fingerprint + ":"
+		}
+	}
+	return fingerprint
+}
+
 func parsePeerCertificate(cert *x509.Certificate) map[string]interface{} {
+	sha1_fingerprint := sha1.Sum(cert.Raw)
+	sha256_fingerprint := sha256.Sum256(cert.Raw)
 	ret := map[string]interface{}{
-		"signature_algorithm":  cert.SignatureAlgorithm.String(),
-		"public_key_algorithm": cert.PublicKeyAlgorithm.String(),
-		"serial_number":        cert.SerialNumber.String(),
-		"is_ca":                cert.IsCA,
-		"version":              cert.Version,
-		"issuer":               cert.Issuer.String(),
-		"subject":              cert.Subject.String(),
-		"not_before":           cert.NotBefore.Format(time.RFC3339),
-		"not_after":            cert.NotAfter.Format(time.RFC3339),
-		"sha1_fingerprint":     fmt.Sprintf("%x", sha1.Sum(cert.Raw)),
+		"signature_algorithm":        cert.SignatureAlgorithm.String(),
+		"public_key_algorithm":       cert.PublicKeyAlgorithm.String(),
+		"serial_number":              cert.SerialNumber.String(),
+		"is_ca":                      cert.IsCA,
+		"version":                    cert.Version,
+		"issuer":                     cert.Issuer.String(),
+		"subject":                    cert.Subject.String(),
+		"not_before":                 cert.NotBefore.Format(time.RFC3339),
+		"not_after":                  cert.NotAfter.Format(time.RFC3339),
+		"sha1_fingerprint":           fmt.Sprintf("%x", sha1_fingerprint),
+		"sha1_fingerprint_rfc4716":   rfc4716hex(sha1_fingerprint[:]),
+		"sha256_fingerprint":         fmt.Sprintf("%x", sha256_fingerprint),
+		"sha256_fingerprint_rfc4716": rfc4716hex(sha256_fingerprint[:]),
 	}
 
 	return ret
