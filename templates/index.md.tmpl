@@ -1,0 +1,27 @@
+---
+page_title: "Provider: TLS"
+description: |-
+  The TLS provider provides utilities for working with Transport Layer Security keys and certificates.
+---
+
+# TLS Provider
+
+The TLS provider provides utilities for working with *Transport Layer Security*
+keys and certificates. It provides resources that
+allow private keys, certificates and certificate requests to be
+created as part of a Terraform deployment.
+
+Another name for Transport Layer Security is *Secure Sockets Layer*,
+or SSL. TLS and SSL are equivalent when considering the resources
+managed by this provider.
+
+This provider is not particularly useful on its own, but it can be
+used to create certificates and credentials that can then be used
+with other providers when creating resources that expose TLS
+services or that themselves provision TLS certificates.
+
+Use the navigation to the left to read about the available resources.
+
+## Example Usage
+
+{{ tffile "examples/provider/provider.tf" }}

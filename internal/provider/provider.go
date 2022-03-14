@@ -69,7 +69,7 @@ func nameFromResourceData(nameMap map[string]interface{}) *pkix.Name {
 	return result
 }
 
-var nameSchema *schema.Resource = &schema.Resource{
+var nameSchema = &schema.Resource{
 	Schema: map[string]*schema.Schema{
 		"organization": {
 			Type:     schema.TypeString,
