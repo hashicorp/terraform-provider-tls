@@ -2,7 +2,7 @@ GOLANGCILINT_INSTALLED := $(shell command -v golangci-lint 2> /dev/null)
 
 default: build
 
-build: generate fmt
+build:
 	go build -v ./...
 
 lint:
@@ -18,9 +18,9 @@ fmt:
 	go fmt -x ./...
 
 test:
-	go test -v 	-timeout=120s -parallel=4 ./...
+	go test -v -cover -timeout=120s -parallel=4 ./...
 
 testacc:
-	TF_ACC=1 go test -v -timeout 120m ./...
+	TF_ACC=1 go test -v -cover -timeout 120m ./...
 
 .PHONY: build lint generate fmt test testacc
