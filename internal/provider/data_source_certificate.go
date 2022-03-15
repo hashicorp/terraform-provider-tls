@@ -94,6 +94,12 @@ func dataSourceCertificate() *schema.Resource {
 				},
 				Description: "The certificates protecting the site, with the root of the chain first.",
 			},
+			"id": {
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "Unique identifier of this data source: " +
+					"randomly generated string (UTC time when data source was read).",
+			},
 		},
 	}
 }

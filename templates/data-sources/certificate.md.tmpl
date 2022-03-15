@@ -26,11 +26,11 @@ description: |-
 
 ### Optional
 
-- **id** (String) The ID of this resource.
 - **verify_chain** (Boolean) Whether to verify the certificate chain while parsing it or not (default: `true`).
 
 ### Read-Only
 
+- **id** (String) Unique identifier of this data source: randomly generated string (UTC time when data source was read).
 - **certificates** (List of Object) The certificates protecting the site, with the root of the chain first. (see [below for nested schema](#nestedatt--certificates))
 
 <a id="nestedatt--certificates"></a>
