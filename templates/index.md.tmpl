@@ -25,3 +25,22 @@ Use the navigation to the left to read about the available resources.
 ## Example Usage
 
 {{ tffile "examples/provider/provider.tf" }}
+
+## Limitations
+
+### `ECDSA` with `P224` elliptic curve
+
+When using `ECDSA` with `P224`, all the (computed) attributes
+that have to do with [OpenSSH](https://www.openssh.com/) will have a value of `""` (empty string).
+This applies to different resources and data sources offered by this provider,
+like the `tls_private_key` resource or the `tls_public_key` data source.
+
+The attributes affected are:
+
+* `.public_key_openssh`
+* `.private_key_openssh`
+* `.public_key_fingerprint_md5`
+* `.public_key_fingerprint_sha256`
+
+This is because the SSH ECC Algorithm Integration ([RFC 5656](https://datatracker.ietf.org/doc/html/rfc5656))
+restricts support for elliptic curves to "nistp256", "nistp384" and "nistp521".
