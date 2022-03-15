@@ -72,68 +72,91 @@ func resourcePrivateKey() *schema.Resource {
 		Delete: deleteResourcePrivateKey,
 		Read:   readResourcePrivateKey,
 
+		Description: "Creates a PEM (and OpenSSH) formatted private key.\n\n" +
+			"Generates a secure private key and encodes it in " +
+			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and " +
+			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +
+			"This resource is primarily intended for easily bootstrapping throwaway development environments.",
+
 		Schema: map[string]*schema.Schema{
 			"algorithm": {
 				Type:             schema.TypeString,
 				Required:         true,
-				Description:      "Name of the algorithm to use to generate the private key",
 				ForceNew:         true,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(SupportedAlgorithmsStr(), false)),
+				Description: "Name of the algorithm to use when generating the private key. " +
+					"Currently-supported values are `RSA`, `ECDSA` and `ED25519`.",
 			},
 
 			"rsa_bits": {
 				Type:        schema.TypeInt,
 				Optional:    true,
-				Description: "Number of bits to use when generating an RSA key",
 				ForceNew:    true,
 				Default:     2048,
+				Description: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
 			},
 
 			"ecdsa_curve": {
 				Type:             schema.TypeString,
 				Optional:         true,
-				Description:      "Curve to use when generating an ECDSA key",
 				ForceNew:         true,
 				Default:          P224,
 				ValidateDiagFunc: validation.ToDiagFunc(validation.StringInSlice(SupportedECDSACurvesStr(), false)),
+				Description: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
+					"Currently-supported values are `P224`, `P256`, `P384` or `P521` (default: `P224`).",
 			},
 
 			"private_key_pem": {
 				Type:        schema.TypeString,
-				Description: "Private key data in PEM format",
 				Computed:    true,
 				Sensitive:   true,
+				Description: "Private key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format",
 			},
 
 			"private_key_openssh": {
 				Type:        schema.TypeString,
-				Description: "Private key data in OpenSSH-compatible PEM format",
 				Computed:    true,
 				Sensitive:   true,
+				Description: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format",
 			},
 
 			"public_key_pem": {
 				Type:        schema.TypeString,
-				Description: "Public key data in PEM format",
 				Computed:    true,
+				Description: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format",
 			},
 
 			"public_key_openssh": {
-				Type:        schema.TypeString,
-				Description: "Public key data in OpenSSH-compatible PEM format",
-				Computed:    true,
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: " The public key data in " +
+					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
+					"This is populated only if the configured private key is supported: " +
+					"this includes all `RSA` and `ED25519` keys, as well as `ECDSA` keys with curves " +
+					"`P256`, `P384` and `P521`. `ECDSA` with curve `P224` [is not supported](../../#limitations).",
 			},
 
 			"public_key_fingerprint_md5": {
-				Type:        schema.TypeString,
-				Description: "Fingerprint of the public key data in OpenSSH MD5 hash format",
-				Computed:    true,
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
+					"Only available if the selected private key format is compatible, similarly to " +
+					"`public_key_openssh` and the [ECDSA P224 limitations](../../#limitations).",
 			},
 
 			"public_key_fingerprint_sha256": {
-				Type:        schema.TypeString,
-				Description: "Fingerprint of the public key data in OpenSSH SHA256 hash format",
-				Computed:    true,
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
+					"Only available if the selected private key format is compatible, similarly to " +
+					"`public_key_openssh` and the [ECDSA P224 limitations](../../#limitations).",
+			},
+
+			"id": {
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "Unique identifier of this resource: " +
+					"hexadecimal representation of the SHA1 checksum of this public key.",
 			},
 		},
 	}
