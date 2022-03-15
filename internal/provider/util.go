@@ -5,9 +5,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/crypto/ssh"
@@ -78,6 +80,21 @@ func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.Certi
 	}
 
 	return certReq, nil
+}
+
+func certificateToMap(cert *x509.Certificate) map[string]interface{} {
+	return map[string]interface{}{
+		"signature_algorithm":  cert.SignatureAlgorithm.String(),
+		"public_key_algorithm": cert.PublicKeyAlgorithm.String(),
+		"serial_number":        cert.SerialNumber.String(),
+		"is_ca":                cert.IsCA,
+		"version":              cert.Version,
+		"issuer":               cert.Issuer.String(),
+		"subject":              cert.Subject.String(),
+		"not_before":           cert.NotBefore.Format(time.RFC3339),
+		"not_after":            cert.NotAfter.Format(time.RFC3339),
+		"sha1_fingerprint":     fmt.Sprintf("%x", sha1.Sum(cert.Raw)),
+	}
 }
 
 // setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
