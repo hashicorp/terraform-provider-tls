@@ -427,7 +427,7 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						value = tls_self_signed_cert.test.cert_pem
 					}
 				`,
-				ExpectError: regexp.MustCompile("expected allowed_uses.0 to be one of \\[.*\\], got not_valid"),
+				ExpectError: regexp.MustCompile(`expected allowed_uses.0 to be one of \[.*\], got not_valid`),
 			},
 			{
 				Config: `
@@ -446,7 +446,7 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						value = tls_self_signed_cert.test.cert_pem
 					}
 				`,
-				ExpectError: regexp.MustCompile("expected validity_period_hours to be at least \\(0\\), got -1"),
+				ExpectError: regexp.MustCompile(`expected validity_period_hours to be at least \(0\), got -1`),
 			},
 			{
 				Config: `
@@ -466,7 +466,7 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						value = tls_self_signed_cert.test.cert_pem
 					}
 				`,
-				ExpectError: regexp.MustCompile("expected early_renewal_hours to be at least \\(0\\), got -10"),
+				ExpectError: regexp.MustCompile(`expected early_renewal_hours to be at least \(0\), got -10`),
 			},
 		},
 	})

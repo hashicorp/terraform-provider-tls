@@ -53,10 +53,10 @@ var extendedKeyUsages = map[string]x509.ExtKeyUsage{
 
 func supportedKeyUsages() []string {
 	res := make([]string, 0, len(keyUsages)+len(extendedKeyUsages))
-	for k, _ := range keyUsages {
+	for k := range keyUsages {
 		res = append(res, k)
 	}
-	for k, _ := range extendedKeyUsages {
+	for k := range extendedKeyUsages {
 		res = append(res, k)
 	}
 	return res
