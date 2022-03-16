@@ -1,0 +1,49 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Type}} ({{.Name}})
+
+{{ .Description | trimspace }}
+
+~> **Warning** From Terraform 0.7.0 to 0.7.4 this resource was
+converted to a data source, and the resource form of it was deprecated. This
+turned out to be a design error since a cert request includes a random number
+in the form of the signature nonce, and so the data source form of this
+resource caused non-convergent configuration. The data source form is no longer
+supported as of Terraform 0.7.5 and any users should return to using the
+resource form.
+
+~> **Warning** Versions of this provider prior to 1.2.0 may generate a
+certificate request which cannot be validated by your Certificate Authority if
+the `*` character is used in any of the `subject` fields, for example as part
+of the `common_name` when generating a request for a wildcard certificate.
+Strings containing a `*` and passed to the `dns_names` argument are encoded
+correctly
+
+-> **Note** This is a *logical resource*, so it contributes only to the current Terraform
+state and does not create any external managed resources.
+
+
+## Example Usage
+
+{{ tffile "examples/resources/tls_cert_request/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
+
+## Generating a New Key
+
+Since a private key is a logical resource that lives only in the Terraform state,
+it will persist until it is explicitly destroyed by the user.
+
+In order to force the generation of a new key within an existing state, the
+private key instance can be "tainted":
+
+```
+terraform taint tls_private_key.example
+```
+
+A new key will then be generated on the next ``terraform apply``.

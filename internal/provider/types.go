@@ -126,3 +126,15 @@ const (
 func (p PEMPreamblePublicKey) String() string {
 	return string(p)
 }
+
+// PEMPreambleCertificate represents the heading used by Certificates and related PEM-formatted files.
+type PEMPreambleCertificate string
+
+const (
+	Certificate        PEMPreambleCertificate = "CERTIFICATE"
+	CertificateRequest PEMPreambleCertificate = "CERTIFICATE REQUEST"
+)
+
+func (c PEMPreambleCertificate) String() string {
+	return string(c)
+}

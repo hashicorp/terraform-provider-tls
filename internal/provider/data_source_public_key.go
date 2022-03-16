@@ -80,8 +80,8 @@ func dataSourcePublicKey() *schema.Resource {
 			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
-				Description: "Unique identifier of this data source: " +
-					"hexadecimal representation of the SHA1 checksum of this public key.",
+				Description: "Unique identifier for this data source: " +
+					"hexadecimal representation of the SHA1 checksum of the data source.",
 			},
 		},
 	}

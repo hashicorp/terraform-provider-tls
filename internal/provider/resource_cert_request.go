@@ -10,74 +10,90 @@ import (
 	"net/url"
 )
 
-const pemCertReqType = "CERTIFICATE REQUEST"
-
 func resourceCertRequest() *schema.Resource {
 	return &schema.Resource{
 		Create: CreateCertRequest,
 		Delete: DeleteCertRequest,
 		Read:   ReadCertRequest,
 
+		Description: "Creates a Certificate Signing Request (CSR) in PEM format.\n\n" +
+			"PEM is the typical format used to request a certificate from a Certificate Authority (CA).\n\n" +
+			"This resource is intended to be used in conjunction with a Terraform provider " +
+			"for a particular certificate authority in order to provision a new certificate.",
+
 		Schema: map[string]*schema.Schema{
 
 			"dns_names": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "List of DNS names to use as subjects of the certificate",
-				ForceNew:    true,
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: "List of DNS names for which a certificate is being requested (i.e. certificate subjects).",
 			},
 
 			"ip_addresses": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "List of IP addresses to use as subjects of the certificate",
-				ForceNew:    true,
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
 			},
 
 			"uris": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "List of URIs to use as subjects of the certificate",
-				ForceNew:    true,
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
+				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
 			},
 
 			"key_algorithm": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Name of the algorithm to use to generate the certificate's private key",
 				ForceNew:    true,
+				Description: "Name of the algorithm used when generating the private key provided in `private_key_pem`.",
 			},
 
 			"private_key_pem": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "PEM-encoded private key that the certificate will belong to",
-				ForceNew:    true,
-				Sensitive:   true,
+				Type:      schema.TypeString,
+				Required:  true,
+				ForceNew:  true,
+				Sensitive: true,
 				StateFunc: func(v interface{}) string {
 					return hashForState(v.(string))
 				},
+				Description: "PEM-encoded private key that the certificate will belong to. " +
+					"This can be read from a separate file using the `file` interpolation function. " +
+					"Only an irreversible secure hash of the private key will be stored in the Terraform state.",
 			},
 
 			"subject": {
 				Type:     schema.TypeList,
 				Required: true,
-				Elem:     nameSchema,
 				ForceNew: true,
+				Elem:     subjectAttributesResource,
+				Description: "The subject for which a certificate is being requested. " +
+					"The acceptable arguments are all optional and their naming is based upon " +
+					"[Issuer Distinguished Names (RFC5280)](https://tools.ietf.org/html/rfc5280#section-4.1.2.4) section.",
 			},
 
 			"cert_request_pem": {
+				Type:        schema.TypeString,
+				Computed:    true,
+				Description: "The certificate request data in PEM format.",
+			},
+
+			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
+				Description: "Unique identifier for this resource: " +
+					"hexadecimal representation of the SHA1 checksum of the resource.",
 			},
 		},
 	}
@@ -97,7 +113,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	if !ok {
 		return fmt.Errorf("subject block cannot be empty")
 	}
-	subject := nameFromResourceData(subjectConf)
+	subject := distinguishedNamesFromSubjectAttributes(subjectConf)
 
 	certReq := x509.CertificateRequest{
 		Subject: *subject,
@@ -128,7 +144,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error creating certificate request: %s", err)
 	}
-	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: pemCertReqType, Bytes: certReqBytes}))
+	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: CertificateRequest.String(), Bytes: certReqBytes}))
 
 	d.SetId(hashForState(string(certReqBytes)))
 

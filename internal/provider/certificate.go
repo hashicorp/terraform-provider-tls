@@ -9,6 +9,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
 	"errors"
@@ -19,9 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const pemCertType = "CERTIFICATE"
-
-var keyUsages map[string]x509.KeyUsage = map[string]x509.KeyUsage{
+var keyUsages = map[string]x509.KeyUsage{
 	"digital_signature":  x509.KeyUsageDigitalSignature,
 	"content_commitment": x509.KeyUsageContentCommitment,
 	"key_encipherment":   x509.KeyUsageKeyEncipherment,
@@ -33,7 +32,7 @@ var keyUsages map[string]x509.KeyUsage = map[string]x509.KeyUsage{
 	"decipher_only":      x509.KeyUsageDecipherOnly,
 }
 
-var extKeyUsages map[string]x509.ExtKeyUsage = map[string]x509.ExtKeyUsage{
+var extKeyUsages = map[string]x509.ExtKeyUsage{
 	"any_extended":                  x509.ExtKeyUsageAny,
 	"server_auth":                   x509.ExtKeyUsageServerAuth,
 	"client_auth":                   x509.ExtKeyUsageClientAuth,
@@ -185,7 +184,7 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	if err != nil {
 		return fmt.Errorf("error creating certificate: %s", err)
 	}
-	certPem := string(pem.EncodeToMemory(&pem.Block{Type: pemCertType, Bytes: certBytes}))
+	certPem := string(pem.EncodeToMemory(&pem.Block{Type: Certificate.String(), Bytes: certBytes}))
 
 	validFromBytes, err := template.NotBefore.MarshalText()
 	if err != nil {
@@ -213,16 +212,16 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	return nil
 }
 
-func DeleteCertificate(d *schema.ResourceData, meta interface{}) error {
+func deleteCertificate(d *schema.ResourceData, _ interface{}) error {
 	d.SetId("")
 	return nil
 }
 
-func ReadCertificate(d *schema.ResourceData, meta interface{}) error {
+func readCertificate(_ *schema.ResourceData, _ interface{}) error {
 	return nil
 }
 
-func CustomizeCertificateDiff(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+func customizeCertificateDiff(_ context.Context, d *schema.ResourceDiff, _ interface{}) error {
 	var readyForRenewal bool
 
 	endTimeStr := d.Get("validity_end_time").(string)
@@ -257,6 +256,107 @@ func CustomizeCertificateDiff(ctx context.Context, d *schema.ResourceDiff, meta 
 	return nil
 }
 
-func UpdateCertificate(d *schema.ResourceData, meta interface{}) error {
+func updateCertificate(_ *schema.ResourceData, _ interface{}) error {
 	return nil
+}
+
+// distinguishedNamesFromSubjectAttributes it takes a map subject attributes and
+// converts it to a pkix.Name (X.509 distinguished names).
+func distinguishedNamesFromSubjectAttributes(nameMap map[string]interface{}) *pkix.Name {
+	result := &pkix.Name{}
+
+	if value := nameMap["common_name"]; value != "" {
+		result.CommonName = value.(string)
+	}
+	if value := nameMap["organization"]; value != "" {
+		result.Organization = []string{value.(string)}
+	}
+	if value := nameMap["organizational_unit"]; value != "" {
+		result.OrganizationalUnit = []string{value.(string)}
+	}
+	if value := nameMap["street_address"].([]interface{}); len(value) > 0 {
+		result.StreetAddress = make([]string, len(value))
+		for i, vi := range value {
+			result.StreetAddress[i] = vi.(string)
+		}
+	}
+	if value := nameMap["locality"]; value != "" {
+		result.Locality = []string{value.(string)}
+	}
+	if value := nameMap["province"]; value != "" {
+		result.Province = []string{value.(string)}
+	}
+	if value := nameMap["country"]; value != "" {
+		result.Country = []string{value.(string)}
+	}
+	if value := nameMap["postal_code"]; value != "" {
+		result.PostalCode = []string{value.(string)}
+	}
+	if value := nameMap["serial_number"]; value != "" {
+		result.SerialNumber = value.(string)
+	}
+
+	return result
+}
+
+var subjectAttributesResource = &schema.Resource{
+	Schema: map[string]*schema.Schema{
+		"organization": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Distinguished name: `O`",
+		},
+		"common_name": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Distinguished name: `CN`",
+		},
+		"organizational_unit": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Distinguished name: `OU`",
+		},
+		"street_address": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			ForceNew:    true,
+			Description: "Distinguished name: `STREET`",
+		},
+		"locality": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Distinguished name: `L`",
+		},
+		"province": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Distinguished name: `ST`",
+		},
+		"country": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Distinguished name: `C`",
+		},
+		"postal_code": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Distinguished name: `PC`",
+		},
+		"serial_number": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			ForceNew:    true,
+			Description: "Distinguished name: `SERIALNUMBER`",
+		},
+	},
 }

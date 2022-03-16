@@ -155,8 +155,8 @@ func resourcePrivateKey() *schema.Resource {
 			"id": {
 				Type:     schema.TypeString,
 				Computed: true,
-				Description: "Unique identifier of this resource: " +
-					"hexadecimal representation of the SHA1 checksum of this public key.",
+				Description: "Unique identifier for this resource: " +
+					"hexadecimal representation of the SHA1 checksum of the resource.",
 			},
 		},
 	}

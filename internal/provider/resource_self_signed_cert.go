@@ -15,7 +15,7 @@ func resourceSelfSignedCert() *schema.Resource {
 	s["subject"] = &schema.Schema{
 		Type:     schema.TypeList,
 		Required: true,
-		Elem:     nameSchema,
+		Elem:     subjectAttributesResource,
 		ForceNew: true,
 	}
 
@@ -69,10 +69,10 @@ func resourceSelfSignedCert() *schema.Resource {
 
 	return &schema.Resource{
 		Create:        CreateSelfSignedCert,
-		Delete:        DeleteCertificate,
-		Read:          ReadCertificate,
-		Update:        UpdateCertificate,
-		CustomizeDiff: CustomizeCertificateDiff,
+		Delete:        deleteCertificate,
+		Read:          readCertificate,
+		Update:        updateCertificate,
+		CustomizeDiff: customizeCertificateDiff,
 		Schema:        s,
 	}
 }
@@ -91,7 +91,7 @@ func CreateSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
 	if !ok {
 		return fmt.Errorf("subject block cannot be empty")
 	}
-	subject := nameFromResourceData(subjectConf)
+	subject := distinguishedNamesFromSubjectAttributes(subjectConf)
 
 	cert := x509.Certificate{
 		Subject:               *subject,

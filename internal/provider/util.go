@@ -7,8 +7,10 @@ import (
 	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -69,7 +71,7 @@ func parseCertificate(d *schema.ResourceData, pemKey string) (*x509.Certificate,
 }
 
 func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.CertificateRequest, error) {
-	block, err := decodePEM(d, pemKey, pemCertReqType)
+	block, err := decodePEM(d, pemKey, CertificateRequest.String())
 	if err != nil {
 		return nil, err
 	}
@@ -156,4 +158,14 @@ func toPublicKey(prvKey crypto.PrivateKey) crypto.PublicKey {
 	default:
 		return nil
 	}
+}
+
+// hashForState computes the hexadecimal representation of the SHA1 checksum of a string.
+// This is used by most resources/data-sources here to compute their Unique Identifier (ID).
+func hashForState(value string) string {
+	if value == "" {
+		return ""
+	}
+	hash := sha1.Sum([]byte(strings.TrimSpace(value)))
+	return hex.EncodeToString(hash[:])
 }
