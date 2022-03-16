@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"math/big"
+	"sort"
 	"strings"
 	"time"
 
@@ -53,12 +54,15 @@ var extendedKeyUsages = map[string]x509.ExtKeyUsage{
 
 func supportedKeyUsages() []string {
 	res := make([]string, 0, len(keyUsages)+len(extendedKeyUsages))
+
 	for k := range keyUsages {
 		res = append(res, k)
 	}
 	for k := range extendedKeyUsages {
 		res = append(res, k)
 	}
+	sort.Strings(res)
+
 	return res
 }
 
