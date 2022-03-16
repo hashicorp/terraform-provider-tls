@@ -7,7 +7,9 @@ import (
 )
 
 func resourceLocallySignedCert() *schema.Resource {
-	s := resourceCertificateCommonSchema()
+	s := map[string]*schema.Schema{}
+
+	setCertificateCommonSchema(&s)
 
 	s["cert_request_pem"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -48,7 +50,7 @@ func resourceLocallySignedCert() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Create:        CreateLocallySignedCert,
+		Create:        createLocallySignedCert,
 		Delete:        deleteCertificate,
 		Read:          readCertificate,
 		Update:        updateCertificate,
@@ -57,7 +59,7 @@ func resourceLocallySignedCert() *schema.Resource {
 	}
 }
 
-func CreateLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
+func createLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
 	certReq, err := parseCertificateRequest(d, "cert_request_pem")
 	if err != nil {
 		return err

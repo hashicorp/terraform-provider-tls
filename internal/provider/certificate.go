@@ -14,7 +14,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -32,29 +34,32 @@ var keyUsages = map[string]x509.KeyUsage{
 	"decipher_only":      x509.KeyUsageDecipherOnly,
 }
 
-var extKeyUsages = map[string]x509.ExtKeyUsage{
-	"any_extended":                  x509.ExtKeyUsageAny,
-	"server_auth":                   x509.ExtKeyUsageServerAuth,
-	"client_auth":                   x509.ExtKeyUsageClientAuth,
-	"code_signing":                  x509.ExtKeyUsageCodeSigning,
-	"email_protection":              x509.ExtKeyUsageEmailProtection,
-	"ipsec_end_system":              x509.ExtKeyUsageIPSECEndSystem,
-	"ipsec_tunnel":                  x509.ExtKeyUsageIPSECTunnel,
-	"ipsec_user":                    x509.ExtKeyUsageIPSECUser,
-	"timestamping":                  x509.ExtKeyUsageTimeStamping,
-	"ocsp_signing":                  x509.ExtKeyUsageOCSPSigning,
-	"microsoft_server_gated_crypto": x509.ExtKeyUsageMicrosoftServerGatedCrypto,
-	"netscape_server_gated_crypto":  x509.ExtKeyUsageNetscapeServerGatedCrypto,
+var extendedKeyUsages = map[string]x509.ExtKeyUsage{
+	"any_extended":                      x509.ExtKeyUsageAny,
+	"server_auth":                       x509.ExtKeyUsageServerAuth,
+	"client_auth":                       x509.ExtKeyUsageClientAuth,
+	"code_signing":                      x509.ExtKeyUsageCodeSigning,
+	"email_protection":                  x509.ExtKeyUsageEmailProtection,
+	"ipsec_end_system":                  x509.ExtKeyUsageIPSECEndSystem,
+	"ipsec_tunnel":                      x509.ExtKeyUsageIPSECTunnel,
+	"ipsec_user":                        x509.ExtKeyUsageIPSECUser,
+	"timestamping":                      x509.ExtKeyUsageTimeStamping,
+	"ocsp_signing":                      x509.ExtKeyUsageOCSPSigning,
+	"microsoft_server_gated_crypto":     x509.ExtKeyUsageMicrosoftServerGatedCrypto,
+	"netscape_server_gated_crypto":      x509.ExtKeyUsageNetscapeServerGatedCrypto,
+	"microsoft_commercial_code_signing": x509.ExtKeyUsageMicrosoftCommercialCodeSigning,
+	"microsoft_kernel_code_signing":     x509.ExtKeyUsageMicrosoftKernelCodeSigning,
 }
 
-// rsaPublicKey reflects the ASN.1 structure of a PKCS#1 public key.
-type rsaPublicKey struct {
-	N *big.Int
-	E int
-}
-
-var now = func() time.Time {
-	return time.Now()
+func supportedKeyUsages() []string {
+	res := make([]string, 0, len(keyUsages)+len(extendedKeyUsages))
+	for k, _ := range keyUsages {
+		res = append(res, k)
+	}
+	for k, _ := range extendedKeyUsages {
+		res = append(res, k)
+	}
+	return res
 }
 
 // generateSubjectKeyID generates a SHA-1 hash of the subject public key.
@@ -64,7 +69,7 @@ func generateSubjectKeyID(pub crypto.PublicKey) ([]byte, error) {
 
 	switch pub := pub.(type) {
 	case *rsa.PublicKey:
-		publicKeyBytes, err = asn1.Marshal(rsaPublicKey{N: pub.N, E: pub.E})
+		publicKeyBytes, err = asn1.Marshal(*pub)
 		if err != nil {
 			return nil, err
 		}
@@ -78,72 +83,223 @@ func generateSubjectKeyID(pub crypto.PublicKey) ([]byte, error) {
 	return hash[:], nil
 }
 
-func resourceCertificateCommonSchema() map[string]*schema.Schema {
-	return map[string]*schema.Schema{
-		"validity_period_hours": {
-			Type:        schema.TypeInt,
-			Required:    true,
-			Description: "Number of hours that the certificate will remain valid for",
-			ForceNew:    true,
+// setCertificateSubjectSchema sets on the given reference to map of schema.Schema
+// all the keys required by a resource representing a certificate's subject.
+func setCertificateSubjectSchema(s *map[string]*schema.Schema) {
+	(*s)["dns_names"] = &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		ForceNew: true,
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
 		},
+		Description: "List of DNS names for which a certificate is being requested (i.e. certificate subjects).",
+	}
 
-		"early_renewal_hours": {
-			Type:        schema.TypeInt,
-			Optional:    true,
-			Default:     0,
-			Description: "Number of hours before the certificates expiry when a new certificate will be generated",
+	(*s)["ip_addresses"] = &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		ForceNew: true,
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
 		},
+		Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
+	}
 
-		"is_ca_certificate": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Description: "Whether the generated certificate will be usable as a CA certificate",
-			ForceNew:    true,
+	(*s)["uris"] = &schema.Schema{
+		Type:     schema.TypeList,
+		Optional: true,
+		ForceNew: true,
+		Elem: &schema.Schema{
+			Type: schema.TypeString,
 		},
+		Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
+	}
 
-		"allowed_uses": {
-			Type:        schema.TypeList,
-			Required:    true,
-			Description: "Uses that are allowed for the certificate",
-			ForceNew:    true,
-			Elem: &schema.Schema{
-				Type: schema.TypeString,
+	(*s)["key_algorithm"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Required:    true,
+		ForceNew:    true,
+		Description: "Name of the algorithm used when generating the private key provided in `private_key_pem`.",
+	}
+
+	(*s)["private_key_pem"] = &schema.Schema{
+		Type:      schema.TypeString,
+		Required:  true,
+		ForceNew:  true,
+		Sensitive: true,
+		StateFunc: func(v interface{}) string {
+			return hashForState(v.(string))
+		},
+		Description: "PEM-encoded private key that the certificate will belong to. " +
+			"This can be read from a separate file using the `file` interpolation function. " +
+			"Only an irreversible secure hash of the private key will be stored in the Terraform state.",
+	}
+
+	(*s)["subject"] = &schema.Schema{
+		Type:     schema.TypeList,
+		Required: true,
+		ForceNew: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"organization": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					ForceNew:    true,
+					Description: "Distinguished name: `O`",
+				},
+				"common_name": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					ForceNew:    true,
+					Description: "Distinguished name: `CN`",
+				},
+				"organizational_unit": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					ForceNew:    true,
+					Description: "Distinguished name: `OU`",
+				},
+				"street_address": {
+					Type:     schema.TypeList,
+					Optional: true,
+					Elem: &schema.Schema{
+						Type: schema.TypeString,
+					},
+					ForceNew:    true,
+					Description: "Distinguished name: `STREET`",
+				},
+				"locality": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					ForceNew:    true,
+					Description: "Distinguished name: `L`",
+				},
+				"province": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					ForceNew:    true,
+					Description: "Distinguished name: `ST`",
+				},
+				"country": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					ForceNew:    true,
+					Description: "Distinguished name: `C`",
+				},
+				"postal_code": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					ForceNew:    true,
+					Description: "Distinguished name: `PC`",
+				},
+				"serial_number": {
+					Type:        schema.TypeString,
+					Optional:    true,
+					ForceNew:    true,
+					Description: "Distinguished name: `SERIALNUMBER`",
+				},
 			},
 		},
+		Description: "The subject for which a certificate is being requested. " +
+			"The acceptable arguments are all optional and their naming is based upon " +
+			"[Issuer Distinguished Names (RFC5280)](https://tools.ietf.org/html/rfc5280#section-4.1.2.4) section.",
+	}
+}
 
-		"cert_pem": {
-			Type:     schema.TypeString,
-			Computed: true,
-		},
+// setCertificateCommonSchema sets on the given reference to map of schema.Schema
+// all the keys required by a resource representing a certificate.
+func setCertificateCommonSchema(s *map[string]*schema.Schema) {
+	(*s)["validity_period_hours"] = &schema.Schema{
+		Type:             schema.TypeInt,
+		Required:         true,
+		ForceNew:         true,
+		ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(0)),
+		Description:      "Number of hours, after initial issuing, that the certificate will remain valid for.",
+	}
 
-		"ready_for_renewal": {
-			Type:     schema.TypeBool,
-			Computed: true,
-		},
+	(*s)["early_renewal_hours"] = &schema.Schema{
+		Type:             schema.TypeInt,
+		Optional:         true,
+		Default:          0,
+		ValidateDiagFunc: validation.ToDiagFunc(validation.IntAtLeast(0)),
+		Description: "The resource will consider the certificate to have expired the given number of hours " +
+			"before its actual expiry time. This can be useful to deploy an updated certificate in advance of " +
+			"the expiration of the current certificate. " +
+			"However, the old certificate remains valid until its true expiration time, since this resource " +
+			"does not (and cannot) support certificate revocation. " +
+			"Also, this advance update can only be performed should the Terraform configuration be applied " +
+			"during the early renewal period. (default: `0`)",
+	}
 
-		"validity_start_time": {
-			Type:     schema.TypeString,
-			Computed: true,
-		},
+	(*s)["is_ca_certificate"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		ForceNew:    true,
+		Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
+	}
 
-		"validity_end_time": {
-			Type:     schema.TypeString,
-			Computed: true,
+	(*s)["allowed_uses"] = &schema.Schema{
+		Type:     schema.TypeList,
+		Required: true,
+		ForceNew: true,
+		Elem: &schema.Schema{
+			Type:         schema.TypeString,
+			ValidateFunc: validation.StringInSlice(supportedKeyUsages(), false),
 		},
+		Description: "List of key usages allowed for the issued certificate. " +
+			"Values are defined in [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) " +
+			"and combine flags defined by both " +
+			"[Key Usages](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.3) " +
+			"and [Extended Key Usages](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.12). " +
+			fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedKeyUsages(), "`, `")),
+	}
 
-		"set_subject_key_id": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Description: "If true, the generated certificate will include a subject key identifier.",
-			ForceNew:    true,
-		},
+	(*s)["cert_pem"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Computed:    true,
+		Description: "Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
+	}
+
+	(*s)["ready_for_renewal"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Computed: true,
+		Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
+			"or ready for an early renewal (i.e. within the `early_renewal_hours`)?",
+	}
+
+	(*s)["validity_start_time"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+		Description: "The time after which the certificate is valid, " +
+			"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
+	}
+
+	(*s)["validity_end_time"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Computed: true,
+		Description: "The time until which the certificate is invalid, " +
+			"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
+	}
+
+	(*s)["set_subject_key_id"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		ForceNew:    true,
+		Description: "Should the generated certificate include a subject key identifier (default: `false`).",
+	}
+
+	(*s)["id"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Computed:    true,
+		Description: "Unique identifier for this resource: the certificate serial number.",
 	}
 }
 
 func createCertificate(d *schema.ResourceData, template, parent *x509.Certificate, pub crypto.PublicKey, priv interface{}) error {
 	var err error
 
-	template.NotBefore = now()
+	template.NotBefore = overridableTimeFunc()
 	validityPeriodHours := d.Get("validity_period_hours").(int)
 	template.NotAfter = template.NotBefore.Add(time.Duration(validityPeriodHours) * time.Hour)
 
@@ -159,7 +315,7 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 		if usage, ok := keyUsages[keyUse]; ok {
 			template.KeyUsage |= usage
 		}
-		if usage, ok := extKeyUsages[keyUse]; ok {
+		if usage, ok := extendedKeyUsages[keyUse]; ok {
 			template.ExtKeyUsage = append(template.ExtKeyUsage, usage)
 		}
 	}
@@ -225,7 +381,7 @@ func customizeCertificateDiff(_ context.Context, d *schema.ResourceDiff, _ inter
 	var readyForRenewal bool
 
 	endTimeStr := d.Get("validity_end_time").(string)
-	endTime := now()
+	endTime := overridableTimeFunc()
 	err := endTime.UnmarshalText([]byte(endTimeStr))
 	if err != nil {
 		// If end time is invalid then we'll treat it as being at the time for renewal.
@@ -235,7 +391,7 @@ func customizeCertificateDiff(_ context.Context, d *schema.ResourceDiff, _ inter
 		earlyRenewalPeriod := time.Duration(-earlyRenewalHours) * time.Hour
 		endTime = endTime.Add(earlyRenewalPeriod)
 
-		currentTime := now()
+		currentTime := overridableTimeFunc()
 		timeToRenewal := endTime.Sub(currentTime)
 		if timeToRenewal <= 0 {
 			readyForRenewal = true
@@ -297,66 +453,4 @@ func distinguishedNamesFromSubjectAttributes(nameMap map[string]interface{}) *pk
 	}
 
 	return result
-}
-
-var subjectAttributesResource = &schema.Resource{
-	Schema: map[string]*schema.Schema{
-		"organization": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "Distinguished name: `O`",
-		},
-		"common_name": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "Distinguished name: `CN`",
-		},
-		"organizational_unit": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "Distinguished name: `OU`",
-		},
-		"street_address": {
-			Type:     schema.TypeList,
-			Optional: true,
-			Elem: &schema.Schema{
-				Type: schema.TypeString,
-			},
-			ForceNew:    true,
-			Description: "Distinguished name: `STREET`",
-		},
-		"locality": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "Distinguished name: `L`",
-		},
-		"province": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "Distinguished name: `ST`",
-		},
-		"country": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "Distinguished name: `C`",
-		},
-		"postal_code": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "Distinguished name: `PC`",
-		},
-		"serial_number": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			ForceNew:    true,
-			Description: "Distinguished name: `SERIALNUMBER`",
-		},
-	},
 }

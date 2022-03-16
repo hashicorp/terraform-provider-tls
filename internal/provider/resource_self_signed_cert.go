@@ -10,62 +10,10 @@ import (
 )
 
 func resourceSelfSignedCert() *schema.Resource {
-	s := resourceCertificateCommonSchema()
+	s := map[string]*schema.Schema{}
 
-	s["subject"] = &schema.Schema{
-		Type:     schema.TypeList,
-		Required: true,
-		Elem:     subjectAttributesResource,
-		ForceNew: true,
-	}
-
-	s["dns_names"] = &schema.Schema{
-		Type:        schema.TypeList,
-		Optional:    true,
-		Description: "List of DNS names to use as subjects of the certificate",
-		ForceNew:    true,
-		Elem: &schema.Schema{
-			Type: schema.TypeString,
-		},
-	}
-
-	s["ip_addresses"] = &schema.Schema{
-		Type:        schema.TypeList,
-		Optional:    true,
-		Description: "List of IP addresses to use as subjects of the certificate",
-		ForceNew:    true,
-		Elem: &schema.Schema{
-			Type: schema.TypeString,
-		},
-	}
-
-	s["uris"] = &schema.Schema{
-		Type:        schema.TypeList,
-		Optional:    true,
-		Description: "List of URIs to use as subjects of the certificate",
-		ForceNew:    true,
-		Elem: &schema.Schema{
-			Type: schema.TypeString,
-		},
-	}
-
-	s["key_algorithm"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "Name of the algorithm to use to generate the certificate's private key",
-		ForceNew:    true,
-	}
-
-	s["private_key_pem"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "PEM-encoded private key that the certificate will belong to",
-		ForceNew:    true,
-		Sensitive:   true,
-		StateFunc: func(v interface{}) string {
-			return hashForState(v.(string))
-		},
-	}
+	setCertificateCommonSchema(&s)
+	setCertificateSubjectSchema(&s)
 
 	return &schema.Resource{
 		Create:        CreateSelfSignedCert,

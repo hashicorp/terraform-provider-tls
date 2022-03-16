@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -136,7 +137,7 @@ func TestSelfSignedCert(t *testing.T) {
 EOT
                     }
                     output "key_pem_2" {
-                        value = "${tls_self_signed_cert.test2.cert_pem}"
+                        value = tls_self_signed_cert.test2.cert_pem
                     }
                 `, testPrivateKeyPEM),
 				Check: func(s *terraform.State) error {
@@ -209,7 +210,7 @@ EOT
 }
 
 func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
-	oldNow := now
+	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
@@ -282,11 +283,11 @@ func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 			},
 		},
 	})
-	now = oldNow
+	overridableTimeFunc = oldNow
 }
 
 func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
-	oldNow := now
+	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
@@ -359,7 +360,7 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 			},
 		},
 	})
-	now = oldNow
+	overridableTimeFunc = oldNow
 }
 
 func TestAccSelfSignedCertSetSubjectKeyID(t *testing.T) {
@@ -382,7 +383,7 @@ func TestAccSelfSignedCertSetSubjectKeyID(t *testing.T) {
 EOT
 				}
 				output "cert_pem" {
-					value = "${tls_self_signed_cert.test.cert_pem}"
+					value = tls_self_signed_cert.test.cert_pem
 				}
 				`, testPrivateKeyPEM),
 				Check: func(s *terraform.State) error {
@@ -402,7 +403,73 @@ EOT
 			},
 		},
 	})
+}
 
+func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							common_name = "common test cert"
+						}
+						key_algorithm = "RSA"
+						validity_period_hours = 1
+						allowed_uses = [
+							"not_valid"
+						]
+						set_subject_key_id = true
+						private_key_pem = "does not matter"
+					}
+					output "cert_pem" {
+						value = tls_self_signed_cert.test.cert_pem
+					}
+				`,
+				ExpectError: regexp.MustCompile("expected allowed_uses.0 to be one of \\[.*\\], got not_valid"),
+			},
+			{
+				Config: `
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							common_name = "common test cert"
+						}
+						key_algorithm = "RSA"
+						validity_period_hours = -1
+						allowed_uses = [
+						]
+						set_subject_key_id = true
+						private_key_pem = "does not matter"
+					}
+					output "cert_pem" {
+						value = tls_self_signed_cert.test.cert_pem
+					}
+				`,
+				ExpectError: regexp.MustCompile("expected validity_period_hours to be at least \\(0\\), got -1"),
+			},
+			{
+				Config: `
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							common_name = "common test cert"
+						}
+						key_algorithm = "RSA"
+						validity_period_hours = 20
+						early_renewal_hours = -10
+						allowed_uses = [
+						]
+						set_subject_key_id = true
+						private_key_pem = "does not matter"
+					}
+					output "cert_pem" {
+						value = tls_self_signed_cert.test.cert_pem
+					}
+				`,
+				ExpectError: regexp.MustCompile("expected early_renewal_hours to be at least \\(0\\), got -10"),
+			},
+		},
+	})
 }
 
 func selfSignedCertConfig(validity uint32, earlyRenewal uint32) string {
@@ -451,7 +518,7 @@ func selfSignedCertConfig(validity uint32, earlyRenewal uint32) string {
 EOT
                     }
                     output "key_pem_1" {
-                        value = "${tls_self_signed_cert.test1.cert_pem}"
+                        value = tls_self_signed_cert.test1.cert_pem
                     }
                 `, validity, earlyRenewal, testPrivateKeyPEM)
 }

@@ -169,3 +169,9 @@ func hashForState(value string) string {
 	hash := sha1.Sum([]byte(strings.TrimSpace(value)))
 	return hex.EncodeToString(hash[:])
 }
+
+// overridableTimeFunc normally returns time.Now(),
+// but it is overridden during testing to simulate an arbitrary value of "now".
+var overridableTimeFunc = func() time.Time {
+	return time.Now()
+}
