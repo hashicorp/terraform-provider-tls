@@ -22,6 +22,8 @@ func resourceSelfSignedCert() *schema.Resource {
 		Update:        updateCertificate,
 		CustomizeDiff: customizeCertificateDiff,
 		Schema:        s,
+		Description: "Creates a **self-signed** TLS certificate in " +
+			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 	}
 }
 

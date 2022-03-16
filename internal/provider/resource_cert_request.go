@@ -13,9 +13,10 @@ import (
 func resourceCertRequest() *schema.Resource {
 	s := map[string]*schema.Schema{
 		"cert_request_pem": {
-			Type:        schema.TypeString,
-			Computed:    true,
-			Description: "The certificate request data in PEM format.",
+			Type:     schema.TypeString,
+			Computed: true,
+			Description: "The certificate request data in " +
+				"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 		},
 
 		"id": {
@@ -32,7 +33,8 @@ func resourceCertRequest() *schema.Resource {
 		Delete: DeleteCertRequest,
 		Read:   ReadCertRequest,
 
-		Description: "Creates a Certificate Signing Request (CSR) in PEM format.\n\n" +
+		Description: "Creates a Certificate Signing Request (CSR) in " +
+			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.\n\n" +
 			"PEM is the typical format used to request a certificate from a Certificate Authority (CA).\n\n" +
 			"This resource is intended to be used in conjunction with a Terraform provider " +
 			"for a particular certificate authority in order to provision a new certificate.",
