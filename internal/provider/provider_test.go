@@ -19,7 +19,7 @@ var testProviders = map[string]*schema.Provider{
 
 func setTimeForTest(timeStr string) func() {
 	return func() {
-		now = func() time.Time {
+		overridableTimeFunc = func() time.Time {
 			t, _ := time.Parse(time.RFC3339, timeStr)
 			return t
 		}
