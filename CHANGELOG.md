@@ -1,3 +1,35 @@
+## 3.2.0 (UNRELEASED)
+
+NEW FEATURES:
+
+* resource/tls_private_key: Added support for [ED25519](https://ed25519.cr.yp.to/) key algorithm ([#151](https://github.com/hashicorp/terraform-provider-tls/pull/151)).
+
+* data-source/tls_public_key: Added support for [ED25519](https://ed25519.cr.yp.to/) key algorithm ([#160](https://github.com/hashicorp/terraform-provider-tls/pull/160)).
+
+ENHANCEMENTS:
+
+* resource/tls_private_key: New attributes `private_key_openssh` (OpenSSH PEM format) and `public_key_fingerprint_sha256` ([#151](https://github.com/hashicorp/terraform-provider-tls/pull/151)).
+
+* data-source/tls_public_key: Can now be configured by passing a private key either via `private_key_pem` or `private_key_openssh` ([#160](https://github.com/hashicorp/terraform-provider-tls/pull/160)).
+
+* resource/tls_locally_signed_cert: Resource will validate that `validity_period_hours` and `early_renewal_hours`
+  are set to a value greater or equal then zero ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+* resource/tls_locally_signed_cert: Resource will validate that `allowed_uses` list contains values that are part
+  of the documented set, throwing an error if they are invalid, instead of silently ignoring it 
+  ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+
+* resource/tls_self_signed_cert: Resource will validate that `validity_period_hours` and `early_renewal_hours`
+  are set to a value greater or equal then zero ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+* resource/tls_self_signed_cert: Resource will validate that `allowed_uses` list contains values that are part
+  of the documented set, throwing an error if they are invalid, instead of silently ignoring it
+  ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+
+NOTES:
+
+* Upgraded to Golang 1.17 ([#156](https://github.com/hashicorp/terraform-provider-tls/pull/156))
+* Adopted [`golangci-lint`](https://golangci-lint.run/) as part of CI ([#155](https://github.com/hashicorp/terraform-provider-tls/pull/155))
+* Acceptance tests now run against all minor versions of Terraform >= 0.12 ([#153](https://github.com/hashicorp/terraform-provider-tls/pull/153))
+
 ## 3.1.0 (February 19, 2021)
 
 Binary releases of this provider now include the darwin-arm64 platform. This version contains no further changes.
