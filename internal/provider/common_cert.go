@@ -90,8 +90,8 @@ func generateSubjectKeyID(pub crypto.PublicKey) ([]byte, error) {
 
 // setCertificateSubjectSchema sets on the given reference to map of schema.Schema
 // all the keys required by a resource representing a certificate's subject.
-func setCertificateSubjectSchema(s *map[string]*schema.Schema) {
-	(*s)["dns_names"] = &schema.Schema{
+func setCertificateSubjectSchema(s map[string]*schema.Schema) {
+	s["dns_names"] = &schema.Schema{
 		Type:     schema.TypeList,
 		Optional: true,
 		ForceNew: true,
@@ -101,7 +101,7 @@ func setCertificateSubjectSchema(s *map[string]*schema.Schema) {
 		Description: "List of DNS names for which a certificate is being requested (i.e. certificate subjects).",
 	}
 
-	(*s)["ip_addresses"] = &schema.Schema{
+	s["ip_addresses"] = &schema.Schema{
 		Type:     schema.TypeList,
 		Optional: true,
 		ForceNew: true,
@@ -111,7 +111,7 @@ func setCertificateSubjectSchema(s *map[string]*schema.Schema) {
 		Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
 	}
 
-	(*s)["uris"] = &schema.Schema{
+	s["uris"] = &schema.Schema{
 		Type:     schema.TypeList,
 		Optional: true,
 		ForceNew: true,
@@ -121,14 +121,14 @@ func setCertificateSubjectSchema(s *map[string]*schema.Schema) {
 		Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
 	}
 
-	(*s)["key_algorithm"] = &schema.Schema{
+	s["key_algorithm"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
 		ForceNew:    true,
 		Description: "Name of the algorithm used when generating the private key provided in `private_key_pem`.",
 	}
 
-	(*s)["private_key_pem"] = &schema.Schema{
+	s["private_key_pem"] = &schema.Schema{
 		Type:      schema.TypeString,
 		Required:  true,
 		ForceNew:  true,
@@ -143,7 +143,7 @@ func setCertificateSubjectSchema(s *map[string]*schema.Schema) {
 			"Only an irreversible secure hash of the private key will be stored in the Terraform state.",
 	}
 
-	(*s)["subject"] = &schema.Schema{
+	s["subject"] = &schema.Schema{
 		Type:     schema.TypeList,
 		Required: true,
 		ForceNew: true,
@@ -216,8 +216,8 @@ func setCertificateSubjectSchema(s *map[string]*schema.Schema) {
 
 // setCertificateCommonSchema sets on the given reference to map of schema.Schema
 // all the keys required by a resource representing a certificate.
-func setCertificateCommonSchema(s *map[string]*schema.Schema) {
-	(*s)["validity_period_hours"] = &schema.Schema{
+func setCertificateCommonSchema(s map[string]*schema.Schema) {
+	s["validity_period_hours"] = &schema.Schema{
 		Type:             schema.TypeInt,
 		Required:         true,
 		ForceNew:         true,
@@ -225,7 +225,7 @@ func setCertificateCommonSchema(s *map[string]*schema.Schema) {
 		Description:      "Number of hours, after initial issuing, that the certificate will remain valid for.",
 	}
 
-	(*s)["early_renewal_hours"] = &schema.Schema{
+	s["early_renewal_hours"] = &schema.Schema{
 		Type:             schema.TypeInt,
 		Optional:         true,
 		Default:          0,
@@ -239,14 +239,14 @@ func setCertificateCommonSchema(s *map[string]*schema.Schema) {
 			"during the early renewal period. (default: `0`)",
 	}
 
-	(*s)["is_ca_certificate"] = &schema.Schema{
+	s["is_ca_certificate"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
 		ForceNew:    true,
 		Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
 	}
 
-	(*s)["allowed_uses"] = &schema.Schema{
+	s["allowed_uses"] = &schema.Schema{
 		Type:     schema.TypeList,
 		Required: true,
 		ForceNew: true,
@@ -262,41 +262,41 @@ func setCertificateCommonSchema(s *map[string]*schema.Schema) {
 			fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedKeyUsages(), "`, `")),
 	}
 
-	(*s)["cert_pem"] = &schema.Schema{
+	s["cert_pem"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Computed:    true,
 		Description: "Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 	}
 
-	(*s)["ready_for_renewal"] = &schema.Schema{
+	s["ready_for_renewal"] = &schema.Schema{
 		Type:     schema.TypeBool,
 		Computed: true,
 		Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
 			"or ready for an early renewal (i.e. within the `early_renewal_hours`)?",
 	}
 
-	(*s)["validity_start_time"] = &schema.Schema{
+	s["validity_start_time"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Computed: true,
 		Description: "The time after which the certificate is valid, " +
 			"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
 	}
 
-	(*s)["validity_end_time"] = &schema.Schema{
+	s["validity_end_time"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Computed: true,
 		Description: "The time until which the certificate is invalid, " +
 			"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
 	}
 
-	(*s)["set_subject_key_id"] = &schema.Schema{
+	s["set_subject_key_id"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
 		ForceNew:    true,
 		Description: "Should the generated certificate include a subject key identifier (default: `false`).",
 	}
 
-	(*s)["id"] = &schema.Schema{
+	s["id"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Computed:    true,
 		Description: "Unique identifier for this resource: the certificate serial number.",

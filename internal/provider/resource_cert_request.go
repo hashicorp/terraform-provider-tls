@@ -27,7 +27,7 @@ func resourceCertRequest() *schema.Resource {
 				"hexadecimal representation of the SHA1 checksum of the resource.",
 		},
 	}
-	setCertificateSubjectSchema(&s)
+	setCertificateSubjectSchema(s)
 
 	return &schema.Resource{
 		Create: CreateCertRequest,

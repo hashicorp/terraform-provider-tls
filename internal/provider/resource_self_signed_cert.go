@@ -12,8 +12,8 @@ import (
 func resourceSelfSignedCert() *schema.Resource {
 	s := map[string]*schema.Schema{}
 
-	setCertificateCommonSchema(&s)
-	setCertificateSubjectSchema(&s)
+	setCertificateCommonSchema(s)
+	setCertificateSubjectSchema(s)
 
 	return &schema.Resource{
 		Create:        CreateSelfSignedCert,

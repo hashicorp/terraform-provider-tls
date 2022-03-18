@@ -9,7 +9,7 @@ import (
 func resourceLocallySignedCert() *schema.Resource {
 	s := map[string]*schema.Schema{}
 
-	setCertificateCommonSchema(&s)
+	setCertificateCommonSchema(s)
 
 	s["cert_request_pem"] = &schema.Schema{
 		Type:     schema.TypeString,
