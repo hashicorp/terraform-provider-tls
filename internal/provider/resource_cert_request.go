@@ -5,81 +5,42 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"net"
 	"net/url"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-const pemCertReqType = "CERTIFICATE REQUEST"
-
 func resourceCertRequest() *schema.Resource {
+	s := map[string]*schema.Schema{
+		"cert_request_pem": {
+			Type:     schema.TypeString,
+			Computed: true,
+			Description: "The certificate request data in " +
+				"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
+		},
+
+		"id": {
+			Type:     schema.TypeString,
+			Computed: true,
+			Description: "Unique identifier for this resource: " +
+				"hexadecimal representation of the SHA1 checksum of the resource.",
+		},
+	}
+	setCertificateSubjectSchema(s)
+
 	return &schema.Resource{
 		Create: CreateCertRequest,
 		Delete: DeleteCertRequest,
 		Read:   ReadCertRequest,
 
-		Schema: map[string]*schema.Schema{
+		Description: "Creates a Certificate Signing Request (CSR) in " +
+			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.\n\n" +
+			"PEM is the typical format used to request a certificate from a Certificate Authority (CA).\n\n" +
+			"This resource is intended to be used in conjunction with a Terraform provider " +
+			"for a particular certificate authority in order to provision a new certificate.",
 
-			"dns_names": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "List of DNS names to use as subjects of the certificate",
-				ForceNew:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-
-			"ip_addresses": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "List of IP addresses to use as subjects of the certificate",
-				ForceNew:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-
-			"uris": {
-				Type:        schema.TypeList,
-				Optional:    true,
-				Description: "List of URIs to use as subjects of the certificate",
-				ForceNew:    true,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-			},
-
-			"key_algorithm": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Name of the algorithm to use to generate the certificate's private key",
-				ForceNew:    true,
-			},
-
-			"private_key_pem": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "PEM-encoded private key that the certificate will belong to",
-				ForceNew:    true,
-				Sensitive:   true,
-				StateFunc: func(v interface{}) string {
-					return hashForState(v.(string))
-				},
-			},
-
-			"subject": {
-				Type:     schema.TypeList,
-				Required: true,
-				Elem:     nameSchema,
-				ForceNew: true,
-			},
-
-			"cert_request_pem": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-		},
+		Schema: s,
 	}
 }
 
@@ -97,7 +58,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	if !ok {
 		return fmt.Errorf("subject block cannot be empty")
 	}
-	subject := nameFromResourceData(subjectConf)
+	subject := distinguishedNamesFromSubjectAttributes(subjectConf)
 
 	certReq := x509.CertificateRequest{
 		Subject: *subject,
@@ -128,7 +89,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error creating certificate request: %s", err)
 	}
-	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: pemCertReqType, Bytes: certReqBytes}))
+	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: CertificateRequest.String(), Bytes: certReqBytes}))
 
 	d.SetId(hashForState(string(certReqBytes)))
 

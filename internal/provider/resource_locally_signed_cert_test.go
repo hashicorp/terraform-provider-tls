@@ -144,7 +144,7 @@ func TestLocallySignedCert(t *testing.T) {
 }
 
 func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
-	oldNow := now
+	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
@@ -217,11 +217,11 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 			},
 		},
 	})
-	now = oldNow
+	overridableTimeFunc = oldNow
 }
 
 func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
-	oldNow := now
+	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
@@ -294,7 +294,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 			},
 		},
 	})
-	now = oldNow
+	overridableTimeFunc = oldNow
 }
 
 func locallySignedCertConfig(validity uint32, earlyRenewal uint32) string {

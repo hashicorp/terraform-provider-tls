@@ -5,9 +5,13 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/crypto/ssh"
@@ -67,7 +71,7 @@ func parseCertificate(d *schema.ResourceData, pemKey string) (*x509.Certificate,
 }
 
 func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.CertificateRequest, error) {
-	block, err := decodePEM(d, pemKey, pemCertReqType)
+	block, err := decodePEM(d, pemKey, CertificateRequest.String())
 	if err != nil {
 		return nil, err
 	}
@@ -78,6 +82,21 @@ func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.Certi
 	}
 
 	return certReq, nil
+}
+
+func certificateToMap(cert *x509.Certificate) map[string]interface{} {
+	return map[string]interface{}{
+		"signature_algorithm":  cert.SignatureAlgorithm.String(),
+		"public_key_algorithm": cert.PublicKeyAlgorithm.String(),
+		"serial_number":        cert.SerialNumber.String(),
+		"is_ca":                cert.IsCA,
+		"version":              cert.Version,
+		"issuer":               cert.Issuer.String(),
+		"subject":              cert.Subject.String(),
+		"not_before":           cert.NotBefore.Format(time.RFC3339),
+		"not_after":            cert.NotAfter.Format(time.RFC3339),
+		"sha1_fingerprint":     fmt.Sprintf("%x", sha1.Sum(cert.Raw)),
+	}
 }
 
 // setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
@@ -139,4 +158,20 @@ func toPublicKey(prvKey crypto.PrivateKey) crypto.PublicKey {
 	default:
 		return nil
 	}
+}
+
+// hashForState computes the hexadecimal representation of the SHA1 checksum of a string.
+// This is used by most resources/data-sources here to compute their Unique Identifier (ID).
+func hashForState(value string) string {
+	if value == "" {
+		return ""
+	}
+	hash := sha1.Sum([]byte(strings.TrimSpace(value)))
+	return hex.EncodeToString(hash[:])
+}
+
+// overridableTimeFunc normally returns time.Now(),
+// but it is overridden during testing to simulate an arbitrary value of "now".
+var overridableTimeFunc = func() time.Time {
+	return time.Now()
 }

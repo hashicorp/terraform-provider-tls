@@ -7,57 +7,65 @@ import (
 )
 
 func resourceLocallySignedCert() *schema.Resource {
-	s := resourceCertificateCommonSchema()
+	s := map[string]*schema.Schema{}
+
+	setCertificateCommonSchema(s)
 
 	s["cert_request_pem"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "PEM-encoded certificate request",
-		ForceNew:    true,
+		Type:     schema.TypeString,
+		Required: true,
+		ForceNew: true,
 		StateFunc: func(v interface{}) string {
 			return hashForState(v.(string))
 		},
+		Description: "Certificate request data in " +
+			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 	}
 
 	s["ca_key_algorithm"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
-		Description: "Name of the algorithm used to generate the certificate's private key",
 		ForceNew:    true,
+		Description: "Name of the algorithm used when generating the private key provided in `ca_private_key_pem`.",
 	}
 
 	s["ca_private_key_pem"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "PEM-encoded CA private key used to sign the certificate",
-		ForceNew:    true,
-		Sensitive:   true,
+		Type:      schema.TypeString,
+		Required:  true,
+		ForceNew:  true,
+		Sensitive: true,
 		StateFunc: func(v interface{}) string {
 			return hashForState(v.(string))
 		},
+		Description: "Private key of the Certificate Authority (CA) used to sign the certificate, " +
+			"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 	}
 
 	s["ca_cert_pem"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "PEM-encoded CA certificate",
-		ForceNew:    true,
+		Type:     schema.TypeString,
+		Required: true,
+		ForceNew: true,
 		StateFunc: func(v interface{}) string {
 			return hashForState(v.(string))
 		},
+		Description: "Certificate data of the Certificate Authority (CA) " +
+			"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 	}
 
 	return &schema.Resource{
-		Create:        CreateLocallySignedCert,
-		Delete:        DeleteCertificate,
-		Read:          ReadCertificate,
-		Update:        UpdateCertificate,
-		CustomizeDiff: CustomizeCertificateDiff,
+		Create:        createLocallySignedCert,
+		Delete:        deleteCertificate,
+		Read:          readCertificate,
+		Update:        updateCertificate,
+		CustomizeDiff: customizeCertificateDiff,
 		Schema:        s,
+		Description: "Creates a TLS certificate in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
+			"format using a Certificate Signing Request (CSR) and signs it with a provided " +
+			"(local) Certificate Authority (CA).",
 	}
 }
 
-func CreateLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
+func createLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
 	certReq, err := parseCertificateRequest(d, "cert_request_pem")
 	if err != nil {
 		return err
