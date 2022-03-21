@@ -461,3 +461,52 @@ func distinguishedNamesFromSubjectAttributes(nameMap map[string]interface{}) *pk
 
 	return result
 }
+
+func parseCertificate(d *schema.ResourceData, pemKey string) (*x509.Certificate, error) {
+	block, err := decodePEM(d, pemKey, "")
+	if err != nil {
+		return nil, err
+	}
+
+	certs, err := x509.ParseCertificates(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse %s: %s", pemKey, err)
+	}
+	if len(certs) < 1 {
+		return nil, fmt.Errorf("no certificates found in %s", pemKey)
+	}
+	if len(certs) > 1 {
+		return nil, fmt.Errorf("multiple certificates found in %s", pemKey)
+	}
+
+	return certs[0], nil
+}
+
+func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.CertificateRequest, error) {
+	block, err := decodePEM(d, pemKey, CertificateRequest.String())
+	if err != nil {
+		return nil, err
+	}
+
+	certReq, err := x509.ParseCertificateRequest(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse %s: %s", pemKey, err)
+	}
+
+	return certReq, nil
+}
+
+func certificateToMap(cert *x509.Certificate) map[string]interface{} {
+	return map[string]interface{}{
+		"signature_algorithm":  cert.SignatureAlgorithm.String(),
+		"public_key_algorithm": cert.PublicKeyAlgorithm.String(),
+		"serial_number":        cert.SerialNumber.String(),
+		"is_ca":                cert.IsCA,
+		"version":              cert.Version,
+		"issuer":               cert.Issuer.String(),
+		"subject":              cert.Subject.String(),
+		"not_before":           cert.NotBefore.Format(time.RFC3339),
+		"not_after":            cert.NotAfter.Format(time.RFC3339),
+		"sha1_fingerprint":     fmt.Sprintf("%x", sha1.Sum(cert.Raw)),
+	}
+}

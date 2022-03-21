@@ -1,10 +1,6 @@
 package provider
 
 import (
-	"crypto"
-	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/rsa"
 	"fmt"
 )
 
@@ -38,20 +34,6 @@ func SupportedAlgorithmsStr() []string {
 		supportedStr[i] = string(supported[i])
 	}
 	return supportedStr
-}
-
-// PrivateKeyToAlgorithm identifies the Algorithm used by a given crypto.PrivateKey.
-func PrivateKeyToAlgorithm(prvKey crypto.PrivateKey) (Algorithm, error) {
-	switch k := prvKey.(type) {
-	case *rsa.PrivateKey:
-		return RSA, nil
-	case *ecdsa.PrivateKey:
-		return ECDSA, nil
-	case *ed25519.PrivateKey:
-		return ED25519, nil
-	default:
-		return "", fmt.Errorf("failed to identify key algorithm for unsupported private key: %#v", k)
-	}
 }
 
 // ECDSACurve represents a type of ECDSA elliptic curve.
