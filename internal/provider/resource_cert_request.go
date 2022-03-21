@@ -45,7 +45,7 @@ func resourceCertRequest() *schema.Resource {
 }
 
 func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
-	key, err := parsePrivateKey(d, "private_key_pem", "key_algorithm")
+	key, _, err := parsePrivateKeyPEM([]byte(d.Get("private_key_pem").(string)))
 	if err != nil {
 		return err
 	}

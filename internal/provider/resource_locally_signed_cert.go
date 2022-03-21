@@ -70,7 +70,7 @@ func createLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	caKey, err := parsePrivateKey(d, "ca_private_key_pem", "ca_key_algorithm")
+	caKey, _, err := parsePrivateKeyPEM([]byte(d.Get("ca_private_key_pem").(string)))
 	if err != nil {
 		return err
 	}

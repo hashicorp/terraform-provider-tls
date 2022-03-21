@@ -2,11 +2,9 @@ package provider
 
 import (
 	"crypto"
-	"encoding/pem"
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"golang.org/x/crypto/ssh"
 )
 
 func dataSourcePublicKey() *schema.Resource {
@@ -88,64 +86,24 @@ func dataSourcePublicKey() *schema.Resource {
 }
 
 func readDataSourcePublicKey(d *schema.ResourceData, _ interface{}) error {
-	// First, attempt to read private key from `private_key_pem` argument (PEM format)
+	var prvKey crypto.PrivateKey
+	var algorithm Algorithm
+	var err error
+
+	// Given the use of `ExactlyOneOf` in the Schema, we are guaranteed
+	// that either `private_key_pem` or `private_key_openssh` will be set.
 	if prvKeyArg, ok := d.GetOk("private_key_pem"); ok {
-		prvKeyPEMBytes := []byte(prvKeyArg.(string))
-
-		prvKey, err := privateKeyFromPEM(d, prvKeyPEMBytes)
-		if err != nil {
-			return err
-		}
-
-		return setPublicKeyAttributes(d, prvKey)
+		prvKey, algorithm, err = parsePrivateKeyPEM([]byte(prvKeyArg.(string)))
+	} else if prvKeyArg, ok := d.GetOk("private_key_openssh"); ok {
+		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.(string)))
 	}
-
-	// Second, attempt to read private key from `private_key_openssh` argument (OpenSSH PEM format)
-	if prvKeyArg, ok := d.GetOk("private_key_openssh"); ok {
-		prvKeyOpenSSHPEMBytes := []byte(prvKeyArg.(string))
-
-		prvKey, err := ssh.ParseRawPrivateKey(prvKeyOpenSSHPEMBytes)
-		if err != nil {
-			return err
-		}
-
-		keyAlgorithm, err := PrivateKeyToAlgorithm(prvKey)
-		if err != nil {
-			return err
-		}
-		if err := d.Set("algorithm", keyAlgorithm); err != nil {
-			return fmt.Errorf("error setting value on key 'algorithm': %s", err)
-		}
-
-		return setPublicKeyAttributes(d, prvKey)
-	}
-
-	return fmt.Errorf("no valid private key was provided via `private_key_pem` nor `private_key_openssh`")
-}
-
-func privateKeyFromPEM(d *schema.ResourceData, prvKeyPEMBytes []byte) (crypto.PrivateKey, error) {
-	// decode raw PEM bytes to the corresponding pem.Block encoded structure (ANS.1 PKCS1 DER)
-	keyPemBlock, keyRest := pem.Decode(prvKeyPEMBytes)
-	if keyPemBlock == nil {
-		keyRestLen := len(keyRest)
-		keyDecodedLen := len(prvKeyPEMBytes) - keyRestLen
-		return nil, fmt.Errorf("failed to decode raw PEM block: decoded bytes %d, undecoded %d", keyDecodedLen, keyRestLen)
-	}
-
-	// Map PEM Preamble of the Private Key to the corresponding Algorithm
-	keyAlgorithm, err := PEMPreamblePrivateKey(keyPemBlock.Type).Algorithm()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err := d.Set("algorithm", keyAlgorithm); err != nil {
-		return nil, fmt.Errorf("error setting value on key 'algorithm': %s", err)
+	if err := d.Set("algorithm", algorithm); err != nil {
+		return fmt.Errorf("error setting attribute 'algorithm = %s': %w", algorithm, err)
 	}
 
-	// Converts a private key from its ASN.1 PKCS#1 DER encoded form
-	prvKey, err := parsePrivateKey(d, "private_key_pem", "algorithm")
-	if err != nil {
-		return nil, fmt.Errorf("error converting key to algo: %s - %s", keyAlgorithm, err)
-	}
-	return prvKey, nil
+	return setPublicKeyAttributes(d, prvKey)
 }
