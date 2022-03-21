@@ -1,14 +1,10 @@
-GOLANGCILINT_INSTALLED := $(shell command -v golangci-lint 2> /dev/null)
-
 default: build
 
 build:
 	go build -v ./...
 
+# See https://golangci-lint.run/
 lint:
-ifndef GOLANGCILINT_INSTALLED
-	$(error "Please install 'golangci-lint' (https://golangci-lint.run/)")
-endif
 	golangci-lint run
 
 generate:
