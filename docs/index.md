@@ -1,5 +1,4 @@
 ---
-layout: "tls"
 page_title: "Provider: TLS"
 description: |-
   The TLS provider provides utilities for working with Transport Layer Security keys and certificates.
@@ -25,20 +24,21 @@ Use the navigation to the left to read about the available resources.
 
 ## Example Usage
 
-```hcl
-## This example creates a self-signed certificate for a development
-## environment.
-## THIS IS NOT RECOMMENDED FOR PRODUCTION SERVICES.
-## See the detailed documentation of each resource for further
-## security considerations and other practical tradeoffs.
+```terraform
+# This example creates a self-signed certificate,
+# and uses it to create an AWS IAM Server certificate.
+#
+# THIS IS NOT RECOMMENDED FOR PRODUCTION SERVICES.
+# See the detailed documentation of each resource for further
+# security considerations and other practical tradeoffs.
 
 resource "tls_private_key" "example" {
   algorithm = "ECDSA"
 }
 
 resource "tls_self_signed_cert" "example" {
-  key_algorithm   = "${tls_private_key.example.algorithm}"
-  private_key_pem = "${tls_private_key.example.private_key_pem}"
+  key_algorithm   = tls_private_key.example.algorithm
+  private_key_pem = tls_private_key.example.private_key_pem
 
   # Certificate expires after 12 hours.
   validity_period_hours = 12
@@ -49,23 +49,58 @@ resource "tls_self_signed_cert" "example" {
 
   # Reasonable set of uses for a server SSL certificate.
   allowed_uses = [
-      "key_encipherment",
-      "digital_signature",
-      "server_auth",
+    "key_encipherment",
+    "digital_signature",
+    "server_auth",
   ]
 
   dns_names = ["example.com", "example.net"]
 
   subject {
-      common_name  = "example.com"
-      organization = "ACME Examples, Inc"
+    common_name  = "example.com"
+    organization = "ACME Examples, Inc"
   }
 }
 
 # For example, this can be used to populate an AWS IAM server certificate.
 resource "aws_iam_server_certificate" "example" {
   name             = "example_self_signed_cert"
-  certificate_body = "${tls_self_signed_cert.example.cert_pem}"
-  private_key      = "${tls_private_key.example.private_key_pem}"
+  certificate_body = tls_self_signed_cert.example.cert_pem
+  private_key      = tls_private_key.example.private_key_pem
 }
 ```
+
+## Limitations
+
+### `ECDSA` with `P224` elliptic curve
+
+When using `ECDSA` with `P224`, all the (computed) attributes
+that have to do with [OpenSSH](https://www.openssh.com/) will have a value of `""` (empty string).
+This applies to different resources and data sources offered by this provider,
+like the `tls_private_key` resource or the `tls_public_key` data source.
+
+The attributes affected are:
+
+* `.public_key_openssh`
+* `.private_key_openssh`
+* `.public_key_fingerprint_md5`
+* `.public_key_fingerprint_sha256`
+
+This is because the SSH ECC Algorithm Integration ([RFC 5656](https://datatracker.ietf.org/doc/html/rfc5656))
+restricts support for elliptic curves to "nistp256", "nistp384" and "nistp521".
+
+### Secrets and Terraform state
+
+Some resources that can be created with this provider, like `tls_private_key`, are
+considered "secrets", and as such are marked by this provider as _sensitive_, so to
+help practitioner to not accidentally leak their value in logs or other form of output.
+
+It's important to remember that the values that constitute the "state" of those
+resources will be stored in the [Terraform state](https://www.terraform.io/language/state) file.
+This includes the "secrets", that will be part of the state file *unencrypted*.
+
+Because of these limitations, **use of these resources for production deployments is _not_ recommended**.
+Failing that, **protecting the content of the state file is strongly recommended**.
+
+The more general advice is that it's better to generate "secrets" outside of Terraform,
+and then distribute them securely to the system where Terraform will make use of them.
