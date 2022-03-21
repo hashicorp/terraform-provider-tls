@@ -23,7 +23,7 @@ jobs:
     steps:
 
     - name: Setup Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: '1.17'
         check-latest: true
@@ -31,17 +31,24 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v3
 
-    - name: Linting (golangci-lint)
-      uses: golangci/golangci-lint-action@v3.1.0
+    - name: Run linters
+      uses: golangci/golangci-lint-action@v3
       with:
         version: latest
 
-    - name: Compile
+    - name: Generate
+      run: make generate
+
+    - name: Confirm no diff
       run: |
-        go build -v .
+        git diff --compact-summary --exit-code || \
+          (echo "*** Unexpected differences after code generation. Run 'make generate' and commit."; exit 1)
+
+    - name: Build
+      run: make build
 
   test:
-    name: 'Acceptance tests (OS: ${{ matrix.os }} / TF: ${{ matrix.terraform }})'
+    name: 'Acc. Tests (OS: ${{ matrix.os }} / TF: ${{ matrix.terraform }})'
     needs: build
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
@@ -76,8 +83,5 @@ jobs:
         terraform_version: ${{ matrix.terraform }}
         terraform_wrapper: false
 
-    - name: Acceptance test
-      env:
-        TF_ACC: "1"
-      run: |
-        go test -v -cover ./...
+    - name: Run acceptance test
+      run: make testacc

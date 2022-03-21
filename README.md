@@ -1,68 +1,65 @@
-Terraform Provider
-==================
+# Terraform Provider: TLS
 
-- Website: https://www.terraform.io
-- [![Gitter chat](https://badges.gitter.im/hashicorp-terraform/Lobby.png)](https://gitter.im/hashicorp-terraform/Lobby)
-- Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
+The TLS provider provides utilities for working with *Transport Layer Security*
+keys and certificates. It provides resources that
+allow private keys, certificates and certificate requests to be
+created as part of a Terraform deployment.
 
-<img src="https://cdn.rawgit.com/hashicorp/terraform-website/master/content/source/assets/images/logo-hashicorp.svg" width="600px">
+## Documentation, questions and discussions
 
-Maintainers
------------
+Official documentation on how to use this provider can be found on the 
+[Terraform Registry](https://registry.terraform.io/providers/hashicorp/tls/latest/docs).
+In case of specific questions or discussions, please use the 
+[HashiCorp Terraform providers Discuss](https://discuss.hashicorp.com/c/terraform-providers/31). 
 
-This provider plugin is maintained by the Terraform team at [HashiCorp](https://www.hashicorp.com/).
+The remainder of this document will focus on the development aspects of the provider.
 
-Requirements
-------------
+## Requirements
 
--	[Terraform](https://www.terraform.io/downloads.html) 0.12.x
--	[Go](https://golang.org/doc/install) 1.17 (to build the provider plugin)
+* [Terraform](https://www.terraform.io/downloads) (>= 0.12)
+* [Go](https://go.dev/doc/install) (1.17)
+* [GNU Make](https://www.gnu.org/software/make/)
+* [golangci-lint](https://golangci-lint.run/usage/install/#local-installation) (optional)
 
-Building The Provider
----------------------
+## Building
 
-Clone repository to: `$GOPATH/src/github.com/terraform-providers/terraform-provider-tls`
+1. `git clone` this repository and `cd` into its directory
+2. `make` will trigger the Golang build
 
-```sh
-$ mkdir -p $GOPATH/src/github.com/terraform-providers; cd $GOPATH/src/github.com/terraform-providers
-$ git clone git@github.com:terraform-providers/terraform-provider-tls
-```
+The provided `GNUmakefile` defines additional commands generally useful during development,
+like for running tests, generating documentation, code formatting and linting.
+Taking a look at it's content is recommended.
 
-Enter the provider directory and build the provider
+### Testing
 
-```sh
-$ cd $GOPATH/src/github.com/terraform-providers/terraform-provider-tls
-$ make build
-```
+In order to test the provider, you can run
 
-Using the provider
-----------------------
-## Fill in for each provider
+* `make test` to run provider tests
+* `make testacc` to run provider acceptance tests
 
-Developing the Provider
----------------------------
+It's important to note that acceptance tests (`testacc`) will actually spawn
+`terraform` and the provider. Read more about they work on the
+[official page](https://www.terraform.io/plugin/sdkv2/testing/acceptance-tests).
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.17+ is *required*). You'll also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`.
+### Generating documentation
 
-To compile the provider, run `make build`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
+This provider uses [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-docs/)
+to generate documentation and store it in the `docs/` directory.
+Once a release is cut, the Terraform Registry will download the documentation from `docs/`
+and associate it with the release version. Read more about how this works on the
+[official page](https://www.terraform.io/registry/providers/docs).
 
-```sh
-$ make build
-...
-$ $GOPATH/bin/terraform-provider-tls
-...
-```
+Use `make generate` to ensure the documentation is regenerated with any changes.
 
-In order to test the provider, you can simply run `make test`.
 
-```sh
-$ make test
-```
+## Releasing
 
-In order to run the full suite of Acceptance tests, run `make testacc`.
+The release process is automated via GitHub Actions,
+and it's defined in the Workflow [release.yml](./.github/workflows/release.yml).
 
-*Note:* Acceptance tests create real resources, and often cost money to run.
+Each release is cut by pushing a [semantically versioned](https://semver.org/)
+tag to the default branch.
 
-```sh
-$ make testacc
-```
+## License
+
+[Mozilla Public License v2.0](./LICENSE)
