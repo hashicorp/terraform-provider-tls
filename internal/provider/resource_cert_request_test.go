@@ -45,7 +45,6 @@ func TestCertRequest(t *testing.T) {
                             "spiffe://example-trust-domain/workload2",
                         ]
 
-                        key_algorithm = "RSA"
                         private_key_pem = <<EOT
 %s
 EOT
@@ -138,7 +137,6 @@ EOT
 						serial_number = "42"
 						}
 
-                        key_algorithm = "RSA"
                         private_key_pem = <<EOT
 %s
 EOT

@@ -314,7 +314,6 @@ EOT
                             "client_auth",
                         ]
 
-                        ca_key_algorithm = "RSA"
                         ca_cert_pem = <<EOT
 %s
 EOT

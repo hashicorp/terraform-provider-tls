@@ -129,7 +129,6 @@ func TestSelfSignedCert(t *testing.T) {
                         subject {
                             serial_number = "42"
                         }
-                        key_algorithm = "RSA"
                         validity_period_hours = 1
                         allowed_uses = []
                         private_key_pem = <<EOT
@@ -374,7 +373,6 @@ func TestAccSelfSignedCertSetSubjectKeyID(t *testing.T) {
 					subject {
 						serial_number = "42"
 					}
-					key_algorithm = "RSA"
 					validity_period_hours = 1
 					allowed_uses = []
 					set_subject_key_id = true
@@ -415,7 +413,6 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						subject {
 							common_name = "common test cert"
 						}
-						key_algorithm = "RSA"
 						validity_period_hours = 1
 						allowed_uses = [
 							"not_valid"
@@ -435,7 +432,6 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						subject {
 							common_name = "common test cert"
 						}
-						key_algorithm = "RSA"
 						validity_period_hours = -1
 						allowed_uses = [
 						]
@@ -454,7 +450,6 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						subject {
 							common_name = "common test cert"
 						}
-						key_algorithm = "RSA"
 						validity_period_hours = 20
 						early_renewal_hours = -10
 						allowed_uses = [
@@ -512,7 +507,6 @@ func selfSignedCertConfig(validity uint32, earlyRenewal uint32) string {
                             "client_auth",
                         ]
 
-                        key_algorithm = "RSA"
                         private_key_pem = <<EOT
 %s
 EOT

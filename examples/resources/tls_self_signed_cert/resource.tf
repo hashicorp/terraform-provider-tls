@@ -1,5 +1,4 @@
 resource "tls_self_signed_cert" "example" {
-  key_algorithm   = "ECDSA"
   private_key_pem = file("private_key.pem")
 
   subject {
