@@ -4,6 +4,8 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -12,6 +14,58 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/crypto/ssh"
 )
+
+// keyGenerator extracts data from the given *schema.ResourceData,
+// and generates a new public/private key-pair according to the
+// selected algorithm.
+type keyGenerator func(d *schema.ResourceData) (crypto.PrivateKey, error)
+
+// keyParser parses a private key from the given []byte,
+// according to the selected algorithm.
+type keyParser func([]byte) (crypto.PrivateKey, error)
+
+// keyGenerators provides a keyGenerator given a specific Algorithm.
+var keyGenerators = map[Algorithm]keyGenerator{
+	RSA: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
+		rsaBits := d.Get("rsa_bits").(int)
+		return rsa.GenerateKey(rand.Reader, rsaBits)
+	},
+	ECDSA: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
+		curve := ECDSACurve(d.Get("ecdsa_curve").(string))
+		switch curve {
+		case P224:
+			return ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+		case P256:
+			return ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		case P384:
+			return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+		case P521:
+			return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+		default:
+			return nil, fmt.Errorf("invalid ECDSA curve; supported values are: %v", SupportedECDSACurves())
+		}
+	},
+	ED25519: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
+		_, key, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate ED25519 key: %s", err)
+		}
+		return &key, err
+	},
+}
+
+// keyParsers provides a keyParser given a specific Algorithm.
+var keyParsers = map[Algorithm]keyParser{
+	RSA: func(der []byte) (crypto.PrivateKey, error) {
+		return x509.ParsePKCS1PrivateKey(der)
+	},
+	ECDSA: func(der []byte) (crypto.PrivateKey, error) {
+		return x509.ParseECPrivateKey(der)
+	},
+	ED25519: func(der []byte) (crypto.PrivateKey, error) {
+		return x509.ParsePKCS8PrivateKey(der)
+	},
+}
 
 // parsePrivateKeyPEM takes a slide of bytes containing a private key
 // encoded in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format,
