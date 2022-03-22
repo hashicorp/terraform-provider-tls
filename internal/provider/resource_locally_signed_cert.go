@@ -23,10 +23,14 @@ func resourceLocallySignedCert() *schema.Resource {
 	}
 
 	s["ca_key_algorithm"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		ForceNew:    true,
-		Description: "Name of the algorithm used when generating the private key provided in `ca_private_key_pem`.",
+		Type:     schema.TypeString,
+		Optional: true,
+		ForceNew: true,
+		Deprecated: "This is now ignored, as the key algorithm is inferred from the `private_key_pem`. " +
+			"It it will be made read-only in the next major release.",
+		Description: "Name of the algorithm used when generating the private key provided in `ca_private_key_pem`. " +
+			"**NOTE**: this is deprecated and ignored, as the key algorithm is now inferred from the key. " +
+			"It it will be made read-only in the next major release.",
 	}
 
 	s["ca_private_key_pem"] = &schema.Schema{
