@@ -23,7 +23,6 @@ state and does not create any external managed resources.
 
 ```terraform
 resource "tls_cert_request" "example" {
-  key_algorithm   = "ECDSA"
   private_key_pem = file("private_key.pem")
 
   subject {
@@ -38,7 +37,6 @@ resource "tls_cert_request" "example" {
 
 ### Required
 
-- `key_algorithm` (String) Name of the algorithm used when generating the private key provided in `private_key_pem`.
 - `private_key_pem` (String, Sensitive) Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, that the certificate will belong to. This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) interpolation function. Only an irreversible secure hash of the private key will be stored in the Terraform state.
 - `subject` (Block List, Min: 1) The subject for which a certificate is being requested. The acceptable arguments are all optional and their naming is based upon [Issuer Distinguished Names (RFC5280)](https://tools.ietf.org/html/rfc5280#section-4.1.2.4) section. (see [below for nested schema](#nestedblock--subject))
 
@@ -46,6 +44,7 @@ resource "tls_cert_request" "example" {
 
 - `dns_names` (List of String) List of DNS names for which a certificate is being requested (i.e. certificate subjects).
 - `ip_addresses` (List of String) List of IP addresses for which a certificate is being requested (i.e. certificate subjects).
+- `key_algorithm` (String, Deprecated) Name of the algorithm used when generating the private key provided in `private_key_pem`. **NOTE**: this is deprecated and ignored, as the key algorithm is now inferred from the key. It it will be made read-only in the next major release.
 - `uris` (List of String) List of URIs for which a certificate is being requested (i.e. certificate subjects).
 
 ### Read-Only
