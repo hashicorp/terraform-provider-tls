@@ -44,7 +44,7 @@ resource "tls_cert_request" "example" {
 
 - `dns_names` (List of String) List of DNS names for which a certificate is being requested (i.e. certificate subjects).
 - `ip_addresses` (List of String) List of IP addresses for which a certificate is being requested (i.e. certificate subjects).
-- `key_algorithm` (String, Deprecated) Name of the algorithm used when generating the private key provided in `private_key_pem`. **NOTE**: this is deprecated and ignored, as the key algorithm is now inferred from the key. It it will be made read-only in the next major release.
+- `key_algorithm` (String, Deprecated) Name of the algorithm used when generating the private key provided in `private_key_pem`. **NOTE**: this is deprecated and ignored, as the key algorithm is now inferred from the key.
 - `uris` (List of String) List of URIs for which a certificate is being requested (i.e. certificate subjects).
 
 ### Read-Only
