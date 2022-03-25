@@ -54,15 +54,15 @@ var keyGenerators = map[Algorithm]keyGenerator{
 	},
 }
 
-// keyParsers provides a keyParser given a specific Algorithm.
-var keyParsers = map[Algorithm]keyParser{
-	RSA: func(der []byte) (crypto.PrivateKey, error) {
+// keyParsers provides a keyParser given a specific PEMPreamble.
+var keyParsers = map[PEMPreamble]keyParser{
+	PreamblePrivateKeyRSA: func(der []byte) (crypto.PrivateKey, error) {
 		return x509.ParsePKCS1PrivateKey(der)
 	},
-	ECDSA: func(der []byte) (crypto.PrivateKey, error) {
+	PreamblePrivateKeyEC: func(der []byte) (crypto.PrivateKey, error) {
 		return x509.ParseECPrivateKey(der)
 	},
-	ED25519: func(der []byte) (crypto.PrivateKey, error) {
+	PreamblePrivateKeyPKCS8: func(der []byte) (crypto.PrivateKey, error) {
 		return x509.ParsePKCS8PrivateKey(der)
 	},
 }
@@ -76,22 +76,28 @@ func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, Algorithm, error
 		return nil, "", fmt.Errorf("failed to decode PEM block: decoded bytes %d, undecoded %d", len(keyPEMBytes)-len(rest), len(rest))
 	}
 
-	// Map PEM Preamble of the Private Key to the corresponding Algorithm
-	algorithm, err := PEMPreamblePrivateKey(pemBlock.Type).Algorithm()
+	// Identify the PEM preamble from the block
+	preamble, err := PEMBlockToPEMPreamble(pemBlock)
 	if err != nil {
 		return nil, "", err
 	}
 
-	// Identify parser for the given key, using the Algorithm
-	parser, ok := keyParsers[algorithm]
+	// Identify parser for the given PEM preamble
+	parser, ok := keyParsers[preamble]
 	if !ok {
-		return nil, "", fmt.Errorf("unsupported key algorithm: %s", algorithm)
+		return nil, "", fmt.Errorf("unable to determine parser for PEM preamble: %s", preamble)
 	}
 
 	// Parse the specific crypto.PrivateKey from the PEM Block bytes
 	prvKey, err := parser(pemBlock.Bytes)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to parse private key of algorithm %s: %w", algorithm, err)
+		return nil, "", fmt.Errorf("failed to parse private key given PEM preamble '%s': %w", preamble, err)
+	}
+
+	// Identify the Algorithm of the crypto.PrivateKey
+	algorithm, err := privateKeyToAlgorithm(prvKey)
+	if err != nil {
+		return nil, "", err
 	}
 
 	return prvKey, algorithm, nil
@@ -152,7 +158,7 @@ func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) er
 		return fmt.Errorf("failed to marshal public key error: %s", err)
 	}
 	pubKeyPemBlock := &pem.Block{
-		Type:  PublicKey.String(),
+		Type:  PreamblePublicKey.String(),
 		Bytes: pubKeyBytes,
 	}
 

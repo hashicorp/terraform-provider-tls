@@ -89,7 +89,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error creating certificate request: %s", err)
 	}
-	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: CertificateRequest.String(), Bytes: certReqBytes}))
+	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes}))
 
 	d.SetId(hashForState(string(certReqBytes)))
 

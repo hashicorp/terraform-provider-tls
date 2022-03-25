@@ -349,7 +349,7 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	if err != nil {
 		return fmt.Errorf("error creating certificate: %s", err)
 	}
-	certPem := string(pem.EncodeToMemory(&pem.Block{Type: Certificate.String(), Bytes: certBytes}))
+	certPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificate.String(), Bytes: certBytes}))
 
 	validFromBytes, err := template.NotBefore.MarshalText()
 	if err != nil {
@@ -485,7 +485,7 @@ func parseCertificate(d *schema.ResourceData, pemKey string) (*x509.Certificate,
 }
 
 func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.CertificateRequest, error) {
-	block, err := decodePEM(d, pemKey, CertificateRequest.String())
+	block, err := decodePEM(d, pemKey, PreambleCertificateRequest.String())
 	if err != nil {
 		return nil, err
 	}

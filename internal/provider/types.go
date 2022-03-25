@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"encoding/pem"
 	"fmt"
 )
 
@@ -70,53 +71,43 @@ func SupportedECDSACurvesStr() []string {
 	return supportedStr
 }
 
-// PEMPreamblePrivateKey represents the "type" heading used by a PEM-formatted Private Key.
-// See: https://datatracker.ietf.org/doc/html/rfc1421
-type PEMPreamblePrivateKey string
+// PEMPreamble represents the heading used in a PEM-formatted for the "encapsulation boundaries",
+// that is used to delimit the "encapsulated text portion" of cryptographic documents.
+//
+// See https://datatracker.ietf.org/doc/html/rfc1421 and https://datatracker.ietf.org/doc/html/rfc7468.
+type PEMPreamble string
 
 const (
-	PrivateKeyRSA     PEMPreamblePrivateKey = "RSA PRIVATE KEY"
-	PrivateKeyECDSA   PEMPreamblePrivateKey = "EC PRIVATE KEY"
-	PrivateKeyED25519 PEMPreamblePrivateKey = "PRIVATE KEY"
+	PreamblePublicKey PEMPreamble = "PUBLIC KEY"
+
+	PreamblePrivateKeyPKCS8 PEMPreamble = "PRIVATE KEY"
+	PreamblePrivateKeyRSA   PEMPreamble = "RSA PRIVATE KEY"
+	PreamblePrivateKeyEC    PEMPreamble = "EC PRIVATE KEY"
+
+	PreambleCertificate        PEMPreamble = "CERTIFICATE"
+	PreambleCertificateRequest PEMPreamble = "CERTIFICATE REQUEST"
 )
 
-func (p PEMPreamblePrivateKey) String() string {
+func (p PEMPreamble) String() string {
 	return string(p)
 }
 
-func (p PEMPreamblePrivateKey) Algorithm() (Algorithm, error) {
-	switch p {
-	case PrivateKeyRSA:
-		return RSA, nil
-	case PrivateKeyECDSA:
-		return ECDSA, nil
-	case PrivateKeyED25519:
-		return ED25519, nil
+// PEMBlockToPEMPreamble takes a pem.Block and returns the related PEMPreamble, if supported.
+func PEMBlockToPEMPreamble(block *pem.Block) (PEMPreamble, error) {
+	switch block.Type {
+	case PreamblePublicKey.String():
+		return PreamblePublicKey, nil
+	case PreamblePrivateKeyPKCS8.String():
+		return PreamblePrivateKeyPKCS8, nil
+	case PreamblePrivateKeyRSA.String():
+		return PreamblePrivateKeyRSA, nil
+	case PreamblePrivateKeyEC.String():
+		return PreamblePrivateKeyEC, nil
+	case PreambleCertificate.String():
+		return PreambleCertificate, nil
+	case PreambleCertificateRequest.String():
+		return PreambleCertificateRequest, nil
 	default:
-		return "", fmt.Errorf("unknown PEM preamble for private key: %#v", p)
+		return "", fmt.Errorf("unsupported PEM preamble/type: %s", block.Type)
 	}
-}
-
-// PEMPreamblePublicKey represents the "type" heading used by a PEM-formatted Public Key.
-// See: https://datatracker.ietf.org/doc/html/rfc1421
-type PEMPreamblePublicKey string
-
-const (
-	PublicKey PEMPreamblePrivateKey = "PUBLIC KEY"
-)
-
-func (p PEMPreamblePublicKey) String() string {
-	return string(p)
-}
-
-// PEMPreambleCertificate represents the heading used by Certificates and related PEM-formatted files.
-type PEMPreambleCertificate string
-
-const (
-	Certificate        PEMPreambleCertificate = "CERTIFICATE"
-	CertificateRequest PEMPreambleCertificate = "CERTIFICATE REQUEST"
-)
-
-func (c PEMPreambleCertificate) String() string {
-	return string(c)
 }

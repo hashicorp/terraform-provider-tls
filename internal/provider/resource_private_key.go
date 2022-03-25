@@ -132,7 +132,7 @@ func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	switch k := key.(type) {
 	case *rsa.PrivateKey:
 		keyPemBlock = &pem.Block{
-			Type:  PrivateKeyRSA.String(),
+			Type:  PreamblePrivateKeyRSA.String(),
 			Bytes: x509.MarshalPKCS1PrivateKey(k),
 		}
 	case *ecdsa.PrivateKey:
@@ -142,7 +142,7 @@ func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		}
 
 		keyPemBlock = &pem.Block{
-			Type:  PrivateKeyECDSA.String(),
+			Type:  PreamblePrivateKeyEC.String(),
 			Bytes: keyBytes,
 		}
 
@@ -157,7 +157,7 @@ func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		}
 
 		keyPemBlock = &pem.Block{
-			Type:  PrivateKeyED25519.String(),
+			Type:  PreamblePrivateKeyPKCS8.String(),
 			Bytes: keyBytes,
 		}
 	default:
