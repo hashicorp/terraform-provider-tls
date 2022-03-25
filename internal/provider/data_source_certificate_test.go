@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -55,6 +56,55 @@ data "tls_certificate" "test" {
 					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_after", "2019-11-08T19:01:36Z"),
 					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
 				),
+			},
+		},
+	})
+}
+
+func TestAccTlsCertificate_MalformedURL(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testProviders,
+
+		Steps: []resource.TestStep{
+			{
+
+				Config: `
+					data "tls_certificate" "test" {
+                        url = "http://no-https.com"
+                        verify_chain = false
+					}
+				`,
+				ExpectError: regexp.MustCompile(`expected "url" to have a url with schema of: "https", got http://no-https.com`),
+			},
+			{
+
+				Config: `
+					data "tls_certificate" "test" {
+                        url = "ftp://an-ftp.com"
+                        verify_chain = false
+					}
+				`,
+				ExpectError: regexp.MustCompile(`expected "url" to have a url with schema of: "https", got ftp://an-ftp.com`),
+			},
+			{
+
+				Config: `
+					data "tls_certificate" "test" {
+                        url = "1.2.3.4"
+                        verify_chain = false
+					}
+				`,
+				ExpectError: regexp.MustCompile(`expected "url" to have a host, got 1.2.3.4`),
+			},
+			{
+
+				Config: `
+					data "tls_certificate" "test" {
+                        url = "not-a-url-at-all"
+                        verify_chain = false
+					}
+				`,
+				ExpectError: regexp.MustCompile(`expected "url" to have a host, got not-a-url-at-all`),
 			},
 		},
 	})

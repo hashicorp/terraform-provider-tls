@@ -2,11 +2,11 @@ package provider
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/url"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceCertificate() *schema.Resource {
@@ -19,9 +19,10 @@ func dataSourceCertificate() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"url": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The URL of the website to get the certificates from.",
+				Type:             schema.TypeString,
+				Required:         true,
+				Description:      "The URL of the website to get the certificates from.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsURLWithHTTPS),
 			},
 			"verify_chain": {
 				Type:        schema.TypeBool,
@@ -108,9 +109,6 @@ func dataSourceCertificateRead(d *schema.ResourceData, _ interface{}) error {
 	u, err := url.Parse(d.Get("url").(string))
 	if err != nil {
 		return err
-	}
-	if u.Scheme != "https" {
-		return fmt.Errorf("invalid scheme")
 	}
 	if u.Port() == "" {
 		u.Host += ":443"
