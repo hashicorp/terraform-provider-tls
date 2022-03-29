@@ -55,24 +55,32 @@ Use `make generate` to ensure the documentation is regenerated with any changes.
 
 ### Using a development build
 
-When [running tests and acceptance tests](#testing) doesn't cut it, it's possible to set up your local
-environment to use a development builds of the provider. This can be achieved by leveraging the Terraform CLI
+If [running tests and acceptance tests](#testing) isn't enough, it's possible to set up a local terraform configuration
+to use a development builds of the provider. This can be achieved by leveraging the Terraform CLI
 [configuration file development overrides](https://www.terraform.io/cli/config/config-file#development-overrides-for-provider-developers).
 
-In your personal `~/.terraform.rc` (or in a file pointed at via the environment variable `TF_CLI_CONFIG_FILE`),
-write something like this:
+First, use `make install` to place a fresh development build of the provider in your `${GOPATH}/bin`. Repeat
+this every time you make changes to the provider locally.
+
+Then, in your `${HOME}/.terraformrc` (Unix) / `%APPDATA%\terraform.rc` (Windows), a `provider_installation` that contains
+the following `dev_overrides`:
 
 ```hcl
 provider_installation {
   dev_overrides {
-    "hashicorp/tls" = "${YOUR_GOPATH}/bin"
+    "hashicorp/tls" = "${GOPATH}/bin" //< replace `${GOPATH}` with the actual path on your system
   }
 
   direct {}
 }
 ```
 
-Then, use `make install` to place your development build in your `${GOPATH}/bin` directory.
+Note that it's also possible to use a dedicated Terraform configuration file and invoke `terraform` while setting
+the environment variable `TF_CLI_CONFIG_FILE=my_terraform_config_file`.
+
+Once the `dev_overrides` are in place, any local execution of `terraform plan` and `terraform apply` will
+use the version of the provider found in the given `${GOPATH}/bin` directory,
+instead of the one indicated in your terraform configuration.
 
 ## Releasing
 
