@@ -16,7 +16,7 @@ func resourceSelfSignedCert() *schema.Resource {
 	setCertificateSubjectSchema(s)
 
 	return &schema.Resource{
-		Create:        CreateSelfSignedCert,
+		Create:        createSelfSignedCert,
 		Delete:        deleteCertificate,
 		Read:          readCertificate,
 		Update:        updateCertificate,
@@ -27,10 +27,14 @@ func resourceSelfSignedCert() *schema.Resource {
 	}
 }
 
-func CreateSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
-	key, _, err := parsePrivateKeyPEM([]byte(d.Get("private_key_pem").(string)))
+func createSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
+	key, algorithm, err := parsePrivateKeyPEM([]byte(d.Get("private_key_pem").(string)))
 	if err != nil {
 		return err
+	}
+
+	if err := d.Set("key_algorithm", algorithm); err != nil {
+		return fmt.Errorf("error setting value on key 'key_algorithm': %s", err)
 	}
 
 	subjectConfs := d.Get("subject").([]interface{})

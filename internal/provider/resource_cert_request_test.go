@@ -220,9 +220,7 @@ func TestCertRequest_HandleKeyAlgorithmDeprecation(t *testing.T) {
 						private_key_pem = tls_private_key.test.private_key_pem
 					}
 				`,
-				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("tls_cert_request.test", "key_algorithm", "RSA"),
-				),
+				Check: r.TestCheckResourceAttr("tls_cert_request.test", "key_algorithm", "RSA"),
 			},
 			{
 				Config: `
@@ -236,9 +234,7 @@ func TestCertRequest_HandleKeyAlgorithmDeprecation(t *testing.T) {
 						private_key_pem = tls_private_key.test.private_key_pem
 					}
 				`,
-				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckNoResourceAttr("tls_cert_request.test", "key_algorithm"),
-				),
+				Check: r.TestCheckResourceAttr("tls_cert_request.test", "key_algorithm", "RSA"),
 			},
 		},
 	},

@@ -124,6 +124,7 @@ func setCertificateSubjectSchema(s map[string]*schema.Schema) {
 	s["key_algorithm"] = &schema.Schema{
 		Type:       schema.TypeString,
 		Optional:   true,
+		Computed:   true,
 		ForceNew:   true,
 		Deprecated: "This is now ignored, as the key algorithm is inferred from the `private_key_pem`.",
 		Description: "Name of the algorithm used when generating the private key provided in `private_key_pem`. " +
