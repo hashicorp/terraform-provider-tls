@@ -6,6 +6,12 @@ NEW FEATURES:
 
 * data-source/tls_public_key: Added support for [ED25519](https://ed25519.cr.yp.to/) key algorithm ([#160](https://github.com/hashicorp/terraform-provider-tls/pull/160)).
 
+* resource/tls_cert_request: Added support for [ED25519](https://ed25519.cr.yp.to/) key algorithm ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
+
+* resource/tls_self_signed_cert: Added support for [ED25519](https://ed25519.cr.yp.to/) key algorithm ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
+
+* resource/tls_locally_signed_cert: Added support for [ED25519](https://ed25519.cr.yp.to/) key algorithm ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
+
 ENHANCEMENTS:
 
 * resource/tls_private_key: New attributes `private_key_openssh` (OpenSSH PEM format) and `public_key_fingerprint_sha256` ([#151](https://github.com/hashicorp/terraform-provider-tls/pull/151)).
@@ -17,12 +23,25 @@ ENHANCEMENTS:
 * resource/tls_locally_signed_cert: Resource will validate that `allowed_uses` list contains values that are part
   of the documented set, throwing an error if they are invalid, instead of silently ignoring it 
   ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+* resource/tls_locally_signed_cert: The argument `ca_key_algorithm` is now optional and deprecated, as the resource infers the
+  algorithm from the given key `ca_private_key_pem`. It will be replaced by a read-only attribute, 
+  exposing the inferred algorithm, in the next major release
+  ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
 
 * resource/tls_self_signed_cert: Resource will validate that `validity_period_hours` and `early_renewal_hours`
   are set to a value greater or equal then zero ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
 * resource/tls_self_signed_cert: Resource will validate that `allowed_uses` list contains values that are part
   of the documented set, throwing an error if they are invalid, instead of silently ignoring it
   ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+* resource/tls_self_signed_cert: The argument `key_algorithm` is now optional and deprecated, as the resource infers the
+  algorithm from the given key `private_key_pem`. It will be replaced by a read-only attribute,
+  exposing the inferred algorithm, in the next major release
+  ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
+
+* resource/tls_cert_request: The argument `key_algorithm` is now optional and deprecated, as the resource infers the
+  algorithm from the given key `private_key_pem`. It will be replaced by a read-only attribute,
+  exposing the inferred algorithm, in the next major release
+  ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
 
 NOTES:
 

@@ -30,9 +30,9 @@ func resourceCertRequest() *schema.Resource {
 	setCertificateSubjectSchema(s)
 
 	return &schema.Resource{
-		Create: CreateCertRequest,
-		Delete: DeleteCertRequest,
-		Read:   ReadCertRequest,
+		Create: createCertRequest,
+		Delete: deleteCertRequest,
+		Read:   readCertRequest,
 
 		Description: "Creates a Certificate Signing Request (CSR) in " +
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.\n\n" +
@@ -44,10 +44,14 @@ func resourceCertRequest() *schema.Resource {
 	}
 }
 
-func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
-	key, err := parsePrivateKey(d, "private_key_pem", "key_algorithm")
+func createCertRequest(d *schema.ResourceData, meta interface{}) error {
+	key, algorithm, err := parsePrivateKeyPEM([]byte(d.Get("private_key_pem").(string)))
 	if err != nil {
 		return err
+	}
+
+	if err := d.Set("key_algorithm", algorithm); err != nil {
+		return fmt.Errorf("error setting value on key 'key_algorithm': %s", err)
 	}
 
 	subjectConfs := d.Get("subject").([]interface{})
@@ -89,7 +93,7 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error creating certificate request: %s", err)
 	}
-	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: CertificateRequest.String(), Bytes: certReqBytes}))
+	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes}))
 
 	d.SetId(hashForState(string(certReqBytes)))
 
@@ -100,11 +104,11 @@ func CreateCertRequest(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func DeleteCertRequest(d *schema.ResourceData, meta interface{}) error {
+func deleteCertRequest(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 	return nil
 }
 
-func ReadCertRequest(d *schema.ResourceData, meta interface{}) error {
+func readCertRequest(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }

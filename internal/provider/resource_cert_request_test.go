@@ -45,7 +45,6 @@ func TestCertRequest(t *testing.T) {
                             "spiffe://example-trust-domain/workload2",
                         ]
 
-                        key_algorithm = "RSA"
                         private_key_pem = <<EOT
 %s
 EOT
@@ -138,7 +137,6 @@ EOT
 						serial_number = "42"
 						}
 
-                        key_algorithm = "RSA"
                         private_key_pem = <<EOT
 %s
 EOT
@@ -202,4 +200,43 @@ EOT
 			},
 		},
 	})
+}
+
+// TODO Remove this as part of https://github.com/hashicorp/terraform-provider-tls/issues/174
+func TestCertRequest_HandleKeyAlgorithmDeprecation(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							serial_number = "42"
+						}
+						key_algorithm = "RSA"
+						private_key_pem = tls_private_key.test.private_key_pem
+					}
+				`,
+				Check: r.TestCheckResourceAttr("tls_cert_request.test", "key_algorithm", "RSA"),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							serial_number = "42"
+						}
+						private_key_pem = tls_private_key.test.private_key_pem
+					}
+				`,
+				Check: r.TestCheckResourceAttr("tls_cert_request.test", "key_algorithm", "RSA"),
+			},
+		},
+	},
+	)
 }

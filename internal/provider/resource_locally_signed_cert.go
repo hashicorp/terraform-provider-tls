@@ -2,6 +2,7 @@ package provider
 
 import (
 	"crypto/x509"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -23,10 +24,13 @@ func resourceLocallySignedCert() *schema.Resource {
 	}
 
 	s["ca_key_algorithm"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		ForceNew:    true,
-		Description: "Name of the algorithm used when generating the private key provided in `ca_private_key_pem`.",
+		Type:       schema.TypeString,
+		Optional:   true,
+		Computed:   true,
+		ForceNew:   true,
+		Deprecated: "This is now ignored, as the key algorithm is inferred from the `ca_private_key_pem`.",
+		Description: "Name of the algorithm used when generating the private key provided in `ca_private_key_pem`. " +
+			"**NOTE**: this is deprecated and ignored, as the key algorithm is now inferred from the key. ",
 	}
 
 	s["ca_private_key_pem"] = &schema.Schema{
@@ -70,10 +74,16 @@ func createLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
-	caKey, err := parsePrivateKey(d, "ca_private_key_pem", "ca_key_algorithm")
+
+	caKey, algorithm, err := parsePrivateKeyPEM([]byte(d.Get("ca_private_key_pem").(string)))
 	if err != nil {
 		return err
 	}
+
+	if err := d.Set("ca_key_algorithm", algorithm); err != nil {
+		return fmt.Errorf("error setting value on key 'ca_key_algorithm': %s", err)
+	}
+
 	caCert, err := parseCertificate(d, "ca_cert_pem")
 	if err != nil {
 		return err

@@ -73,7 +73,7 @@ func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 			},
 			{
 				Config:      fmt.Sprintf(configDataSourcePublicKeyViaPEM, "corrupt"),
-				ExpectError: regexp.MustCompile(`failed to decode raw PEM block: decoded bytes \d, undecoded \d`),
+				ExpectError: regexp.MustCompile(`failed to decode PEM block: decoded bytes \d, undecoded \d`),
 			},
 		},
 	})

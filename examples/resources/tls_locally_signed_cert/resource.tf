@@ -1,6 +1,5 @@
 resource "tls_locally_signed_cert" "example" {
   cert_request_pem   = file("cert_request.pem")
-  ca_key_algorithm   = "ECDSA"
   ca_private_key_pem = file("ca_private_key.pem")
   ca_cert_pem        = file("ca_cert.pem")
 
