@@ -21,7 +21,9 @@ The remainder of this document will focus on the development aspects of the prov
 * [GNU Make](https://www.gnu.org/software/make/)
 * [golangci-lint](https://golangci-lint.run/usage/install/#local-installation) (optional)
 
-## Building
+## Development
+
+### Building
 
 1. `git clone` this repository and `cd` into its directory
 2. `make` will trigger the Golang build
@@ -51,14 +53,33 @@ and associate it with the release version. Read more about how this works on the
 
 Use `make generate` to ensure the documentation is regenerated with any changes.
 
+### Using a development build
+
+When [running tests and acceptance tests](#testing) doesn't cut it, it's possible to set up your local
+environment to use a development builds of the provider. This can be achieved by leveraging the Terraform CLI
+[configuration file development overrides](https://www.terraform.io/cli/config/config-file#development-overrides-for-provider-developers).
+
+In your personal `~/.terraform.rc` (or in a file pointed at via the environment variable `TF_CLI_CONFIG_FILE`),
+write something like this:
+
+```hcl
+provider_installation {
+  dev_overrides {
+    "hashicorp/tls" = "${YOUR_GOPATH}/bin"
+  }
+
+  direct {}
+}
+```
+
+Then, use `make install` to place your development build in your `${GOPATH}/bin` directory.
 
 ## Releasing
 
-The release process is automated via GitHub Actions,
-and it's defined in the Workflow [release.yml](./.github/workflows/release.yml).
+The release process is automated via GitHub Actions, and it's defined in the Workflow
+[release.yml](./.github/workflows/release.yml).
 
-Each release is cut by pushing a [semantically versioned](https://semver.org/)
-tag to the default branch.
+Each release is cut by pushing a [semantically versioned](https://semver.org/) tag to the default branch.
 
 ## License
 
