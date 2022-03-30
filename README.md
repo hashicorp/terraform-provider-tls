@@ -59,7 +59,7 @@ If [running tests and acceptance tests](#testing) isn't enough, it's possible to
 to use a development builds of the provider. This can be achieved by leveraging the Terraform CLI
 [configuration file development overrides](https://www.terraform.io/cli/config/config-file#development-overrides-for-provider-developers).
 
-First, use `make install` to place a fresh development build of the provider in your `${GOPATH}/bin`. Repeat
+First, use `make install` to place a fresh development build of the provider in your [`${GOBIN}`](https://pkg.go.dev/cmd/go#hdr-Compile_and_install_packages_and_dependencies) (defaults to `${GOPATH}/bin` or `${HOME}/go/bin` if `${GOPATH}` is not set). Repeat
 this every time you make changes to the provider locally.
 
 Then, in your `${HOME}/.terraformrc` (Unix) / `%APPDATA%\terraform.rc` (Windows), a `provider_installation` that contains
@@ -68,7 +68,7 @@ the following `dev_overrides`:
 ```hcl
 provider_installation {
   dev_overrides {
-    "hashicorp/tls" = "${GOPATH}/bin" //< replace `${GOPATH}` with the actual path on your system
+    "hashicorp/tls" = "${GOBIN}" //< replace `${GOBIN}` with the actual path on your system
   }
 
   direct {}
@@ -79,7 +79,7 @@ Note that it's also possible to use a dedicated Terraform configuration file and
 the environment variable `TF_CLI_CONFIG_FILE=my_terraform_config_file`.
 
 Once the `dev_overrides` are in place, any local execution of `terraform plan` and `terraform apply` will
-use the version of the provider found in the given `${GOPATH}/bin` directory,
+use the version of the provider found in the given `${GOBIN}` directory,
 instead of the one indicated in your terraform configuration.
 
 ## Releasing
