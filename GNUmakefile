@@ -3,6 +3,9 @@ default: build
 build:
 	go build -v ./...
 
+install: build
+	go install -v ./...
+
 # See https://golangci-lint.run/
 lint:
 	golangci-lint run
@@ -19,4 +22,4 @@ test:
 testacc:
 	TF_ACC=1 go test -v -cover -timeout 120m ./...
 
-.PHONY: build lint generate fmt test testacc
+.PHONY: build install lint generate fmt test testacc
