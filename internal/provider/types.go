@@ -143,3 +143,33 @@ func SupportedProxySchemesStr() []string {
 	}
 	return supportedStr
 }
+
+// URLScheme represents url schemes supported by resources and data-sources of this provider.
+type URLScheme string
+
+const (
+	HTTPSScheme URLScheme = "https"
+	TLSScheme   URLScheme = "tls"
+)
+
+func (p URLScheme) String() string {
+	return string(p)
+}
+
+// SupportedURLSchemes returns an array of URLScheme currently supported by this provider.
+func SupportedURLSchemes() []URLScheme {
+	return []URLScheme{
+		HTTPSScheme,
+		TLSScheme,
+	}
+}
+
+// SupportedURLSchemesStr returns the same content of SupportedURLSchemes but as a slice of string.
+func SupportedURLSchemesStr() []string {
+	supported := SupportedURLSchemes()
+	supportedStr := make([]string, len(supported))
+	for i := range supported {
+		supportedStr[i] = string(supported[i])
+	}
+	return supportedStr
+}

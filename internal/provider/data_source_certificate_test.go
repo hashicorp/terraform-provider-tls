@@ -2,22 +2,19 @@ package provider
 
 import (
 	"fmt"
-	"log"
-	"net"
-	"net/http"
 	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccTlsCertificate_dataSource(t *testing.T) {
-	server, host, err := newTlsServer()
+func TestAccDataSourceCertificate_HTTPSScheme(t *testing.T) {
+	server, err := newHTTPServer()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer server.Close()
-	go server.serve()
+	go server.ServeTLS()
 
 	resource.UnitTest(t, resource.TestCase{
 		Providers: testProviders,
@@ -26,42 +23,230 @@ func TestAccTlsCertificate_dataSource(t *testing.T) {
 			{
 
 				Config: fmt.Sprintf(`
-data "tls_certificate" "test" {
-  url = "https://%s"
-  verify_chain = false
-}
-`, host),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
-
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.serial_number", "60512478256160404377639062250777657301"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.version", "3"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=Root CA,O=Test Org,L=Here"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=Root CA,O=Test Org,L=Here"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_before", "2019-11-07T15:47:48Z"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_after", "2019-12-17T15:47:48Z"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "5829a9bcc57f317719c5c98d1f48d6c9957cb44e"),
-
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.serial_number", "266244246501122064554217434340898012243"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.version", "3"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=Root CA,O=Test Org,L=Here"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=Child Cert,O=Child Co.,L=Everywhere"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_before", "2019-11-08T09:01:36Z"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_after", "2019-11-08T19:01:36Z"),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
-				),
+					data "tls_certificate" "test" {
+					  url = "https://%s"
+					  verify_chain = false
+					}
+				`, server.Address()),
+				Check: localTestCertificateChainCheckFunc(),
 			},
 		},
 	})
 }
 
-func TestAccTlsCertificate_MalformedURL(t *testing.T) {
+func TestAccDataSourceCertificate_TLSScheme(t *testing.T) {
+	server, err := newHTTPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	go server.ServeTLS()
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testProviders,
+
+		Steps: []resource.TestStep{
+			{
+
+				Config: fmt.Sprintf(`
+					data "tls_certificate" "test" {
+					  url = "tls://%s"
+					  verify_chain = false
+					}
+				`, server.Address()),
+				Check: localTestCertificateChainCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceCertificate_HTTPSSchemeViaProxy(t *testing.T) {
+	server, err := newHTTPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	go server.ServeTLS()
+
+	proxy, err := newHTTPProxyServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer proxy.Close()
+	go proxy.Serve()
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testProviders,
+
+		Steps: []resource.TestStep{
+			{
+
+				Config: fmt.Sprintf(`
+					provider "tls" {
+						proxy {
+							url = "http://%s"
+						}
+					}
+
+					data "tls_certificate" "test" {
+					  url = "https://%s"
+					  verify_chain = false
+					}
+				`, proxy.Address(), server.Address()),
+				Check: localTestCertificateChainCheckFunc(),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T) {
+	server, err := newHTTPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	go server.ServeTLS()
+
+	proxyUsername := "proxyUser"
+	proxy, err := newHTTPProxyServerWithBasicAuth(proxyUsername, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer proxy.Close()
+	go proxy.Serve()
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testProviders,
+
+		Steps: []resource.TestStep{
+			{
+
+				Config: fmt.Sprintf(`
+					provider "tls" {
+						proxy {
+							url = "http://%s"
+							username = "%s"
+						}
+					}
+
+					data "tls_certificate" "test" {
+					  url = "https://%s"
+					  verify_chain = false
+					}
+				`, proxy.Address(), proxyUsername, server.Address()),
+				Check: localTestCertificateChainCheckFunc(),
+			},
+			{
+
+				Config: fmt.Sprintf(`
+					provider "tls" {
+						proxy {
+							url = "http://%s"
+							username = "wrong-username"
+						}
+					}
+
+					data "tls_certificate" "test" {
+					  url = "https://%s"
+					  verify_chain = false
+					}
+				`, proxy.Address(), server.Address()),
+				ExpectError: regexp.MustCompile("Proxy Authentication Required"),
+			},
+		},
+	})
+}
+
+func TestAccDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t *testing.T) {
+	server, err := newHTTPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	go server.ServeTLS()
+
+	proxyUsername := "proxyUser"
+	proxyPassword := "proxyPwd"
+	proxy, err := newHTTPProxyServerWithBasicAuth(proxyUsername, proxyPassword)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer proxy.Close()
+	go proxy.Serve()
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testProviders,
+
+		Steps: []resource.TestStep{
+			{
+
+				Config: fmt.Sprintf(`
+					provider "tls" {
+						proxy {
+							url = "http://%s"
+							username = "%s"
+							password = "%s"
+						}
+					}
+
+					data "tls_certificate" "test" {
+					  url = "https://%s"
+					  verify_chain = false
+					}
+				`, proxy.Address(), proxyUsername, proxyPassword, server.Address()),
+				Check: localTestCertificateChainCheckFunc(),
+			},
+			{
+
+				Config: fmt.Sprintf(`
+					provider "tls" {
+						proxy {
+							url = "http://%s"
+							username = "%s"
+							password = "wrong-password"
+						}
+					}
+
+					data "tls_certificate" "test" {
+					  url = "https://%s"
+					  verify_chain = false
+					}
+				`, proxy.Address(), proxyUsername, server.Address()),
+				ExpectError: regexp.MustCompile("Proxy Authentication Required"),
+			},
+		},
+	})
+}
+
+func localTestCertificateChainCheckFunc() resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
+
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.serial_number", "60512478256160404377639062250777657301"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.version", "3"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=Root CA,O=Test Org,L=Here"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=Root CA,O=Test Org,L=Here"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_before", "2019-11-07T15:47:48Z"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_after", "2019-12-17T15:47:48Z"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "5829a9bcc57f317719c5c98d1f48d6c9957cb44e"),
+
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.serial_number", "266244246501122064554217434340898012243"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.version", "3"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=Root CA,O=Test Org,L=Here"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=Child Cert,O=Child Co.,L=Everywhere"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_before", "2019-11-08T09:01:36Z"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_after", "2019-11-08T19:01:36Z"),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
+	)
+}
+
+func TestAccDataSourceCertificate_MalformedURL(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		Providers: testProviders,
 
@@ -70,28 +255,48 @@ func TestAccTlsCertificate_MalformedURL(t *testing.T) {
 
 				Config: `
 					data "tls_certificate" "test" {
-                        url = "http://no-https.com"
-                        verify_chain = false
+						url = "http://no.https.scheme.com"
+						verify_chain = false
 					}
 				`,
-				ExpectError: regexp.MustCompile(`expected "url" to have a url with schema of: "https", got http://no-https.com`),
+				ExpectError: regexp.MustCompile(`expected "url" to have a url with schema of: "https,tls", got http://no.https.scheme.com`),
 			},
 			{
 
 				Config: `
 					data "tls_certificate" "test" {
-                        url = "ftp://an-ftp.com"
-                        verify_chain = false
+						url = "unknown://unknown.scheme.com"
+						verify_chain = false
 					}
 				`,
-				ExpectError: regexp.MustCompile(`expected "url" to have a url with schema of: "https", got ftp://an-ftp.com`),
+				ExpectError: regexp.MustCompile(`expected "url" to have a url with schema of: "https,tls", got unknown://unknown.scheme.com`),
 			},
 			{
 
 				Config: `
 					data "tls_certificate" "test" {
-                        url = "1.2.3.4"
-                        verify_chain = false
+						url = "tls://host.without.port.com"
+						verify_chain = false
+					}
+				`,
+				ExpectError: regexp.MustCompile(`port missing from URL: tls://host.without.port.com`),
+			},
+			{
+
+				Config: `
+					data "tls_certificate" "test" {
+						url = "ftp://ftp.scheme.com"
+						verify_chain = false
+					}
+				`,
+				ExpectError: regexp.MustCompile(`expected "url" to have a url with schema of: "https,tls", got ftp://ftp.scheme.com`),
+			},
+			{
+
+				Config: `
+					data "tls_certificate" "test" {
+						url = "1.2.3.4"
+						verify_chain = false
 					}
 				`,
 				ExpectError: regexp.MustCompile(`expected "url" to have a host, got 1.2.3.4`),
@@ -100,48 +305,12 @@ func TestAccTlsCertificate_MalformedURL(t *testing.T) {
 
 				Config: `
 					data "tls_certificate" "test" {
-                        url = "not-a-url-at-all"
-                        verify_chain = false
+						url = "not-a-url-at-all"
+						verify_chain = false
 					}
 				`,
 				ExpectError: regexp.MustCompile(`expected "url" to have a host, got not-a-url-at-all`),
 			},
 		},
 	})
-}
-
-type tlsServer struct {
-	listener net.Listener
-	server   *http.Server
-}
-
-func newTlsServer() (*tlsServer, string, error) {
-	listener, err := net.Listen("tcp", ":0")
-	if err != nil {
-		return nil, "", err
-	}
-
-	return &tlsServer{
-		listener: listener,
-		server: &http.Server{
-			Addr: listener.Addr().String(),
-		},
-	}, listener.Addr().String(), nil
-}
-
-func (t *tlsServer) serve() {
-	err := t.server.ServeTLS(t.listener, "testdata/tls_certs/public.pem", "testdata/tls_certs/private.pem")
-	if err != nil {
-		log.Println("Failed to serve TLS server", err)
-	}
-}
-
-func (t *tlsServer) Close() error {
-	if err := t.listener.Close(); err != nil {
-		return err
-	}
-	if err := t.server.Close(); err != nil {
-		return err
-	}
-	return nil
 }
