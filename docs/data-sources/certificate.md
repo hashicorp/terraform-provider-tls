@@ -3,14 +3,14 @@ page_title: "tls_certificate Data Source - terraform-provider-tls"
 subcategory: ""
 description: |-
   Get information about the TLS certificates securing a host.
-  Use this data source to get information, such as SHA1 fingerprint or serial number, about the TLS certificates that protects an HTTPS website.
+  Use this data source to get information, such as SHA1 fingerprint or serial number, about the TLS certificates that protects a URL.
 ---
 
 # tls_certificate (Data Source)
 
 Get information about the TLS certificates securing a host.
 
-Use this data source to get information, such as SHA1 fingerprint or serial number, about the TLS certificates that protects an HTTPS website.
+Use this data source to get information, such as SHA1 fingerprint or serial number, about the TLS certificates that protects a URL.
 
 ## Example Usage
 
