@@ -1,4 +1,4 @@
-## 3.2.0 (March 29, 2022)
+## 3.2.0 (April 04, 2022)
 
 NEW FEATURES:
 
