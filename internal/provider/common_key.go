@@ -123,16 +123,12 @@ func parsePrivateKeyOpenSSHPEM(keyOpenSSHPEMBytes []byte) (crypto.PrivateKey, Al
 // privateKeyToPublicKey takes a crypto.PrivateKey and extracts the corresponding crypto.PublicKey,
 // after having figured out its type.
 func privateKeyToPublicKey(prvKey crypto.PrivateKey) (crypto.PublicKey, error) {
-	switch k := prvKey.(type) {
-	case *rsa.PrivateKey:
-		return k.Public(), nil
-	case *ecdsa.PrivateKey:
-		return k.Public(), nil
-	case ed25519.PrivateKey:
-		return k.Public(), nil
-	default:
+	signer, ok := prvKey.(crypto.Signer)
+	if !ok {
 		return nil, fmt.Errorf("unsupported private key type: %T", prvKey)
 	}
+
+	return signer.Public(), nil
 }
 
 // privateKeyToAlgorithm identifies the Algorithm used by a given crypto.PrivateKey.
