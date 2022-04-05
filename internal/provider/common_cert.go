@@ -3,16 +3,11 @@ package provider
 import (
 	"context"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha1"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -69,19 +64,9 @@ func supportedKeyUsages() []string {
 
 // generateSubjectKeyID generates a SHA-1 hash of the subject public key.
 func generateSubjectKeyID(pub crypto.PublicKey) ([]byte, error) {
-	var publicKeyBytes []byte
-	var err error
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		publicKeyBytes, err = asn1.Marshal(*pub)
-		if err != nil {
-			return nil, err
-		}
-	case *ecdsa.PublicKey:
-		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
-	default:
-		return nil, errors.New("only RSA and ECDSA public keys supported")
+	publicKeyBytes, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal public key of type %T: %w", pub, err)
 	}
 
 	hash := sha1.Sum(publicKeyBytes)
