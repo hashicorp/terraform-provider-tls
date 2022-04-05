@@ -308,10 +308,11 @@ func setCertificateCommonSchema(s map[string]*schema.Schema) {
 	}
 
 	s["set_subject_key_id"] = &schema.Schema{
-		Type:        schema.TypeBool,
-		Optional:    true,
-		ForceNew:    true,
-		Description: "Should the generated certificate include a subject key identifier (default: `false`).",
+		Type:     schema.TypeBool,
+		Optional: true,
+		ForceNew: true,
+		Description: "Should the generated certificate include a " +
+			"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
 	}
 
 	s["id"] = &schema.Schema{

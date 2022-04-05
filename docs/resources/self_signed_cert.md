@@ -53,7 +53,7 @@ resource "tls_self_signed_cert" "example" {
 - `ip_addresses` (List of String) List of IP addresses for which a certificate is being requested (i.e. certificate subjects).
 - `is_ca_certificate` (Boolean) Is the generated certificate representing a Certificate Authority (CA) (default: `false`).
 - `key_algorithm` (String, Deprecated) Name of the algorithm used when generating the private key provided in `private_key_pem`. **NOTE**: this is deprecated and ignored, as the key algorithm is now inferred from the key.
-- `set_subject_key_id` (Boolean) Should the generated certificate include a subject key identifier (default: `false`).
+- `set_subject_key_id` (Boolean) Should the generated certificate include a [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).
 - `uris` (List of String) List of URIs for which a certificate is being requested (i.e. certificate subjects).
 
 ### Read-Only

@@ -1,3 +1,11 @@
+## 3.2.1 (April 05, 2022)
+
+BUG FIXES:
+
+* resource/tls_locally_signed_cert: Fix issue preventing the generation of [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) for private keys using ED25519 ([#182](https://github.com/hashicorp/terraform-provider-tls/pull/182))
+
+* resource/tls_self_signed_cert: Fix issue preventing the generation of [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) for private keys using ED25519 ([#182](https://github.com/hashicorp/terraform-provider-tls/pull/182))
+
 ## 3.2.0 (April 04, 2022)
 
 NEW FEATURES:
