@@ -150,8 +150,8 @@ func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 		if k.Curve.Params().Name == "P-224" {
 			doMarshalOpenSSHKeyPemBlock = false
 		}
-	case *ed25519.PrivateKey:
-		keyBytes, err := x509.MarshalPKCS8PrivateKey(*k)
+	case ed25519.PrivateKey:
+		keyBytes, err := x509.MarshalPKCS8PrivateKey(k)
 		if err != nil {
 			return fmt.Errorf("error encoding key to PEM: %s", err)
 		}
