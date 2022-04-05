@@ -637,7 +637,7 @@ EOT
                 `, validity, earlyRenewal, keyAlgorithmCfg, testPrivateKeyPEM)
 }
 
-func TestAccResourceSelfSignedCert_FromPrivateKeyResource(t *testing.T) {
+func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		Providers: testProviders,
 		Steps: []r.TestStep{
@@ -664,6 +664,14 @@ func TestAccResourceSelfSignedCert_FromPrivateKeyResource(t *testing.T) {
 					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
 				),
 			},
+		},
+	})
+}
+
+func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
 			{
 				Config: `
 					resource "tls_private_key" "test" {
@@ -689,6 +697,13 @@ func TestAccResourceSelfSignedCert_FromPrivateKeyResource(t *testing.T) {
 					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
 				),
 			},
+		},
+	})
+}
+func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
 			{
 				Config: `
 					resource "tls_private_key" "test" {
