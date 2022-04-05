@@ -3,8 +3,8 @@ package provider
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -127,7 +127,7 @@ func TestLocallySignedCert(t *testing.T) {
 					// Verify certificate
 					_, err = cert.Verify(x509.VerifyOptions{Roots: certPool})
 					if err == nil {
-						return errors.New("incorrectly verified certificate")
+						return fmt.Errorf("incorrectly verified certificate")
 					} else if _, ok := err.(x509.UnknownAuthorityError); !ok {
 						return fmt.Errorf("incorrect verify error: expected UnknownAuthorityError, got %v", err)
 					}
@@ -412,7 +412,7 @@ func TestAccLocallySignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 					// Verify certificate
 					_, err = cert.Verify(x509.VerifyOptions{Roots: certPool})
 					if err == nil {
-						return errors.New("incorrectly verified certificate")
+						return fmt.Errorf("incorrectly verified certificate")
 					} else if _, ok := err.(x509.UnknownAuthorityError); !ok {
 						return fmt.Errorf("incorrect verify error: expected UnknownAuthorityError, got %v", err)
 					}
@@ -462,4 +462,160 @@ EOT
                         value = "${tls_locally_signed_cert.test.cert_pem}"
                     }
                 `, testCertRequest, validity, earlyRenewal, testCACert, caKeyAlgorithmCfg, testCAPrivateKey)
+}
+
+func TestAccResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							common_name  = "test.com"
+						}
+					}
+					
+					resource "tls_locally_signed_cert" "test" {
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = [
+							"server_auth",
+							"client_auth",
+						]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				Check: r.ComposeTestCheckFunc(
+					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "ED25519"),
+					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "ECDSA"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+
+					resource "tls_private_key" "test" {
+						algorithm = "ECDSA"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							common_name  = "test.com"
+						}
+					}
+					
+					resource "tls_locally_signed_cert" "test" {
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = [
+							"server_auth",
+							"client_auth",
+						]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				Check: r.ComposeTestCheckFunc(
+					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "ECDSA"),
+					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "RSA"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							common_name  = "test.com"
+						}
+					}
+					
+					resource "tls_locally_signed_cert" "test" {
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = [
+							"server_auth",
+							"client_auth",
+						]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				Check: r.ComposeTestCheckFunc(
+					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "RSA"),
+					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+				),
+			},
+		},
+	})
 }

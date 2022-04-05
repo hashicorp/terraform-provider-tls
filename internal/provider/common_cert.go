@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
@@ -12,7 +13,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -68,24 +68,39 @@ func supportedKeyUsages() []string {
 }
 
 // generateSubjectKeyID generates a SHA-1 hash of the subject public key.
-func generateSubjectKeyID(pub crypto.PublicKey) ([]byte, error) {
-	var publicKeyBytes []byte
+func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
+	var pubKeyBytes []byte
 	var err error
 
-	switch pub := pub.(type) {
+	// Marshal public key to bytes or set an error
+	switch pub := pubKey.(type) {
 	case *rsa.PublicKey:
-		publicKeyBytes, err = asn1.Marshal(*pub)
-		if err != nil {
-			return nil, err
+		if pub != nil {
+			pubKeyBytes, err = asn1.Marshal(*pub)
+		} else {
+			err = fmt.Errorf("received 'nil' pointer instead of public key")
 		}
 	case *ecdsa.PublicKey:
-		publicKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		pubKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+	case ed25519.PublicKey:
+		pubKeyBytes, err = asn1.Marshal(pub)
+	case *ed25519.PublicKey:
+		if pub != nil {
+			pubKeyBytes, err = asn1.Marshal(*pub)
+		} else {
+			err = fmt.Errorf("received 'nil' pointer instead of public key")
+		}
 	default:
-		return nil, errors.New("only RSA and ECDSA public keys supported")
+		err = fmt.Errorf("unsupported public key type %T", pub)
 	}
 
-	hash := sha1.Sum(publicKeyBytes)
-	return hash[:], nil
+	// If any of the cases above failed, an error would have been set
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal public key of type %T: %w", pubKey, err)
+	}
+
+	pubKeyHash := sha1.Sum(pubKeyBytes)
+	return pubKeyHash[:], nil
 }
 
 // setCertificateSubjectSchema sets on the given reference to map of schema.Schema

@@ -50,7 +50,7 @@ var keyGenerators = map[Algorithm]keyGenerator{
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate ED25519 key: %s", err)
 		}
-		return &key, err
+		return key, err
 	},
 }
 
@@ -97,7 +97,7 @@ func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, Algorithm, error
 	// Identify the Algorithm of the crypto.PrivateKey
 	algorithm, err := privateKeyToAlgorithm(prvKey)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("failed to determine key algorithm for private key of type %T: %w", prvKey, err)
 	}
 
 	return prvKey, algorithm, nil
@@ -109,12 +109,12 @@ func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, Algorithm, error
 func parsePrivateKeyOpenSSHPEM(keyOpenSSHPEMBytes []byte) (crypto.PrivateKey, Algorithm, error) {
 	prvKey, err := ssh.ParseRawPrivateKey(keyOpenSSHPEMBytes)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("failed to parse openssh private key: %w", err)
 	}
 
 	algorithm, err := privateKeyToAlgorithm(prvKey)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf("failed to determine key algorithm for private key of type %T: %w", prvKey, err)
 	}
 
 	return prvKey, algorithm, nil
@@ -122,40 +122,39 @@ func parsePrivateKeyOpenSSHPEM(keyOpenSSHPEMBytes []byte) (crypto.PrivateKey, Al
 
 // privateKeyToPublicKey takes a crypto.PrivateKey and extracts the corresponding crypto.PublicKey,
 // after having figured out its type.
-func privateKeyToPublicKey(prvKey crypto.PrivateKey) crypto.PublicKey {
-	switch k := prvKey.(type) {
-	case *rsa.PrivateKey:
-		return &k.PublicKey
-	case *ecdsa.PrivateKey:
-		return &k.PublicKey
-	case *ed25519.PrivateKey:
-		return k.Public()
-	default:
-		return nil
+func privateKeyToPublicKey(prvKey crypto.PrivateKey) (crypto.PublicKey, error) {
+	signer, ok := prvKey.(crypto.Signer)
+	if !ok {
+		return nil, fmt.Errorf("unsupported private key type: %T", prvKey)
 	}
+
+	return signer.Public(), nil
 }
 
 // privateKeyToAlgorithm identifies the Algorithm used by a given crypto.PrivateKey.
 func privateKeyToAlgorithm(prvKey crypto.PrivateKey) (Algorithm, error) {
-	switch k := prvKey.(type) {
-	case *rsa.PrivateKey:
+	switch prvKey.(type) {
+	case rsa.PrivateKey, *rsa.PrivateKey:
 		return RSA, nil
-	case *ecdsa.PrivateKey:
+	case ecdsa.PrivateKey, *ecdsa.PrivateKey:
 		return ECDSA, nil
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey, *ed25519.PrivateKey:
 		return ED25519, nil
 	default:
-		return "", fmt.Errorf("failed to identify key algorithm for unsupported private key: %#v", k)
+		return "", fmt.Errorf("unsupported private key type: %T", prvKey)
 	}
 }
 
 // setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
 // encodes related attributes on the given schema.ResourceData.
 func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) error {
-	pubKey := privateKeyToPublicKey(prvKey)
+	pubKey, err := privateKeyToPublicKey(prvKey)
+	if err != nil {
+		return fmt.Errorf("failed to get public key from private key: %w", err)
+	}
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
-		return fmt.Errorf("failed to marshal public key error: %s", err)
+		return fmt.Errorf("failed to marshal public key: %w", err)
 	}
 	pubKeyPemBlock := &pem.Block{
 		Type:  PreamblePublicKey.String(),
@@ -170,7 +169,7 @@ func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) er
 
 	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
 	// so this will return an error: in that case, we set the below fields to emptry strings
-	sshPubKey, err := ssh.NewPublicKey(privateKeyToPublicKey(prvKey))
+	sshPubKey, err := ssh.NewPublicKey(pubKey)
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)

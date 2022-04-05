@@ -27,7 +27,7 @@ func resourceSelfSignedCert() *schema.Resource {
 	}
 }
 
-func createSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
+func createSelfSignedCert(d *schema.ResourceData, _ interface{}) error {
 	key, algorithm, err := parsePrivateKeyPEM([]byte(d.Get("private_key_pem").(string)))
 	if err != nil {
 		return err
@@ -73,5 +73,9 @@ func createSelfSignedCert(d *schema.ResourceData, meta interface{}) error {
 		cert.URIs = append(cert.URIs, uri)
 	}
 
-	return createCertificate(d, &cert, &cert, privateKeyToPublicKey(key), key)
+	publicKey, err := privateKeyToPublicKey(key)
+	if err != nil {
+		return fmt.Errorf("failed to get public key from private key: %w", err)
+	}
+	return createCertificate(d, &cert, &cert, publicKey, key)
 }
