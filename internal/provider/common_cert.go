@@ -13,7 +13,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -73,18 +72,29 @@ func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
 	var pubKeyBytes []byte
 	var err error
 
+	// Marshal public key to bytes or set an error
 	switch pub := pubKey.(type) {
 	case *rsa.PublicKey:
-		pubKeyBytes, err = asn1.Marshal(*pub)
+		if pub != nil {
+			pubKeyBytes, err = asn1.Marshal(*pub)
+		} else {
+			err = fmt.Errorf("received 'nil' pointer instead of public key")
+		}
 	case *ecdsa.PublicKey:
 		pubKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
 	case ed25519.PublicKey:
 		pubKeyBytes, err = asn1.Marshal(pub)
 	case *ed25519.PublicKey:
-		pubKeyBytes, err = asn1.Marshal(*pub)
+		if pub != nil {
+			pubKeyBytes, err = asn1.Marshal(*pub)
+		} else {
+			err = fmt.Errorf("received 'nil' pointer instead of public key")
+		}
 	default:
-		return nil, errors.New("only RSA and ECDSA public keys supported")
+		err = fmt.Errorf("unsupported public key type %T", pub)
 	}
+
+	// If any of the cases above failed, an error would have been set
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal public key of type %T: %w", pubKey, err)
 	}

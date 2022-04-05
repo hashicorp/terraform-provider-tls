@@ -3,7 +3,6 @@ package provider
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -128,7 +127,7 @@ func TestLocallySignedCert(t *testing.T) {
 					// Verify certificate
 					_, err = cert.Verify(x509.VerifyOptions{Roots: certPool})
 					if err == nil {
-						return errors.New("incorrectly verified certificate")
+						return fmt.Errorf("incorrectly verified certificate")
 					} else if _, ok := err.(x509.UnknownAuthorityError); !ok {
 						return fmt.Errorf("incorrect verify error: expected UnknownAuthorityError, got %v", err)
 					}
@@ -413,7 +412,7 @@ func TestAccLocallySignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 					// Verify certificate
 					_, err = cert.Verify(x509.VerifyOptions{Roots: certPool})
 					if err == nil {
-						return errors.New("incorrectly verified certificate")
+						return fmt.Errorf("incorrectly verified certificate")
 					} else if _, ok := err.(x509.UnknownAuthorityError); !ok {
 						return fmt.Errorf("incorrect verify error: expected UnknownAuthorityError, got %v", err)
 					}
