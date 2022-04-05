@@ -477,7 +477,7 @@ func TestAccResourceLocallySignedCert_FromPrivateKeyResource(t *testing.T) {
 					resource "tls_self_signed_cert" "ca_cert_test" {
 						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
 						subject {
-							organization = "test-orgaization"
+							organization = "test-organization"
 						}
 						is_ca_certificate     = true
 						validity_period_hours = 8760
@@ -521,7 +521,7 @@ func TestAccResourceLocallySignedCert_FromPrivateKeyResource(t *testing.T) {
 					resource "tls_self_signed_cert" "ca_cert_test" {
 						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
 						subject {
-							organization = "test-orgaization"
+							organization = "test-organization"
 						}
 						is_ca_certificate     = true
 						validity_period_hours = 8760
@@ -565,7 +565,7 @@ func TestAccResourceLocallySignedCert_FromPrivateKeyResource(t *testing.T) {
 					resource "tls_self_signed_cert" "ca_cert_test" {
 						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
 						subject {
-							organization = "test-orgaization"
+							organization = "test-organization"
 						}
 						is_ca_certificate     = true
 						validity_period_hours = 8760
@@ -609,7 +609,7 @@ func TestAccResourceLocallySignedCert_FromPrivateKeyResource(t *testing.T) {
 					resource "tls_self_signed_cert" "ca_cert_test" {
 						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
 						subject {
-							organization = "test-orgaization"
+							organization = "test-organization"
 						}
 						is_ca_certificate     = true
 						validity_period_hours = 8760

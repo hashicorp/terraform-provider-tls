@@ -97,7 +97,7 @@ func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, Algorithm, error
 	// Identify the Algorithm of the crypto.PrivateKey
 	algorithm, err := privateKeyToAlgorithm(prvKey)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to determine key algorithm for private key pf type %T: %w", prvKey, err)
+		return nil, "", fmt.Errorf("failed to determine key algorithm for private key of type %T: %w", prvKey, err)
 	}
 
 	return prvKey, algorithm, nil
@@ -114,7 +114,7 @@ func parsePrivateKeyOpenSSHPEM(keyOpenSSHPEMBytes []byte) (crypto.PrivateKey, Al
 
 	algorithm, err := privateKeyToAlgorithm(prvKey)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to determine key algorithm for private key pf type %T: %w", prvKey, err)
+		return nil, "", fmt.Errorf("failed to determine key algorithm for private key of type %T: %w", prvKey, err)
 	}
 
 	return prvKey, algorithm, nil
