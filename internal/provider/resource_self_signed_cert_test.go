@@ -636,3 +636,84 @@ EOT
                     }
                 `, validity, earlyRenewal, keyAlgorithmCfg, testPrivateKeyPEM)
 }
+
+func TestAccResourceSelfSignedCert_FromPrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Providers: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							organization = "test-orgaization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+				`,
+				Check: r.ComposeTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+				),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm   = "ECDSA"
+						ecdsa_curve = "P521"
+					}
+					
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							organization = "test-orgaization"
+						}
+						is_ca_certificate     = true
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+				`,
+				Check: r.ComposeTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ECDSA"),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+				),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+						rsa_bits  = 4096
+					}
+					
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							organization = "test-orgaization"
+						}
+						is_ca_certificate     = true
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+				`,
+				Check: r.ComposeTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "RSA"),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+				),
+			},
+		},
+	})
+}
