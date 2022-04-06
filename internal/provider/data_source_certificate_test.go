@@ -218,6 +218,45 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth
 	})
 }
 
+func TestAccDataSourceCertificate_HTTPSSchemeViaProxyFromEnv(t *testing.T) {
+	server, err := newHTTPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	go server.ServeTLS()
+
+	proxy, err := newHTTPProxyServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer proxy.Close()
+	go proxy.Serve()
+	t.Setenv("HTTP_PROXY", fmt.Sprintf("http://%s", proxy.Address()))
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testProviders,
+
+		Steps: []resource.TestStep{
+			{
+
+				Config: fmt.Sprintf(`
+					provider "tls" {
+						proxy {
+							from_env = true
+						}
+					}
+
+					data "tls_certificate" "test" {
+					  url = "https://%s"
+					  verify_chain = false
+					}
+				`, server.Address()),
+				Check: localTestCertificateChainCheckFunc(),
+			},
+		},
+	})
+}
 func localTestCertificateChainCheckFunc() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
