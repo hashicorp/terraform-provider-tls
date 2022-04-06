@@ -131,7 +131,13 @@ func dataSourceCertificateRead(d *schema.ResourceData, m interface{}) error {
 			targetURL.Host += ":443"
 		}
 
-		peerCerts, err = fetchPeerCertificatesViaHTTPS(targetURL, shouldVerifyChain, config)
+		// TODO remove this branch and default to use `fetchPeerCertificatesViaHTTPS`
+		//   as part of https://github.com/hashicorp/terraform-provider-tls/issues/183
+		if config.isProxyConfigured() {
+			peerCerts, err = fetchPeerCertificatesViaHTTPS(targetURL, shouldVerifyChain, config)
+		} else {
+			peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
+		}
 	case TLSScheme.String():
 		if targetURL.Port() == "" {
 			return fmt.Errorf("port missing from URL: %s", targetURL.String())
