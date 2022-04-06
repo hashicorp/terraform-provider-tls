@@ -284,7 +284,7 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxyButNoProxyAvailable(t *test
 					  verify_chain = false
 					}
 				`, server.Address()),
-				ExpectError: regexp.MustCompile(`failed to fetch certificates from URL 'https': Get "https://\[::\]:\d+": proxyconnect tcp: dial tcp \[::1\]:65535: connect: connection refused`),
+				ExpectError: regexp.MustCompile(`failed to fetch certificates from URL 'https': Get "https://\[::\]:\d+": proxyconnect tcp: dial tcp \[::1\]:65535`),
 			},
 		},
 	})
