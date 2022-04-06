@@ -191,11 +191,9 @@ func fetchPeerCertificatesViaHTTPS(targetURL *url.URL, shouldVerifyChain bool, c
 
 	// Fist attempting an HTTP HEAD: if it fails, ignore errors and move on
 	resp, err := client.Head(targetURL.String())
-	if err == nil {
+	if err == nil && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
 		defer resp.Body.Close()
-		if resp != nil && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
-			return resp.TLS.PeerCertificates, nil
-		}
+		return resp.TLS.PeerCertificates, nil
 	}
 
 	// Then attempting HTTP GET: if this fails we will than report the error
@@ -204,7 +202,7 @@ func fetchPeerCertificatesViaHTTPS(targetURL *url.URL, shouldVerifyChain bool, c
 		return nil, fmt.Errorf("failed to fetch certificates from URL '%s': %w", targetURL.Scheme, err)
 	}
 	defer resp.Body.Close()
-	if resp != nil && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
 		return resp.TLS.PeerCertificates, nil
 	}
 

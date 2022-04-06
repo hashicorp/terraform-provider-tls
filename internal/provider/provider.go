@@ -71,7 +71,7 @@ func New() *schema.Provider {
 	}
 }
 
-// providerConfig is produced by configureProvider as part of the provider initialization
+// providerConfig is produced by configureProvider as part of the provider initialization.
 type providerConfig struct {
 	proxyURL     *url.URL
 	proxyFromEnv bool
