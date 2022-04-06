@@ -9,20 +9,20 @@ import (
 	"github.com/elazarl/goproxy/ext/auth"
 )
 
-// LocalTestServer is a simple HTTP server used for testing.
-type LocalTestServer struct {
+// LocalServerTest is a simple HTTP server used for testing.
+type LocalServerTest struct {
 	listener net.Listener
 	server   *http.Server
 }
 
 // newHTTPServer creates an HTTP server that listens on a random port.
-func newHTTPServer() (*LocalTestServer, error) {
+func newHTTPServer() (*LocalServerTest, error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return nil, err
 	}
 
-	return &LocalTestServer{
+	return &LocalServerTest{
 		listener: listener,
 		server: &http.Server{
 			Addr: listener.Addr().String(),
@@ -31,36 +31,33 @@ func newHTTPServer() (*LocalTestServer, error) {
 }
 
 // newHTTPProxyServer creates an HTTP Proxy server that listens on a random port.
-func newHTTPProxyServer() (*LocalTestServer, error) {
+func newHTTPProxyServer() (*LocalServerTest, error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return nil, err
 	}
 
-	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = true
-	return &LocalTestServer{
+	return &LocalServerTest{
 		listener: listener,
 		server: &http.Server{
 			Addr:    listener.Addr().String(),
-			Handler: proxy,
+			Handler: goproxy.NewProxyHttpServer(),
 		},
 	}, nil
 }
 
 // newHTTPProxyServer creates an HTTP Proxy server that listens on a random port and expects HTTP Basic Auth.
-func newHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) (*LocalTestServer, error) {
+func newHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) (*LocalServerTest, error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return nil, err
 	}
 
 	proxy := goproxy.NewProxyHttpServer()
-	proxy.Verbose = true
 	proxy.OnRequest().HandleConnect(auth.BasicConnect("restricted", func(username, password string) bool {
 		return username == expectedUsername && (expectedPassword == "" || password == expectedPassword)
 	}))
-	return &LocalTestServer{
+	return &LocalServerTest{
 		listener: listener,
 		server: &http.Server{
 			Addr:    listener.Addr().String(),
@@ -70,31 +67,31 @@ func newHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) 
 }
 
 // ServeTLS makes the server begin listening for TLS client connections.
-func (lts *LocalTestServer) ServeTLS() {
-	err := lts.server.ServeTLS(lts.listener, "testdata/tls_certs/public.pem", "testdata/tls_certs/private.pem")
+func (lst *LocalServerTest) ServeTLS() {
+	err := lst.server.ServeTLS(lst.listener, "testdata/tls_certs/public.pem", "testdata/tls_certs/private.pem")
 	if err != nil {
-		log.Println("Failed to start LocalTestServer with TLS", err)
+		log.Println("Failed to start LocalServerTest with TLS", err)
 	}
 }
 
 // Serve makes the server begin listening for plain client connections.
-func (lts *LocalTestServer) Serve() {
-	err := lts.server.Serve(lts.listener)
+func (lst *LocalServerTest) Serve() {
+	err := lst.server.Serve(lst.listener)
 	if err != nil {
-		log.Println("Failed to start LocalTestServer", err)
+		log.Println("Failed to start LocalServerTest", err)
 	}
 }
 
-func (lts *LocalTestServer) Close() error {
-	if err := lts.listener.Close(); err != nil {
+func (lst *LocalServerTest) Close() error {
+	if err := lst.listener.Close(); err != nil {
 		return err
 	}
-	if err := lts.server.Close(); err != nil {
+	if err := lst.server.Close(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (lts *LocalTestServer) Address() string {
-	return lts.listener.Addr().String()
+func (lst *LocalServerTest) Address() string {
+	return lst.listener.Addr().String()
 }
