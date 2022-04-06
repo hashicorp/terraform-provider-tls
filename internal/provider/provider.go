@@ -59,7 +59,8 @@ func New() *schema.Provider {
 							ConflictsWith: []string{"proxy.0.url", "proxy.0.username", "proxy.0.password"},
 							Description: "When `true` the provider will discover the proxy configuration from environment variables. " +
 								"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
-								"and it supports the same environment variables (default: `true`).",
+								"and it supports the same environment variables (default: `false`). " +
+								"**NOTE**: the default value for this argument will be change to `true` in the next major release.",
 						},
 					},
 				},
@@ -70,6 +71,7 @@ func New() *schema.Provider {
 	}
 }
 
+// providerConfig is produced by configureProvider as part of the provider initialization
 type providerConfig struct {
 	proxyURL     *url.URL
 	proxyFromEnv bool
@@ -119,4 +121,8 @@ func (pc *providerConfig) proxyForRequestFunc() func(_ *http.Request) (*url.URL,
 	return func(_ *http.Request) (*url.URL, error) {
 		return pc.proxyURL, nil
 	}
+}
+
+func (pc *providerConfig) isProxyConfigured() bool {
+	return pc.proxyURL != nil || pc.proxyFromEnv
 }
