@@ -257,6 +257,39 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxyFromEnv(t *testing.T) {
 		},
 	})
 }
+
+func TestAccDataSourceCertificate_HTTPSSchemeViaProxyButNoProxyAvailable(t *testing.T) {
+	server, err := newHTTPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	go server.ServeTLS()
+
+	resource.UnitTest(t, resource.TestCase{
+		Providers: testProviders,
+
+		Steps: []resource.TestStep{
+			{
+
+				Config: fmt.Sprintf(`
+					provider "tls" {
+						proxy {
+							url = "http://localhost:65535"
+						}
+					}
+
+					data "tls_certificate" "test" {
+					  url = "https://%s"
+					  verify_chain = false
+					}
+				`, server.Address()),
+				ExpectError: regexp.MustCompile(`failed to fetch certificates from URL 'https': Get "https://\[::\]:\d+": proxyconnect tcp: dial tcp \[::1\]:65535: connect: connection refused`),
+			},
+		},
+	})
+}
+
 func localTestCertificateChainCheckFunc() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
