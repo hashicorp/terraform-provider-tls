@@ -28,7 +28,7 @@ func dataSourceCertificate() *schema.Resource {
 				Description: "URL of the endpoint to get the certificates from. " +
 					fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(SupportedURLSchemesStr(), "`, `")) +
 					"For scheme `https://` it will use the HTTP protocol and apply the `proxy` configuration " +
-					"of the provider, if set. For scheme `tls://` it will instead just use a Secure Socket.",
+					"of the provider, if set. For scheme `tls://` it will instead use a secure TCP socket.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsURLWithScheme(SupportedURLSchemesStr())),
 			},
 			"verify_chain": {
@@ -172,7 +172,7 @@ func fetchPeerCertificatesViaTLS(targetURL *url.URL, shouldVerifyChain bool) ([]
 		InsecureSkipVerify: !shouldVerifyChain,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to execute TLS connection towards %s: %w", targetURL.Host, err)
 	}
 	defer conn.Close()
 
@@ -188,11 +188,25 @@ func fetchPeerCertificatesViaHTTPS(targetURL *url.URL, shouldVerifyChain bool, c
 			Proxy: config.proxyForRequestFunc(),
 		},
 	}
-	resp, err := client.Get(targetURL.String())
+
+	// Fist attempting an HTTP HEAD: if it fails, ignore errors and move on
+	resp, err := client.Head(targetURL.String())
+	if err == nil {
+		defer resp.Body.Close()
+		if resp != nil && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+			return resp.TLS.PeerCertificates, nil
+		}
+	}
+
+	// Then attempting HTTP GET: if this fails we will than report the error
+	resp, err = client.Get(targetURL.String())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch certificates from URL '%s': %w", targetURL.Scheme, err)
 	}
 	defer resp.Body.Close()
+	if resp != nil && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+		return resp.TLS.PeerCertificates, nil
+	}
 
-	return resp.TLS.PeerCertificates, nil
+	return nil, fmt.Errorf("got back response (status: %s) with no certificates from URL '%s': %w", resp.Status, targetURL.Scheme, err)
 }
