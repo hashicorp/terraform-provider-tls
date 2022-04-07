@@ -269,8 +269,8 @@ func setCertificateCommonSchema(s map[string]*schema.Schema) {
 		Required: true,
 		ForceNew: true,
 		Elem: &schema.Schema{
-			Type:         schema.TypeString,
-			ValidateFunc: validation.StringInSlice(supportedKeyUsages(), false),
+			Type:             schema.TypeString,
+			ValidateDiagFunc: StringInSliceOrWarn(supportedKeyUsages(), false),
 		},
 		Description: "List of key usages allowed for the issued certificate. " +
 			"Values are defined in [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) " +
@@ -528,4 +528,28 @@ func certificateToMap(cert *x509.Certificate) map[string]interface{} {
 		"not_after":            cert.NotAfter.Format(time.RFC3339),
 		"sha1_fingerprint":     fmt.Sprintf("%x", sha1.Sum(cert.Raw)),
 	}
+}
+
+// StringInSliceOrWarn returns a SchemaValidateFunc which tests if the provided value
+// is of type string and matches the value of an element in the valid slice.
+//
+// Differently from validation.StringInSlice, if the element is not part of the valid slice,
+// a warning is produced.
+func StringInSliceOrWarn(valid []string, ignoreCase bool) schema.SchemaValidateDiagFunc {
+	return validation.ToDiagFunc(func(i interface{}, k string) (warnings []string, errors []error) {
+		v, ok := i.(string)
+		if !ok {
+			errors = append(errors, fmt.Errorf("expected type of %s to be string", k))
+			return warnings, errors
+		}
+
+		for _, str := range valid {
+			if v == str || (ignoreCase && strings.EqualFold(v, str)) {
+				return warnings, errors
+			}
+		}
+
+		warnings = append(warnings, fmt.Sprintf("expected %s to be one of %v, got %s so will ignored", k, valid, v))
+		return warnings, errors
+	})
 }
