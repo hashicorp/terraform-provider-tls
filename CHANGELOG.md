@@ -1,10 +1,24 @@
+## 3.3.0 (April 07, 2022)
+
+NEW FEATURES:
+
+* provider: Added (opt-in) HTTP `proxy` configuration ([#179](https://github.com/hashicorp/terraform-provider-tls/pull/179)).
+
+* data-source/tls_certificate: Support for `tls://` scheme in `url` argument. When used, the provider will fetch certificates via a direct Secure Socket (i.e. ignores proxy) ([#179](https://github.com/hashicorp/terraform-provider-tls/pull/179)).
+
+ENHANCEMENTS:
+
+* data-source/tls_certificate: When `proxy` is configured on provider, certificates fetched via `url` with scheme `https://` will go through the specified HTTP proxy ([#179](https://github.com/hashicorp/terraform-provider-tls/pull/179)).
+
+* resource/tls_locally_signed_cert: Validate `allowed_uses` contains documented values, but raise warning instead of error when it does not ([#184](https://github.com/hashicorp/terraform-provider-tls/pull/184)).
+
 ## 3.2.1 (April 05, 2022)
 
 BUG FIXES:
 
-* resource/tls_locally_signed_cert: Fix issue preventing the generation of [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) for private keys using ED25519 ([#182](https://github.com/hashicorp/terraform-provider-tls/pull/182))
+* resource/tls_locally_signed_cert: Fix issue preventing the generation of [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) for private keys using ED25519 ([#182](https://github.com/hashicorp/terraform-provider-tls/pull/182)).
 
-* resource/tls_self_signed_cert: Fix issue preventing the generation of [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) for private keys using ED25519 ([#182](https://github.com/hashicorp/terraform-provider-tls/pull/182))
+* resource/tls_self_signed_cert: Fix issue preventing the generation of [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) for private keys using ED25519 ([#182](https://github.com/hashicorp/terraform-provider-tls/pull/182)).
 
 ## 3.2.0 (April 04, 2022)
 
@@ -26,12 +40,12 @@ ENHANCEMENTS:
 
 * data-source/tls_public_key: Can now be configured by passing a private key either via `private_key_pem` or `private_key_openssh` ([#160](https://github.com/hashicorp/terraform-provider-tls/pull/160)).
 
-* resource/tls_locally_signed_cert: Validate that `validity_period_hours` and `early_renewal_hours` are greater or equal then zero ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
-* resource/tls_locally_signed_cert: Validate that `allowed_uses` contains documented values, instead of silently ignoring unknowns ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+* resource/tls_locally_signed_cert: Validate `validity_period_hours` and `early_renewal_hours` are greater or equal then zero ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+* resource/tls_locally_signed_cert: Validate `allowed_uses` contains documented values, instead of silently ignoring unknowns ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
 * resource/tls_locally_signed_cert: `ca_key_algorithm` is now optional and deprecated, as it's now inferred from `ca_private_key_pem`. It will be read-only in the next major release ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
 
-* resource/tls_self_signed_cert: Validate that `validity_period_hours` and `early_renewal_hours` are greater or equal then zero ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
-* resource/tls_self_signed_cert: Validate that `allowed_uses` contains documented values, instead of silently ignoring unknowns ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+* resource/tls_self_signed_cert: Validate `validity_period_hours` and `early_renewal_hours` are greater or equal then zero ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
+* resource/tls_self_signed_cert: Validate `allowed_uses` contains documented values, instead of silently ignoring unknowns ([#169](https://github.com/hashicorp/terraform-provider-tls/pull/169)).
 * resource/tls_self_signed_cert: `key_algorithm` is now optional and deprecated, as it's now inferred from `private_key_pem`. It will be read-only in the next major release ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
 
 * resource/tls_cert_request: `key_algorithm` is now optional and deprecated, as it's now inferred from `private_key_pem`. It will be read-only in the next major release ([#173](https://github.com/hashicorp/terraform-provider-tls/pull/173)).
