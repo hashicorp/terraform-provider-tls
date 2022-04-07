@@ -189,7 +189,7 @@ func fetchPeerCertificatesViaHTTPS(targetURL *url.URL, shouldVerifyChain bool, c
 		},
 	}
 
-	// Fist attempting an HTTP HEAD: if it fails, ignore errors and move on
+	// First attempting an HTTP HEAD: if it fails, ignore errors and move on
 	resp, err := client.Head(targetURL.String())
 	if err == nil && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
 		defer resp.Body.Close()
