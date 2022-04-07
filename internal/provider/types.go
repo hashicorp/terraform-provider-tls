@@ -111,3 +111,65 @@ func PEMBlockToPEMPreamble(block *pem.Block) (PEMPreamble, error) {
 		return "", fmt.Errorf("unsupported PEM preamble/type: %s", block.Type)
 	}
 }
+
+// ProxyScheme represents url schemes supported when providing proxy configuration to this provider.
+type ProxyScheme string
+
+const (
+	HTTPProxy   ProxyScheme = "http"
+	HTTPSProxy  ProxyScheme = "https"
+	SOCKS5Proxy ProxyScheme = "socks5"
+)
+
+func (p ProxyScheme) String() string {
+	return string(p)
+}
+
+// SupportedProxySchemes returns an array of ProxyScheme currently supported by this provider.
+func SupportedProxySchemes() []ProxyScheme {
+	return []ProxyScheme{
+		HTTPProxy,
+		HTTPSProxy,
+		SOCKS5Proxy,
+	}
+}
+
+// SupportedProxySchemesStr returns the same content of SupportedProxySchemes but as a slice of string.
+func SupportedProxySchemesStr() []string {
+	supported := SupportedProxySchemes()
+	supportedStr := make([]string, len(supported))
+	for i := range supported {
+		supportedStr[i] = string(supported[i])
+	}
+	return supportedStr
+}
+
+// URLScheme represents url schemes supported by resources and data-sources of this provider.
+type URLScheme string
+
+const (
+	HTTPSScheme URLScheme = "https"
+	TLSScheme   URLScheme = "tls"
+)
+
+func (p URLScheme) String() string {
+	return string(p)
+}
+
+// SupportedURLSchemes returns an array of URLScheme currently supported by this provider.
+func SupportedURLSchemes() []URLScheme {
+	return []URLScheme{
+		HTTPSScheme,
+		TLSScheme,
+	}
+}
+
+// SupportedURLSchemesStr returns the same content of SupportedURLSchemes but as a slice of string.
+func SupportedURLSchemesStr() []string {
+	supported := SupportedURLSchemes()
+	supportedStr := make([]string, len(supported))
+	for i := range supported {
+		supportedStr[i] = string(supported[i])
+	}
+	return supportedStr
+}

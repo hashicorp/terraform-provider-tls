@@ -2,11 +2,15 @@ package provider
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceCertificate() *schema.Resource {
@@ -15,13 +19,17 @@ func dataSourceCertificate() *schema.Resource {
 
 		Description: "Get information about the TLS certificates securing a host.\n\n" +
 			"Use this data source to get information, such as SHA1 fingerprint or serial number, " +
-			"about the TLS certificates that protects an HTTPS website.",
+			"about the TLS certificates that protects a URL.",
 
 		Schema: map[string]*schema.Schema{
 			"url": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The URL of the website to get the certificates from.",
+				Type:     schema.TypeString,
+				Required: true,
+				Description: "URL of the endpoint to get the certificates from. " +
+					fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(SupportedURLSchemesStr(), "`, `")) +
+					"For scheme `https://` it will use the HTTP protocol and apply the `proxy` configuration " +
+					"of the provider, if set. For scheme `tls://` it will instead use a secure TCP socket.",
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IsURLWithScheme(SupportedURLSchemesStr())),
 			},
 			"verify_chain": {
 				Type:        schema.TypeBool,
@@ -104,32 +112,51 @@ func dataSourceCertificate() *schema.Resource {
 	}
 }
 
-func dataSourceCertificateRead(d *schema.ResourceData, _ interface{}) error {
-	u, err := url.Parse(d.Get("url").(string))
+func dataSourceCertificateRead(d *schema.ResourceData, m interface{}) error {
+	config := m.(*providerConfig)
+
+	targetURL, err := url.Parse(d.Get("url").(string))
 	if err != nil {
 		return err
 	}
-	if u.Scheme != "https" {
-		return fmt.Errorf("invalid scheme")
-	}
-	if u.Port() == "" {
-		u.Host += ":443"
-	}
 
-	verifyChain := d.Get("verify_chain").(bool)
+	// Determine if we should verify the chain of certificates, or skip said verification
+	shouldVerifyChain := d.Get("verify_chain").(bool)
 
-	conn, err := tls.Dial("tcp", u.Host, &tls.Config{InsecureSkipVerify: !verifyChain})
+	// Ensure a port is set on the URL, or return an error
+	var peerCerts []*x509.Certificate
+	switch targetURL.Scheme {
+	case HTTPSScheme.String():
+		if targetURL.Port() == "" {
+			targetURL.Host += ":443"
+		}
+
+		// TODO remove this branch and default to use `fetchPeerCertificatesViaHTTPS`
+		//   as part of https://github.com/hashicorp/terraform-provider-tls/issues/183
+		if config.isProxyConfigured() {
+			peerCerts, err = fetchPeerCertificatesViaHTTPS(targetURL, shouldVerifyChain, config)
+		} else {
+			peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
+		}
+	case TLSScheme.String():
+		if targetURL.Port() == "" {
+			return fmt.Errorf("port missing from URL: %s", targetURL.String())
+		}
+
+		peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
+	default:
+		// NOTE: This should never happen, given we validate this at the schema level
+		return fmt.Errorf("unsupported scheme: %s", targetURL.Scheme)
+	}
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
-	state := conn.ConnectionState()
 
-	var certs []interface{}
-	for i := len(state.PeerCertificates) - 1; i >= 0; i-- {
-		certs = append(certs, certificateToMap(state.PeerCertificates[i]))
+	// Convert peer certificates to a simple map
+	certs := make([]interface{}, len(peerCerts))
+	for i, peerCert := range peerCerts {
+		certs[len(peerCerts)-i-1] = certificateToMap(peerCert)
 	}
-
 	err = d.Set("certificates", certs)
 	if err != nil {
 		return err
@@ -138,4 +165,46 @@ func dataSourceCertificateRead(d *schema.ResourceData, _ interface{}) error {
 	d.SetId(time.Now().UTC().String())
 
 	return nil
+}
+
+func fetchPeerCertificatesViaTLS(targetURL *url.URL, shouldVerifyChain bool) ([]*x509.Certificate, error) {
+	conn, err := tls.Dial("tcp", targetURL.Host, &tls.Config{
+		InsecureSkipVerify: !shouldVerifyChain,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to execute TLS connection towards %s: %w", targetURL.Host, err)
+	}
+	defer conn.Close()
+
+	return conn.ConnectionState().PeerCertificates, nil
+}
+
+func fetchPeerCertificatesViaHTTPS(targetURL *url.URL, shouldVerifyChain bool, config *providerConfig) ([]*x509.Certificate, error) {
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: !shouldVerifyChain,
+			},
+			Proxy: config.proxyForRequestFunc(),
+		},
+	}
+
+	// First attempting an HTTP HEAD: if it fails, ignore errors and move on
+	resp, err := client.Head(targetURL.String())
+	if err == nil && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+		defer resp.Body.Close()
+		return resp.TLS.PeerCertificates, nil
+	}
+
+	// Then attempting HTTP GET: if this fails we will than report the error
+	resp, err = client.Get(targetURL.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch certificates from URL '%s': %w", targetURL.Scheme, err)
+	}
+	defer resp.Body.Close()
+	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+		return resp.TLS.PeerCertificates, nil
+	}
+
+	return nil, fmt.Errorf("got back response (status: %s) with no certificates from URL '%s': %w", resp.Status, targetURL.Scheme, err)
 }
