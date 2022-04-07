@@ -527,25 +527,6 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						subject {
 							common_name = "common test cert"
 						}
-						validity_period_hours = 1
-						allowed_uses = [
-							"not_valid"
-						]
-						set_subject_key_id = true
-						private_key_pem = "does not matter"
-					}
-					output "cert_pem" {
-						value = tls_self_signed_cert.test.cert_pem
-					}
-				`,
-				ExpectError: regexp.MustCompile(`expected allowed_uses.0 to be one of \[.*\], got not_valid`),
-			},
-			{
-				Config: `
-					resource "tls_self_signed_cert" "test" {
-						subject {
-							common_name = "common test cert"
-						}
 						validity_period_hours = -1
 						allowed_uses = [
 						]
@@ -624,6 +605,7 @@ func selfSignedCertConfig(validity, earlyRenewal uint32, setKeyAlgorithm bool) s
                             "digital_signature",
                             "server_auth",
                             "client_auth",
+                            "non_repudiation",
                         ]
 
                         %s
