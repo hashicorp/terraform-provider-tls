@@ -1,3 +1,9 @@
+## 3.4.0
+
+NEW FEATURES:
+
+* data-source/tls_certificate: Support for `content`. When used, the provider will read the PEM formatted data directly. ([#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
+
 ## 3.3.0 (April 07, 2022)
 
 NEW FEATURES:
