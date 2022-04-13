@@ -9,8 +9,9 @@ created as part of a Terraform deployment.
 
 Official documentation on how to use this provider can be found on the 
 [Terraform Registry](https://registry.terraform.io/providers/hashicorp/tls/latest/docs).
-In case of specific questions or discussions, please use the 
-[HashiCorp Terraform providers Discuss](https://discuss.hashicorp.com/c/terraform-providers/31). 
+In case of specific questions or discussions, please use the
+HashiCorp [Terraform Providers Discuss](https://discuss.hashicorp.com/c/terraform-providers/31),
+in accordance with HashiCorp [Community Guidelines](https://www.hashicorp.com/community-guidelines).
 
 The remainder of this document will focus on the development aspects of the provider.
 
@@ -81,6 +82,22 @@ the environment variable `TF_CLI_CONFIG_FILE=my_terraform_config_file`.
 Once the `dev_overrides` are in place, any local execution of `terraform plan` and `terraform apply` will
 use the version of the provider found in the given `${GOBIN}` directory,
 instead of the one indicated in your terraform configuration.
+
+### Testing GitHub Actions
+
+This project used [GitHub Actions](https://docs.github.com/en/actions/automating-builds-and-tests) to realize its CI.
+
+Sometimes it might be helpful to reproduce locally the behaviour of those actions,
+and for this we use [act](https://github.com/nektos/act). Once installed, you can _simulate_ the actions executed
+when opening a PR with:
+
+```shell
+# List of workflows for the 'pull_request' action
+$ act -l pull_request
+
+# Execute the workflows associated with the `pull_request' action 
+$ act pull_request
+```
 
 ## Releasing
 
