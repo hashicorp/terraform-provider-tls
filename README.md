@@ -13,6 +13,8 @@ In case of specific questions or discussions, please use the
 HashiCorp [Terraform Providers Discuss forums](https://discuss.hashicorp.com/c/terraform-providers/31),
 in accordance with HashiCorp [Community Guidelines](https://www.hashicorp.com/community-guidelines).
 
+We also provide some basic [design principles](DESIGN.md), to describe overarching themes in the codebase.
+
 The remainder of this document will focus on the development aspects of the provider.
 
 ## Requirements
