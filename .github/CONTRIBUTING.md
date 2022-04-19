@@ -1,4 +1,4 @@
-# Contributing to the TLS Provider
+# Contributing
 
 Thank you for investing your time and energy by contributing to our project: please ensure you are familiar
 with the [HashiCorp Code of Conduct](https://github.com/hashicorp/.github/blob/master/CODE_OF_CONDUCT.md).
@@ -7,6 +7,9 @@ This provider is a HashiCorp **utility provider**, which means any bug fix and f
 has to be considered in the context of the thousands/millions of configurations in which this provider is used.
 This is great as your contribution can have a big positive impact, but we have to assess potential negative impact too
 (e.g. breaking existing configurations).
+
+We delineated some basic [design principles](../DESIGN.md), to help development decisions and directions.
+To help your contribution, please familiarise yourself with them.
 
 To provide some safety to the wider provider ecosystem, we strictly follow
 [semantic versioning](https://semver.org/) and HashiCorp's own
