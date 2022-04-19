@@ -1,4 +1,4 @@
-# Getting support when using the TLS Provider
+# Support
 
 * Project [README](../README.md)
 * Official [Documentation](https://registry.terraform.io/providers/hashicorp/tls/latest/docs)

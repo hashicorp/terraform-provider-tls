@@ -10,7 +10,7 @@ created as part of a Terraform deployment.
 Official documentation on how to use this provider can be found on the 
 [Terraform Registry](https://registry.terraform.io/providers/hashicorp/tls/latest/docs).
 In case of specific questions or discussions, please use the
-HashiCorp [Terraform Providers Discuss](https://discuss.hashicorp.com/c/terraform-providers/31),
+HashiCorp [Terraform Providers Discuss forums](https://discuss.hashicorp.com/c/terraform-providers/31),
 in accordance with HashiCorp [Community Guidelines](https://www.hashicorp.com/community-guidelines).
 
 The remainder of this document will focus on the development aspects of the provider.
@@ -85,9 +85,9 @@ instead of the one indicated in your terraform configuration.
 
 ### Testing GitHub Actions
 
-This project used [GitHub Actions](https://docs.github.com/en/actions/automating-builds-and-tests) to realize its CI.
+This project uses [GitHub Actions](https://docs.github.com/en/actions/automating-builds-and-tests) to realize its CI.
 
-Sometimes it might be helpful to reproduce locally the behaviour of those actions,
+Sometimes it might be helpful to locally reproduce the behaviour of those actions,
 and for this we use [act](https://github.com/nektos/act). Once installed, you can _simulate_ the actions executed
 when opening a PR with:
 

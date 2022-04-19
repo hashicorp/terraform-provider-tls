@@ -1,44 +1,45 @@
 # Contributing to the TLS Provider
 
-Thank you for investing your time in contributing to our project: please ensure you are familiar
-with [HashiCorp Code of Conduct](https://github.com/hashicorp/.github/blob/master/CODE_OF_CONDUCT.md).
+Thank you for investing your time and energy by contributing to our project: please ensure you are familiar
+with the [HashiCorp Code of Conduct](https://github.com/hashicorp/.github/blob/master/CODE_OF_CONDUCT.md).
 
-This provider is an HashiCorp **utility provider**, which means any bug fix and feature
+This provider is a HashiCorp **utility provider**, which means any bug fix and feature
 has to be considered in the context of the thousands/millions of configurations in which this provider is used.
 This is great as your contribution can have a big positive impact, but we have to assess potential negative impact too
 (e.g. breaking existing configurations).
 
 To provide some safety to the wider provider ecosystem, we strictly follow
-[semantic versioning](https://semver.org/) and HashiCorp own
+[semantic versioning](https://semver.org/) and HashiCorp's own
 [versioning specification](https://www.terraform.io/plugin/sdkv2/best-practices/versioning#versioning-specification).
-Any changes that could be considered as breaking will only be released as part of major release.
+Any changes that could be considered as breaking will only be included as part of a major release.
+In case multiple breaking changes need to happen, we will group them in the next upcoming major release.
 
 ## Identifying the correct scope
 
-While Terraform acts as a single program from the user's perspective
-it is made up of a few parts, each of which have different role and repository.
+While Terraform acts as a single program from the user's perspective,
+it is made up of a few parts, each of which have a different role and repository.
 
-This section describes the scope of notable repositories, which may help you
-ensure you're in the right place when reporting bugs and feature requests,
+This section describes the scope of notable repositories, which may help
+ensure you're in the right place when reporting bugs, feature requests
 or submitting a patch.
 
-* `hashicorp/terraform` - Terraform **Core** which implements all the low-level functionality which
-  isn't domain specific (that's covered by providers).
+* `hashicorp/terraform` - Terraform **Core** which implements all the low-level functionality that isn't
+  domain specific (covered by providers).
 * `hashicorp/terraform-provider-*` - Terraform [Providers](https://github.com/hashicorp/?q=terraform-provider-&type=public&language=&sort=name)
   built on top of the [Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) or
   [Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework).
 * `hashicorp/terraform-plugin-sdk` - Terraform [Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk)
-  used to build Providers (legacy).
+  used to build providers (Terraform >= 0.12).
 * `hashicorp/terraform-plugin-framework` - Terraform [Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework)
-  used to build Providers.
+  used to build providers (Terraform >= 1.0.3).
 * `hashicorp/terraform-website` - Source code of documentation published on [terraform.io](https://www.terraform.io),
-  including [Extend section](https://www.terraform.io/docs/extend/index.html) which has source in
-  [the `extend` folder](https://github.com/hashicorp/terraform-website/tree/main/content/source/docs/extend).
+  including an ["Extend" section](https://www.terraform.io/docs/extend/index.html) which has source in
+  [the `extend/` folder](https://github.com/hashicorp/terraform-website/tree/main/content/source/docs/extend).
 * `hashicorp/hcl` - [**HCL** (HashiCorp Config Language)](https://github.com/hashicorp/hcl) is the language used by
   users of Terraform (Core) to describe infrastructure. The parser and other features concerning the language
   (such as builtin functions) are found here.
 * `hashicorp/go-cty` - [**cty**](https://github.com/hashicorp/go-cty), the type system used by Terraform (Core),
-  Plugin SDK and Plugin Framework, to represent data in state before and after gRPC encoding/decoding
+  Plugin SDK and Plugin Framework, to represent data in state before and after gRPC encoding/decoding.
 
 ## Asking Questions
 
@@ -59,7 +60,7 @@ Below are guidelines for well-formed issues of each type.
 ### Bug Reports
 
 * [ ] **Test against latest release**: Make sure you test against the latest available version of Terraform and the provider.
-  It is possible we already fixed the bug you're experiencing.
+  It is possible we may have already fixed the bug you're experiencing.
 * [ ] **Search for duplicates**: It's helpful to keep bug reports consolidated to one thread, so do a quick search
   on existing bug reports to check if anybody else has reported the same thing.
   You can scope searches by the label `bug` to help narrow things down.
@@ -72,7 +73,7 @@ Below are guidelines for well-formed issues of each type.
   so do a quick search on existing requests to check if anybody else has reported the same thing.
   You can scope searches by the label `enhancement` to help narrow things down.
 * [ ] **Include a use case description**: In addition to describing the behavior of the feature you'd like to see added,
-  it's helpful to also lay out the reason why the feature would be important and how it would benefit
+  it's helpful to also make a case for why the feature would be important and how it would benefit
   the provider and, potentially, the wider Terraform ecosystem.
 
 ## New Pull Request
@@ -96,24 +97,6 @@ before raising a pull request.
   Refer to the [dependency updates](#dependency-updates) section for more information about how
   this project maintains existing dependencies.
 * [ ] **Changelog**: Refer to the [changelog](#changelog) section for more information about how to create changelog entries.
-
-### Cosmetic changes, code formatting, and typos
-
-We do not accept PRs containing _exclusively_ the following type of changes:
-
-* Correcting spelling or typos
-* Code formatting, including whitespace
-* Other cosmetic changes that do not affect functionality
-
-While we appreciate the effort that goes into preparing PRs, there is always a tradeoff between benefit and cost.
-The costs involved in accepting such contributions include the time taken for thorough review, the noise created
-in the git history, and the increased number of GitHub notifications that maintainers must attend to.
-
-#### Exceptions
-
-We believe that one should "leave the campsite cleaner than you found it", so you are welcome to clean up
-cosmetic issues (i.e. typos, indentation issues) **_within in the context_** of a patch containing
-functional changes or fixes.
 
 ### Dependency Updates
 
