@@ -6,43 +6,13 @@ with the [HashiCorp Code of Conduct](https://github.com/hashicorp/.github/blob/m
 This provider is a HashiCorp **utility provider**, which means any bug fix and feature
 has to be considered in the context of the thousands/millions of configurations in which this provider is used.
 This is great as your contribution can have a big positive impact, but we have to assess potential negative impact too
-(e.g. breaking existing configurations).
-
-We delineated some basic [design principles](../DESIGN.md), to help development decisions and directions.
-To help your contribution, please familiarise yourself with them.
+(e.g. breaking existing configurations). _Stability over features_.
 
 To provide some safety to the wider provider ecosystem, we strictly follow
 [semantic versioning](https://semver.org/) and HashiCorp's own
 [versioning specification](https://www.terraform.io/plugin/sdkv2/best-practices/versioning#versioning-specification).
 Any changes that could be considered as breaking will only be included as part of a major release.
 In case multiple breaking changes need to happen, we will group them in the next upcoming major release.
-
-## Identifying the correct scope
-
-While Terraform acts as a single program from the user's perspective,
-it is made up of a few parts, each of which have a different role and repository.
-
-This section describes the scope of notable repositories, which may help
-ensure you're in the right place when reporting bugs, feature requests
-or submitting a patch.
-
-* `hashicorp/terraform` - Terraform **Core** which implements all the low-level functionality that isn't
-  domain specific (covered by providers).
-* `hashicorp/terraform-provider-*` - Terraform [Providers](https://github.com/hashicorp/?q=terraform-provider-&type=public&language=&sort=name)
-  built on top of the [Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk) or
-  [Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework).
-* `hashicorp/terraform-plugin-sdk` - Terraform [Plugin SDK](https://github.com/hashicorp/terraform-plugin-sdk)
-  used to build providers (Terraform >= 0.12).
-* `hashicorp/terraform-plugin-framework` - Terraform [Plugin Framework](https://github.com/hashicorp/terraform-plugin-framework)
-  used to build providers (Terraform >= 1.0.3).
-* `hashicorp/terraform-website` - Source code of documentation published on [terraform.io](https://www.terraform.io),
-  including an ["Extend" section](https://www.terraform.io/docs/extend/index.html) which has source in
-  [the `extend/` folder](https://github.com/hashicorp/terraform-website/tree/main/content/source/docs/extend).
-* `hashicorp/hcl` - [**HCL** (HashiCorp Config Language)](https://github.com/hashicorp/hcl) is the language used by
-  users of Terraform (Core) to describe infrastructure. The parser and other features concerning the language
-  (such as builtin functions) are found here.
-* `hashicorp/go-cty` - [**cty**](https://github.com/hashicorp/go-cty), the type system used by Terraform (Core),
-  Plugin SDK and Plugin Framework, to represent data in state before and after gRPC encoding/decoding.
 
 ## Asking Questions
 
@@ -54,6 +24,12 @@ forum.
 
 Please disclose security vulnerabilities responsibly by following the
 [HashiCorp Vulnerability Reporting guidelines](https://www.hashicorp.com/security#vulnerability-reporting).
+
+## Understanding the design
+
+Before proceeding with raising issues or submitting pull requests, it will probably help to familiarise yourself with
+the [design principles](../DESIGN.md) of this provider. This will aid your proposals, and help understand
+why we took certain decisions during development.
 
 ## Raising Issues
 

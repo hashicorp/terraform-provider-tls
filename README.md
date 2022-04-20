@@ -13,7 +13,11 @@ In case of specific questions or discussions, please use the
 HashiCorp [Terraform Providers Discuss forums](https://discuss.hashicorp.com/c/terraform-providers/31),
 in accordance with HashiCorp [Community Guidelines](https://www.hashicorp.com/community-guidelines).
 
-We also provide some basic [design principles](DESIGN.md), to describe overarching themes in the codebase.
+We also provide:
+
+* [Support](.github/SUPPORT.md) page for help when using the provider
+* [Contributing](.github/CONTRIBUTING.md) guidelines in case you want to help this project
+* [Design](DESIGN.md) documentation to understand the scope and maintenance decisions
 
 The remainder of this document will focus on the development aspects of the provider.
 
