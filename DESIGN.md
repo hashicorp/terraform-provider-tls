@@ -6,7 +6,7 @@ The TLS Provider offers a small surface area compared to other providers (like
 [Azure](https://registry.terraform.io/providers/hashicorp/azurerm/latest), ...),
 and focuses on covering the needs of working with entities like
 keys and certificates, that are part of
-[Transport Security Layer](https://en.wikipedia.org/wiki/Transport_Layer_Security).
+[Transport Layer Security](https://en.wikipedia.org/wiki/Transport_Layer_Security).
 
 Below we have a collection of _Goals_ and _Patterns_: they represent the guiding principles applied during
 the development of this provider. Some are in place, others are ongoing processes, others are still just inspirational.
