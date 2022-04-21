@@ -81,7 +81,7 @@ func resourcePrivateKey() *schema.Resource {
 					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
 					"This is populated only if the configured private key is supported: " +
 					"this includes all `RSA` and `ED25519` keys, as well as `ECDSA` keys with curves " +
-					"`P256`, `P384` and `P521`. `ECDSA` with curve `P224` [is not supported](../../#limitations).",
+					"`P256`, `P384` and `P521`. `ECDSA` with curve `P224` [is not supported](../../docs#limitations).",
 			},
 
 			"public_key_fingerprint_md5": {
@@ -89,7 +89,7 @@ func resourcePrivateKey() *schema.Resource {
 				Computed: true,
 				Description: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
 					"Only available if the selected private key format is compatible, similarly to " +
-					"`public_key_openssh` and the [ECDSA P224 limitations](../../#limitations).",
+					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
 			},
 
 			"public_key_fingerprint_sha256": {
@@ -97,7 +97,7 @@ func resourcePrivateKey() *schema.Resource {
 				Computed: true,
 				Description: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
 					"Only available if the selected private key format is compatible, similarly to " +
-					"`public_key_openssh` and the [ECDSA P224 limitations](../../#limitations).",
+					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
 			},
 
 			"id": {
