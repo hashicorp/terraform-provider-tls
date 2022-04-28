@@ -7,8 +7,9 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/pem"
-	"golang.org/x/crypto/ssh"
 	"testing"
+	
+	"golang.org/x/crypto/ssh"
 )
 
 func TestOpenSSHFormat_MarshalAndUnmarshal_RSA(t *testing.T) {
