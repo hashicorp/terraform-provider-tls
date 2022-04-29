@@ -69,9 +69,14 @@ func resourcePrivateKey() *schema.Resource {
 			},
 
 			"public_key_pem": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				Description: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
+				Type:     schema.TypeString,
+				Computed: true,
+				Description: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
+					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
+					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
+					"value append a `\\n` at the end of the PEM. " +
+					"In case this disrupts your use case, we recommend using " +
+					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
 
 			"public_key_openssh": {
@@ -81,7 +86,12 @@ func resourcePrivateKey() *schema.Resource {
 					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
 					"This is populated only if the configured private key is supported: " +
 					"this includes all `RSA` and `ED25519` keys, as well as `ECDSA` keys with curves " +
-					"`P256`, `P384` and `P521`. `ECDSA` with curve `P224` [is not supported](../../docs#limitations).",
+					"`P256`, `P384` and `P521`. `ECDSA` with curve `P224` [is not supported](../../docs#limitations). " +
+					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
+					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
+					"value append a `\\n` at the end of the PEM. " +
+					"In case this disrupts your use case, we recommend using " +
+					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
 
 			"public_key_fingerprint_md5": {
