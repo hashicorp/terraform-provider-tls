@@ -1,13 +1,14 @@
 package provider
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"net"
 	"net/url"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -35,9 +36,9 @@ func resourceCertRequest() *schema.Resource {
 	setCertificateSubjectSchema(s)
 
 	return &schema.Resource{
-		Create: createCertRequest,
-		Delete: deleteCertRequest,
-		Read:   readCertRequest,
+		CreateContext: createCertRequest,
+		DeleteContext: deleteCertRequest,
+		ReadContext:   readCertRequest,
 
 		Description: "Creates a Certificate Signing Request (CSR) in " +
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.\n\n" +
@@ -49,23 +50,23 @@ func resourceCertRequest() *schema.Resource {
 	}
 }
 
-func createCertRequest(d *schema.ResourceData, meta interface{}) error {
+func createCertRequest(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	key, algorithm, err := parsePrivateKeyPEM([]byte(d.Get("private_key_pem").(string)))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("key_algorithm", algorithm); err != nil {
-		return fmt.Errorf("error setting value on key 'key_algorithm': %s", err)
+		return diag.Errorf("error setting value on key 'key_algorithm': %s", err)
 	}
 
 	subjectConfs := d.Get("subject").([]interface{})
 	if len(subjectConfs) != 1 {
-		return fmt.Errorf("must have exactly one 'subject' block")
+		return diag.Errorf("must have exactly one 'subject' block")
 	}
 	subjectConf, ok := subjectConfs[0].(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("subject block cannot be empty")
+		return diag.Errorf("subject block cannot be empty")
 	}
 	subject := distinguishedNamesFromSubjectAttributes(subjectConf)
 
@@ -81,7 +82,7 @@ func createCertRequest(d *schema.ResourceData, meta interface{}) error {
 	for _, ipStrI := range ipAddressesI {
 		ip := net.ParseIP(ipStrI.(string))
 		if ip == nil {
-			return fmt.Errorf("invalid IP address %#v", ipStrI.(string))
+			return diag.Errorf("invalid IP address %#v", ipStrI.(string))
 		}
 		certReq.IPAddresses = append(certReq.IPAddresses, ip)
 	}
@@ -89,31 +90,31 @@ func createCertRequest(d *schema.ResourceData, meta interface{}) error {
 	for _, uriI := range urisI {
 		uri, err := url.Parse(uriI.(string))
 		if err != nil {
-			return fmt.Errorf("invalid URI %#v", uriI.(string))
+			return diag.Errorf("invalid URI %#v", uriI.(string))
 		}
 		certReq.URIs = append(certReq.URIs, uri)
 	}
 
 	certReqBytes, err := x509.CreateCertificateRequest(rand.Reader, &certReq, key)
 	if err != nil {
-		return fmt.Errorf("error creating certificate request: %s", err)
+		return diag.Errorf("error creating certificate request: %s", err)
 	}
 	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes}))
 
 	d.SetId(hashForState(string(certReqBytes)))
 
 	if err := d.Set("cert_request_pem", certReqPem); err != nil {
-		return fmt.Errorf("error setting value on key 'cert_request_pem': %s", err)
+		return diag.Errorf("error setting value on key 'cert_request_pem': %s", err)
 	}
 
 	return nil
 }
 
-func deleteCertRequest(d *schema.ResourceData, meta interface{}) error {
+func deleteCertRequest(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	d.SetId("")
 	return nil
 }
 
-func readCertRequest(d *schema.ResourceData, meta interface{}) error {
+func readCertRequest(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return nil
 }

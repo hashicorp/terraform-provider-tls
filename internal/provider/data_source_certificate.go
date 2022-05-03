@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -9,13 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceCertificate() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceCertificateRead,
+		ReadContext: dataSourceCertificateRead,
 
 		Description: "Get information about the TLS certificates securing a host.\n\n" +
 			"Use this data source to get information, such as SHA1 fingerprint or serial number, " +
@@ -112,12 +114,12 @@ func dataSourceCertificate() *schema.Resource {
 	}
 }
 
-func dataSourceCertificateRead(d *schema.ResourceData, m interface{}) error {
+func dataSourceCertificateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	config := m.(*providerConfig)
 
 	targetURL, err := url.Parse(d.Get("url").(string))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Determine if we should verify the chain of certificates, or skip said verification
@@ -140,16 +142,16 @@ func dataSourceCertificateRead(d *schema.ResourceData, m interface{}) error {
 		}
 	case TLSScheme.String():
 		if targetURL.Port() == "" {
-			return fmt.Errorf("port missing from URL: %s", targetURL.String())
+			return diag.Errorf("port missing from URL: %s", targetURL.String())
 		}
 
 		peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
 	default:
 		// NOTE: This should never happen, given we validate this at the schema level
-		return fmt.Errorf("unsupported scheme: %s", targetURL.Scheme)
+		return diag.Errorf("unsupported scheme: %s", targetURL.Scheme)
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Convert peer certificates to a simple map
@@ -159,7 +161,7 @@ func dataSourceCertificateRead(d *schema.ResourceData, m interface{}) error {
 	}
 	err = d.Set("certificates", certs)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(time.Now().UTC().String())

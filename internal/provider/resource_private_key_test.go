@@ -11,7 +11,7 @@ import (
 
 func TestPrivateKeyRSA(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -138,7 +138,7 @@ func TestPrivateKeyRSA(t *testing.T) {
 
 func TestPrivateKeyECDSA(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -327,7 +327,7 @@ func TestPrivateKeyECDSA(t *testing.T) {
 
 func TestPrivateKeyED25519(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `

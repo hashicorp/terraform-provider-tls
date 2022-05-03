@@ -17,7 +17,7 @@ func TestAccDataSourceCertificate_HTTPSScheme(t *testing.T) {
 	go server.ServeTLS()
 
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{
@@ -43,7 +43,7 @@ func TestAccDataSourceCertificate_TLSScheme(t *testing.T) {
 	go server.ServeTLS()
 
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{
@@ -76,7 +76,7 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxy(t *testing.T) {
 	go proxy.Serve()
 
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{
@@ -116,7 +116,7 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing
 	go proxy.Serve()
 
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{
@@ -175,7 +175,7 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth
 	go proxy.Serve()
 
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{
@@ -235,7 +235,7 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxyFromEnv(t *testing.T) {
 	t.Setenv("HTTP_PROXY", fmt.Sprintf("http://%s", proxy.Address()))
 
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{
@@ -267,7 +267,7 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxyButNoProxyAvailable(t *test
 	go server.ServeTLS()
 
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{
@@ -320,7 +320,7 @@ func localTestCertificateChainCheckFunc() resource.TestCheckFunc {
 
 func TestAccDataSourceCertificate_MalformedURL(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{

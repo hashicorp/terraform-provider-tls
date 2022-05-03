@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func New() *schema.Provider {
+func New() (*schema.Provider, error) {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
 			"tls_private_key":         resourcePrivateKey(),
@@ -68,7 +68,7 @@ func New() *schema.Provider {
 			},
 		},
 		ConfigureContextFunc: configureProvider,
-	}
+	}, nil
 }
 
 // providerConfig is produced by configureProvider as part of the provider initialization.

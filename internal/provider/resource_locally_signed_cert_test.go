@@ -15,7 +15,7 @@ import (
 
 func TestLocallySignedCert(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertConfig(1, 0, false),
@@ -147,8 +147,8 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		ProviderFactories: testProviders,
+		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertConfig(10, 2, false),
@@ -224,8 +224,8 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		ProviderFactories: testProviders,
+		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertConfig(10, 2, false),
@@ -300,7 +300,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 // TODO Remove this as part of https://github.com/hashicorp/terraform-provider-tls/issues/174
 func TestAccLocallySignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertConfig(1, 0, true),
@@ -466,7 +466,7 @@ EOT
 
 func TestAccResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -518,7 +518,7 @@ func TestAccResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T
 
 func TestAccResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -570,7 +570,7 @@ func TestAccResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) 
 
 func TestAccResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `

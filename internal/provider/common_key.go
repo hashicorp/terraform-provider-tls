@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"golang.org/x/crypto/ssh"
 )
@@ -147,14 +148,14 @@ func privateKeyToAlgorithm(prvKey crypto.PrivateKey) (Algorithm, error) {
 
 // setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
 // encodes related attributes on the given schema.ResourceData.
-func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) error {
+func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) diag.Diagnostics {
 	pubKey, err := privateKeyToPublicKey(prvKey)
 	if err != nil {
-		return fmt.Errorf("failed to get public key from private key: %w", err)
+		return diag.Errorf("failed to get public key from private key: %v", err)
 	}
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
-		return fmt.Errorf("failed to marshal public key: %w", err)
+		return diag.Errorf("failed to marshal public key: %v", err)
 	}
 	pubKeyPemBlock := &pem.Block{
 		Type:  PreamblePublicKey.String(),
@@ -164,7 +165,7 @@ func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) er
 	d.SetId(hashForState(string(pubKeyBytes)))
 
 	if err := d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock))); err != nil {
-		return fmt.Errorf("error setting value on key 'public_key_pem': %s", err)
+		return diag.Errorf("error setting value on key 'public_key_pem': %s", err)
 	}
 
 	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
@@ -180,15 +181,15 @@ func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) er
 	}
 
 	if err := d.Set("public_key_openssh", pubKeySSH); err != nil {
-		return fmt.Errorf("error setting value on key 'public_key_openssh': %s", err)
+		return diag.Errorf("error setting value on key 'public_key_openssh': %s", err)
 	}
 
 	if err := d.Set("public_key_fingerprint_md5", pubKeySSHFingerprintMD5); err != nil {
-		return fmt.Errorf("error setting value on key 'public_key_fingerprint_md5': %s", err)
+		return diag.Errorf("error setting value on key 'public_key_fingerprint_md5': %s", err)
 	}
 
 	if err := d.Set("public_key_fingerprint_sha256", pubKeySSHFingerprintSHA256); err != nil {
-		return fmt.Errorf("error setting value on key 'public_key_fingerprint_sha256': %s", err)
+		return diag.Errorf("error setting value on key 'public_key_fingerprint_sha256': %s", err)
 	}
 
 	return nil

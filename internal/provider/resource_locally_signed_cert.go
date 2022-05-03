@@ -1,9 +1,10 @@
 package provider
 
 import (
+	"context"
 	"crypto/x509"
-	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -57,10 +58,10 @@ func resourceLocallySignedCert() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		Create:        createLocallySignedCert,
-		Delete:        deleteCertificate,
-		Read:          readCertificate,
-		Update:        updateCertificate,
+		CreateContext: createLocallySignedCert,
+		DeleteContext: deleteCertificate,
+		ReadContext:   readCertificate,
+		UpdateContext: updateCertificate,
 		CustomizeDiff: customizeCertificateDiff,
 		Schema:        s,
 		Description: "Creates a TLS certificate in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
@@ -69,24 +70,24 @@ func resourceLocallySignedCert() *schema.Resource {
 	}
 }
 
-func createLocallySignedCert(d *schema.ResourceData, meta interface{}) error {
+func createLocallySignedCert(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	certReq, err := parseCertificateRequest(d, "cert_request_pem")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	caKey, algorithm, err := parsePrivateKeyPEM([]byte(d.Get("ca_private_key_pem").(string)))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("ca_key_algorithm", algorithm); err != nil {
-		return fmt.Errorf("error setting value on key 'ca_key_algorithm': %s", err)
+		return diag.Errorf("error setting value on key 'ca_key_algorithm': %s", err)
 	}
 
 	caCert, err := parseCertificate(d, "ca_cert_pem")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	cert := x509.Certificate{

@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -327,7 +328,7 @@ func setCertificateCommonSchema(s map[string]*schema.Schema) {
 	}
 }
 
-func createCertificate(d *schema.ResourceData, template, parent *x509.Certificate, pub crypto.PublicKey, priv interface{}) error {
+func createCertificate(d *schema.ResourceData, template, parent *x509.Certificate, pub crypto.PublicKey, prv interface{}) diag.Diagnostics {
 	var err error
 
 	template.NotBefore = overridableTimeFunc()
@@ -337,7 +338,7 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	template.SerialNumber, err = rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return fmt.Errorf("failed to generate serial number: %s", err)
+		return diag.Errorf("failed to generate serial number: %s", err)
 	}
 
 	keyUsesI := d.Get("allowed_uses").([]interface{})
@@ -356,55 +357,55 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 
 		template.SubjectKeyId, err = generateSubjectKeyID(pub)
 		if err != nil {
-			return fmt.Errorf("failed to set subject key identifier: %s", err)
+			return diag.Errorf("failed to set subject key identifier: %s", err)
 		}
 	}
 
 	if d.Get("set_subject_key_id").(bool) {
 		template.SubjectKeyId, err = generateSubjectKeyID(pub)
 		if err != nil {
-			return fmt.Errorf("failed to set subject key identifier: %s", err)
+			return diag.Errorf("failed to set subject key identifier: %s", err)
 		}
 	}
 
-	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, prv)
 	if err != nil {
-		return fmt.Errorf("error creating certificate: %s", err)
+		return diag.Errorf("error creating certificate: %s", err)
 	}
 	certPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificate.String(), Bytes: certBytes}))
 
 	validFromBytes, err := template.NotBefore.MarshalText()
 	if err != nil {
-		return fmt.Errorf("error serializing validity_start_time: %s", err)
+		return diag.Errorf("error serializing validity_start_time: %s", err)
 	}
 	validToBytes, err := template.NotAfter.MarshalText()
 	if err != nil {
-		return fmt.Errorf("error serializing validity_end_time: %s", err)
+		return diag.Errorf("error serializing validity_end_time: %s", err)
 	}
 
 	d.SetId(template.SerialNumber.String())
 	if err := d.Set("cert_pem", certPem); err != nil {
-		return fmt.Errorf("error setting value on key 'cert_pem': %s", err)
+		return diag.Errorf("error setting value on key 'cert_pem': %s", err)
 	}
 	if err := d.Set("ready_for_renewal", false); err != nil {
-		return fmt.Errorf("error setting value on key 'ready_for_renewal': %s", err)
+		return diag.Errorf("error setting value on key 'ready_for_renewal': %s", err)
 	}
 	if err := d.Set("validity_start_time", string(validFromBytes)); err != nil {
-		return fmt.Errorf("error setting value on key 'validity_start_time': %s", err)
+		return diag.Errorf("error setting value on key 'validity_start_time': %s", err)
 	}
 	if err := d.Set("validity_end_time", string(validToBytes)); err != nil {
-		return fmt.Errorf("error setting value on key 'validity_end_time': %s", err)
+		return diag.Errorf("error setting value on key 'validity_end_time': %s", err)
 	}
 
 	return nil
 }
 
-func deleteCertificate(d *schema.ResourceData, _ interface{}) error {
+func deleteCertificate(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	d.SetId("")
 	return nil
 }
 
-func readCertificate(_ *schema.ResourceData, _ interface{}) error {
+func readCertificate(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return nil
 }
 
@@ -443,7 +444,7 @@ func customizeCertificateDiff(_ context.Context, d *schema.ResourceDiff, _ inter
 	return nil
 }
 
-func updateCertificate(_ *schema.ResourceData, _ interface{}) error {
+func updateCertificate(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return nil
 }
 
