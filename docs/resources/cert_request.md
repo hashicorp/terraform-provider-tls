@@ -49,7 +49,7 @@ resource "tls_cert_request" "example" {
 
 ### Read-Only
 
-- `cert_request_pem` (String) The certificate request data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.
+- `cert_request_pem` (String) The certificate request data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 - `id` (String) Unique identifier for this resource: hexadecimal representation of the SHA1 checksum of the resource.
 
 <a id="nestedblock--subject"></a>
