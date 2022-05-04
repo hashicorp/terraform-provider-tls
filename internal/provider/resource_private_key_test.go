@@ -38,6 +38,9 @@ func TestPrivateKeyRSA(t *testing.T) {
 					output "public_key_fingerprint_sha256" {
 						value = "${tls_private_key.test.public_key_fingerprint_sha256}"
 					}
+					output "public_key_fingerprint_x509_sha256" {
+						value = "${tls_private_key.test.public_key_fingerprint_x509_sha256}"
+					}
 				`,
 				Check: func(s *terraform.State) error {
 					// Check `.private_key_pem`
@@ -100,7 +103,17 @@ func TestPrivateKeyRSA(t *testing.T) {
 						return fmt.Errorf("output for \"public_key_fingerprint_sha256\" is not a string")
 					}
 					if !(strings.HasPrefix(gotPublicFingerprintSHA256, "SHA256:")) {
-						return fmt.Errorf("SHA256 public key fingerprint is is missing the expected preamble")
+						return fmt.Errorf("SHA256 public key fingerprint is missing the expected preamble")
+					}
+
+					// Check `.public_key_fingerprint_x509_sha256`
+					gotPublicFingerprintX509SHA256Untyped := s.RootModule().Outputs["public_key_fingerprint_x509_sha256"].Value
+					gotPublicFingerprintX509SHA256, ok := gotPublicFingerprintX509SHA256Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_fingerprint_x509_sha256\" is not a string")
+					}
+					if len(gotPublicFingerprintX509SHA256) != 44 {
+						return fmt.Errorf("x509 public key fingerprint is not the expected length")
 					}
 
 					return nil
@@ -165,6 +178,9 @@ func TestPrivateKeyECDSA(t *testing.T) {
 					output "public_key_fingerprint_sha256" {
 						value = "${tls_private_key.test.public_key_fingerprint_sha256}"
 					}
+					output "public_key_fingerprint_x509_sha256" {
+						value = "${tls_private_key.test.public_key_fingerprint_x509_sha256}"
+					}
 				`,
 				Check: func(s *terraform.State) error {
 					// Check `.private_key_pem`
@@ -224,7 +240,17 @@ func TestPrivateKeyECDSA(t *testing.T) {
 						return fmt.Errorf("output for \"public_key_fingerprint_sha256\" is not a string")
 					}
 					if gotPublicFingerprintSHA256 != "" {
-						return fmt.Errorf("SHA256 public key fingerprint should not be st for ECDSA P-224 key")
+						return fmt.Errorf("SHA256 public key fingerprint should not be set for ECDSA P-224 key")
+					}
+
+					// Check `.public_key_fingerprint_x509_sha256`
+					gotPublicFingerprintX509SHA256Untyped := s.RootModule().Outputs["public_key_fingerprint_sha256"].Value
+					gotPublicFingerprintX509SHA256, ok := gotPublicFingerprintX509SHA256Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_fingerprint_x509_sha256\" is not a string")
+					}
+					if gotPublicFingerprintX509SHA256 != "" {
+						return fmt.Errorf("SHA256 public key fingerprint should not be set for ECDSA P-224 key")
 					}
 
 					return nil
@@ -255,6 +281,9 @@ func TestPrivateKeyECDSA(t *testing.T) {
 					}
 					output "public_key_fingerprint_sha256" {
 						value = "${tls_private_key.test.public_key_fingerprint_sha256}"
+					}
+					output "public_key_fingerprint_x509_sha256" {
+						value = "${tls_private_key.test.public_key_fingerprint_x509_sha256}"
 					}
 				`,
 				Check: func(s *terraform.State) error {
@@ -318,6 +347,16 @@ func TestPrivateKeyECDSA(t *testing.T) {
 						return fmt.Errorf("SHA256 public key fingerprint is is missing the expected preamble")
 					}
 
+					// Check `.public_key_fingerprint_x509_sha256`
+					gotPublicFingerprintX509SHA256Untyped := s.RootModule().Outputs["public_key_fingerprint_x509_sha256"].Value
+					gotPublicFingerprintX509SHA256, ok := gotPublicFingerprintX509SHA256Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_fingerprint_x509_sha256\" is not a string")
+					}
+					if len(gotPublicFingerprintX509SHA256) != 44 {
+						return fmt.Errorf("x509 public key fingerprint is not the expected length")
+					}
+
 					return nil
 				},
 			},
@@ -353,6 +392,9 @@ func TestPrivateKeyED25519(t *testing.T) {
 					}
 					output "public_key_fingerprint_sha256" {
 						value = "${tls_private_key.test.public_key_fingerprint_sha256}"
+					}
+					output "public_key_fingerprint_x509_sha256" {
+						value = "${tls_private_key.test.public_key_fingerprint_x509_sha256}"
 					}
 				`,
 				Check: func(s *terraform.State) error {
@@ -414,6 +456,16 @@ func TestPrivateKeyED25519(t *testing.T) {
 					}
 					if !(strings.HasPrefix(gotPublicFingerprintSHA256, "SHA256:")) {
 						return fmt.Errorf("SHA256 public key fingerprint is is missing the expected preamble")
+					}
+
+					// Check `.public_key_fingerprint_x509_sha256`
+					gotPublicFingerprintX509SHA256Untyped := s.RootModule().Outputs["public_key_fingerprint_x509_sha256"].Value
+					gotPublicFingerprintX509SHA256, ok := gotPublicFingerprintX509SHA256Untyped.(string)
+					if !ok {
+						return fmt.Errorf("output for \"public_key_fingerprint_x509_sha256\" is not a string")
+					}
+					if len(gotPublicFingerprintX509SHA256) != 44 {
+						return fmt.Errorf("x509 public key fingerprint is not the expected length")
 					}
 
 					return nil

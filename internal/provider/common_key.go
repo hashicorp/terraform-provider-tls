@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 
@@ -163,6 +164,13 @@ func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) di
 	}
 
 	d.SetId(hashForState(string(pubKeyBytes)))
+
+	hasher := crypto.SHA256.New()
+	hasher.Write(pubKeyBytes)
+	pubKeyDERFingerprintSHA256 := hasher.Sum(nil)
+	if err := d.Set("public_key_fingerprint_x509_sha256", base64.StdEncoding.EncodeToString(pubKeyDERFingerprintSHA256)); err != nil {
+		return diag.Errorf("error setting value on key 'public_key_fingerprint_x509_sha256': %s", err)
+	}
 
 	if err := d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock))); err != nil {
 		return diag.Errorf("error setting value on key 'public_key_pem': %s", err)

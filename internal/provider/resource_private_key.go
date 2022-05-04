@@ -110,6 +110,12 @@ func resourcePrivateKey() *schema.Resource {
 					"Only available if the selected private key format is compatible, similarly to " +
 					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
 			},
+			
+			"public_key_fingerprint_x509_sha256": {
+				Type: schema.TypeString,
+				Computed: true,
+				Description: "The SHA256 hash of the binary key data, encoded as a base64 string",
+			},
 
 			"id": {
 				Type:     schema.TypeString,
