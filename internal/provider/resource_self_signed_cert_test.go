@@ -16,7 +16,7 @@ import (
 
 func TestSelfSignedCert(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: selfSignedCertConfig(1, 0, false),
@@ -211,7 +211,7 @@ EOT
 // TODO Remove this as part of https://github.com/hashicorp/terraform-provider-tls/issues/174
 func TestSelfSignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: selfSignedCertConfig(1, 0, true),
@@ -326,8 +326,8 @@ func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		ProviderFactories: testProviders,
+		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
 				Config: selfSignedCertConfig(10, 2, false),
@@ -403,8 +403,8 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		ProviderFactories: testProviders,
+		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
 				Config: selfSignedCertConfig(10, 2, false),
@@ -478,8 +478,8 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 
 func TestAccSelfSignedCertSetSubjectKeyID(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
-		PreCheck:  setTimeForTest("2019-06-14T12:00:00Z"),
+		ProviderFactories: testProviders,
+		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -519,7 +519,7 @@ EOT
 
 func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -621,7 +621,7 @@ EOT
 
 func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -652,7 +652,7 @@ func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 
 func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -684,7 +684,7 @@ func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 }
 func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `

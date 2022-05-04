@@ -1,13 +1,14 @@
 package provider
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -16,9 +17,9 @@ import (
 
 func resourcePrivateKey() *schema.Resource {
 	return &schema.Resource{
-		Create: createResourcePrivateKey,
-		Delete: deleteResourcePrivateKey,
-		Read:   readResourcePrivateKey,
+		CreateContext: createResourcePrivateKey,
+		DeleteContext: deleteResourcePrivateKey,
+		ReadContext:   readResourcePrivateKey,
 
 		Description: "Creates a PEM (and OpenSSH) formatted private key.\n\n" +
 			"Generates a secure private key and encodes it in " +
@@ -120,20 +121,20 @@ func resourcePrivateKey() *schema.Resource {
 	}
 }
 
-func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
+func createResourcePrivateKey(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	keyAlgoName := Algorithm(d.Get("algorithm").(string))
 
 	// Identify the correct (Private) Key Generator
 	var keyGen keyGenerator
 	var ok bool
 	if keyGen, ok = keyGenerators[keyAlgoName]; !ok {
-		return fmt.Errorf("invalid key_algorithm %#v", keyAlgoName)
+		return diag.Errorf("invalid key_algorithm %#v", keyAlgoName)
 	}
 
 	// Generate the new Key
 	key, err := keyGen(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Marshal the Key in PEM block
@@ -148,7 +149,7 @@ func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	case *ecdsa.PrivateKey:
 		keyBytes, err := x509.MarshalECPrivateKey(k)
 		if err != nil {
-			return fmt.Errorf("error encoding key to PEM: %s", err)
+			return diag.Errorf("error encoding key to PEM: %s", err)
 		}
 
 		keyPemBlock = &pem.Block{
@@ -163,7 +164,7 @@ func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	case ed25519.PrivateKey:
 		keyBytes, err := x509.MarshalPKCS8PrivateKey(k)
 		if err != nil {
-			return fmt.Errorf("error encoding key to PEM: %s", err)
+			return diag.Errorf("error encoding key to PEM: %s", err)
 		}
 
 		keyPemBlock = &pem.Block{
@@ -171,11 +172,11 @@ func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 			Bytes: keyBytes,
 		}
 	default:
-		return fmt.Errorf("unsupported private key type")
+		return diag.Errorf("unsupported private key type")
 	}
 
 	if err := d.Set("private_key_pem", string(pem.EncodeToMemory(keyPemBlock))); err != nil {
-		return fmt.Errorf("error setting value on key 'private_key_pem': %s", err)
+		return diag.Errorf("error setting value on key 'private_key_pem': %s", err)
 	}
 
 	// Marshal the Key in OpenSSH PEM block, if enabled
@@ -183,23 +184,23 @@ func createResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
 	if doMarshalOpenSSHKeyPemBlock {
 		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(key, "")
 		if err != nil {
-			return fmt.Errorf("unable to marshal private key into OpenSSH format: %w", err)
+			return diag.Errorf("unable to marshal private key into OpenSSH format: %v", err)
 		}
 
 		prvKeyOpenSSH = string(pem.EncodeToMemory(openSSHKeyPemBlock))
 	}
 	if err := d.Set("private_key_openssh", prvKeyOpenSSH); err != nil {
-		return fmt.Errorf("error setting value on key 'private_key_openssh': %s", err)
+		return diag.Errorf("error setting value on key 'private_key_openssh': %s", err)
 	}
 
 	return setPublicKeyAttributes(d, key)
 }
 
-func deleteResourcePrivateKey(d *schema.ResourceData, _ interface{}) error {
+func deleteResourcePrivateKey(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	d.SetId("")
 	return nil
 }
 
-func readResourcePrivateKey(_ *schema.ResourceData, _ interface{}) error {
+func readResourcePrivateKey(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	return nil
 }

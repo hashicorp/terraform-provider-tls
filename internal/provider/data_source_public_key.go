@@ -1,15 +1,16 @@
 package provider
 
 import (
+	"context"
 	"crypto"
-	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourcePublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read: readDataSourcePublicKey,
+		ReadContext: readDataSourcePublicKey,
 
 		Description: "Get a public key from a PEM-encoded private key.\n\n" +
 			"Use this data source to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
@@ -95,7 +96,7 @@ func dataSourcePublicKey() *schema.Resource {
 	}
 }
 
-func readDataSourcePublicKey(d *schema.ResourceData, _ interface{}) error {
+func readDataSourcePublicKey(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	var prvKey crypto.PrivateKey
 	var algorithm Algorithm
 	var err error
@@ -108,11 +109,11 @@ func readDataSourcePublicKey(d *schema.ResourceData, _ interface{}) error {
 		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.(string)))
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("algorithm", algorithm); err != nil {
-		return fmt.Errorf("error setting attribute 'algorithm = %s': %w", algorithm, err)
+		return diag.Errorf("error setting attribute 'algorithm = %s': %v", algorithm, err)
 	}
 
 	return setPublicKeyAttributes(d, prvKey)

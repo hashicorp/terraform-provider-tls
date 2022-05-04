@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-var testProviders = map[string]*schema.Provider{
-	"tls": New(),
+var testProviders = map[string]func() (*schema.Provider, error){
+	"tls": New,
 }
 
 func setTimeForTest(timeStr string) func() {
@@ -23,14 +23,19 @@ func setTimeForTest(timeStr string) func() {
 }
 
 func TestProvider(t *testing.T) {
-	if err := New().InternalValidate(); err != nil {
+	provider, err := New()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := provider.InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
 
 func TestProvider_InvalidProxyConfig(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 
 		Steps: []resource.TestStep{
 			{

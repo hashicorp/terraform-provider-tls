@@ -1,11 +1,12 @@
 package provider
 
 import (
+	"context"
 	"crypto/x509"
-	"fmt"
 	"net"
 	"net/url"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -16,10 +17,10 @@ func resourceSelfSignedCert() *schema.Resource {
 	setCertificateSubjectSchema(s)
 
 	return &schema.Resource{
-		Create:        createSelfSignedCert,
-		Delete:        deleteCertificate,
-		Read:          readCertificate,
-		Update:        updateCertificate,
+		CreateContext: createSelfSignedCert,
+		DeleteContext: deleteCertificate,
+		ReadContext:   readCertificate,
+		UpdateContext: updateCertificate,
 		CustomizeDiff: customizeCertificateDiff,
 		Schema:        s,
 		Description: "Creates a **self-signed** TLS certificate in " +
@@ -27,23 +28,23 @@ func resourceSelfSignedCert() *schema.Resource {
 	}
 }
 
-func createSelfSignedCert(d *schema.ResourceData, _ interface{}) error {
+func createSelfSignedCert(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
 	key, algorithm, err := parsePrivateKeyPEM([]byte(d.Get("private_key_pem").(string)))
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("key_algorithm", algorithm); err != nil {
-		return fmt.Errorf("error setting value on key 'key_algorithm': %s", err)
+		return diag.Errorf("error setting value on key 'key_algorithm': %s", err)
 	}
 
 	subjectConfs := d.Get("subject").([]interface{})
 	if len(subjectConfs) != 1 {
-		return fmt.Errorf("must have exactly one 'subject' block")
+		return diag.Errorf("must have exactly one 'subject' block")
 	}
 	subjectConf, ok := subjectConfs[0].(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("subject block cannot be empty")
+		return diag.Errorf("subject block cannot be empty")
 	}
 	subject := distinguishedNamesFromSubjectAttributes(subjectConf)
 
@@ -60,7 +61,7 @@ func createSelfSignedCert(d *schema.ResourceData, _ interface{}) error {
 	for _, ipStrI := range ipAddressesI {
 		ip := net.ParseIP(ipStrI.(string))
 		if ip == nil {
-			return fmt.Errorf("invalid IP address %#v", ipStrI.(string))
+			return diag.Errorf("invalid IP address %#v", ipStrI.(string))
 		}
 		cert.IPAddresses = append(cert.IPAddresses, ip)
 	}
@@ -68,14 +69,14 @@ func createSelfSignedCert(d *schema.ResourceData, _ interface{}) error {
 	for _, uriStrI := range urisI {
 		uri, err := url.Parse(uriStrI.(string))
 		if err != nil {
-			return fmt.Errorf("invalid URI %#v", uriStrI.(string))
+			return diag.Errorf("invalid URI %#v", uriStrI.(string))
 		}
 		cert.URIs = append(cert.URIs, uri)
 	}
 
 	publicKey, err := privateKeyToPublicKey(key)
 	if err != nil {
-		return fmt.Errorf("failed to get public key from private key: %w", err)
+		return diag.Errorf("failed to get public key from private key: %v", err)
 	}
 	return createCertificate(d, &cert, &cert, publicKey, key)
 }

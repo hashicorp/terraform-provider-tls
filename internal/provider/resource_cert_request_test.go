@@ -13,7 +13,7 @@ import (
 
 func TestCertRequest(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -205,7 +205,7 @@ EOT
 // TODO Remove this as part of https://github.com/hashicorp/terraform-provider-tls/issues/174
 func TestCertRequest_HandleKeyAlgorithmDeprecation(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
 				Config: `

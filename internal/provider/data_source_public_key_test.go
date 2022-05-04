@@ -28,7 +28,7 @@ data "tls_public_key" "test" {
 
 func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(configDataSourcePublicKeyViaPEM, testPrivateKeyPEM),
@@ -81,7 +81,7 @@ func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 
 func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, testPrivateKeyOpenSSHPEM),
@@ -133,7 +133,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 
 func TestAccPublicKey_dataSource_errorCases(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		Providers: testProviders,
+		ProviderFactories: testProviders,
 		Steps: []resource.TestStep{
 			{
 				Config: `
