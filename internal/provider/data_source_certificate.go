@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -26,18 +26,26 @@ func dataSourceCertificate() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"url": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				Description: "URL of the endpoint to get the certificates from. " +
 					fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(SupportedURLSchemesStr(), "`, `")) +
 					"For scheme `https://` it will use the HTTP protocol and apply the `proxy` configuration " +
 					"of the provider, if set. For scheme `tls://` it will instead use a secure TCP socket.",
 				ValidateDiagFunc: validation.ToDiagFunc(validation.IsURLWithScheme(SupportedURLSchemesStr())),
+				ExactlyOneOf:     []string{"content", "url"},
+			},
+			"content": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Description:  "The content of the certificate in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
+				ExactlyOneOf: []string{"content", "url"},
 			},
 			"verify_chain": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     true,
-				Description: "Whether to verify the certificate chain while parsing it or not (default: `true`).",
+				Type:          schema.TypeBool,
+				Optional:      true,
+				Default:       true,
+				Description:   "Whether to verify the certificate chain while parsing it or not (default: `true`).",
+				ConflictsWith: []string{"content"},
 			},
 			"certificates": {
 				Type:     schema.TypeList,
@@ -114,57 +122,83 @@ func dataSourceCertificate() *schema.Resource {
 	}
 }
 
-func dataSourceCertificateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceCertificateRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	config := m.(*providerConfig)
 
-	targetURL, err := url.Parse(d.Get("url").(string))
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	var certs []interface{}
 
-	// Determine if we should verify the chain of certificates, or skip said verification
-	shouldVerifyChain := d.Get("verify_chain").(bool)
-
-	// Ensure a port is set on the URL, or return an error
-	var peerCerts []*x509.Certificate
-	switch targetURL.Scheme {
-	case HTTPSScheme.String():
-		if targetURL.Port() == "" {
-			targetURL.Host += ":443"
+	if v, ok := d.GetOk("content"); ok {
+		block, _ := pem.Decode([]byte(v.(string)))
+		if block == nil {
+			return diag.Errorf("failed to decode pem content")
 		}
 
-		// TODO remove this branch and default to use `fetchPeerCertificatesViaHTTPS`
-		//   as part of https://github.com/hashicorp/terraform-provider-tls/issues/183
-		if config.isProxyConfigured() {
-			peerCerts, err = fetchPeerCertificatesViaHTTPS(targetURL, shouldVerifyChain, config)
-		} else {
+		preamble, err := PEMBlockToPEMPreamble(block)
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		if preamble != PreambleCertificate {
+			return diag.Errorf("PEM must be of type 'CERTIFICATE'")
+		}
+
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return diag.Errorf("unable to parse the certificate %v", err)
+		}
+
+		certs = []interface{}{certificateToMap(cert)}
+	} else {
+		targetURL, err := url.Parse(d.Get("url").(string))
+		if err != nil {
+			return diag.FromErr(err)
+		}
+
+		// Determine if we should verify the chain of certificates, or skip said verification
+		shouldVerifyChain := d.Get("verify_chain").(bool)
+
+		// Ensure a port is set on the URL, or return an error
+		var peerCerts []*x509.Certificate
+		switch targetURL.Scheme {
+		case HTTPSScheme.String():
+			if targetURL.Port() == "" {
+				targetURL.Host += ":443"
+			}
+
+			// TODO remove this branch and default to use `fetchPeerCertificatesViaHTTPS`
+			//   as part of https://github.com/hashicorp/terraform-provider-tls/issues/183
+			if config.isProxyConfigured() {
+				peerCerts, err = fetchPeerCertificatesViaHTTPS(targetURL, shouldVerifyChain, config)
+			} else {
+				peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
+			}
+		case TLSScheme.String():
+			if targetURL.Port() == "" {
+				return diag.Errorf("port missing from URL: %s", targetURL.String())
+			}
+
 			peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
+		default:
+			// NOTE: This should never happen, given we validate this at the schema level
+			return diag.Errorf("unsupported scheme: %s", targetURL.Scheme)
 		}
-	case TLSScheme.String():
-		if targetURL.Port() == "" {
-			return diag.Errorf("port missing from URL: %s", targetURL.String())
+		if err != nil {
+			return diag.FromErr(err)
 		}
 
-		peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
-	default:
-		// NOTE: This should never happen, given we validate this at the schema level
-		return diag.Errorf("unsupported scheme: %s", targetURL.Scheme)
+		// Convert peer certificates to a simple map
+		certs = make([]interface{}, len(peerCerts))
+		for i, peerCert := range peerCerts {
+			certs[len(peerCerts)-i-1] = certificateToMap(peerCert)
+		}
 	}
+
+	err := d.Set("certificates", certs)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	// Convert peer certificates to a simple map
-	certs := make([]interface{}, len(peerCerts))
-	for i, peerCert := range peerCerts {
-		certs[len(peerCerts)-i-1] = certificateToMap(peerCert)
-	}
-	err = d.Set("certificates", certs)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	d.SetId(time.Now().UTC().String())
+	d.SetId(hashForState(fmt.Sprintf("%v", certs)))
 
 	return nil
 }

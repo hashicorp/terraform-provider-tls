@@ -1,3 +1,17 @@
+## 3.4.0 (UNRELEASED)
+
+NEW FEATURES:
+
+* data-source/tls_certificate: Support for `content`. When used, the provider will read the PEM formatted data directly. ([#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
+
+NOTES:
+
+* data-source/tls_certificate: The `id` attribute has changed to the hashing of all certificates information in the chain. The first apply of this updated data source may show this difference ([#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
+
+BUG FIXES:
+
+* data-source/tls_certificate: Prevent plan differences with the `id` attribute ([#79](https://github.com/hashicorp/terraform-provider-tls/issues/79), [#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
+
 ## 3.3.0 (April 07, 2022)
 
 NEW FEATURES:
