@@ -50,7 +50,7 @@ EOT
                     }
                 `, testPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestMatchResourceAttr("tls_cert_request.test1", "cert_request_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE REQUEST----`)),
+					r.TestMatchResourceAttr("tls_cert_request.test1", "cert_request_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE REQUEST----(.|\s)+-----END CERTIFICATE REQUEST-----\n$`)),
 					r.TestCheckResourceAttrWith("tls_cert_request.test1", "cert_request_pem", func(value string) error {
 						block, _ := pem.Decode([]byte(value))
 						csr, err := x509.ParseCertificateRequest(block.Bytes)
@@ -132,7 +132,7 @@ EOT
                     }
                 `, testPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestMatchResourceAttr("tls_cert_request.test2", "cert_request_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE REQUEST----`)),
+					r.TestMatchResourceAttr("tls_cert_request.test2", "cert_request_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE REQUEST----(.|\s)+-----END CERTIFICATE REQUEST-----\n$`)),
 					r.TestCheckResourceAttrWith("tls_cert_request.test2", "cert_request_pem", func(value string) error {
 						block, _ := pem.Decode([]byte(value))
 						csr, err := x509.ParseCertificateRequest(block.Bytes)

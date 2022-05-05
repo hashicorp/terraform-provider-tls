@@ -18,7 +18,7 @@ func TestLocallySignedCert(t *testing.T) {
 			{
 				Config: locallySignedCertConfig(1, 0),
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----`)),
+					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 					r.TestCheckResourceAttrWith("tls_locally_signed_cert.test", "cert_pem", func(value string) error {
 						block, _ := pem.Decode([]byte(value))
 						cert, err := x509.ParseCertificate(block.Bytes)
@@ -246,7 +246,7 @@ func TestAccLocallySignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 			{
 				Config: locallySignedCertConfigWithDeprecatedKeyAlgorithm(1, 0),
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----`)),
+					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 					r.TestCheckResourceAttrWith("tls_locally_signed_cert.test", "cert_pem", func(value string) error {
 						block, _ := pem.Decode([]byte(value))
 						cert, err := x509.ParseCertificate(block.Bytes)
@@ -454,7 +454,7 @@ func TestAccResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "ED25519"),
-					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----(.|\s)+-----END CERTIFICATE-----\n$`)),
 				),
 			},
 		},
@@ -504,7 +504,7 @@ func TestAccResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) 
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "ECDSA"),
-					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 				),
 			},
 		},
@@ -554,7 +554,7 @@ func TestAccResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "RSA"),
-					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					r.TestMatchResourceAttr("tls_locally_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 				),
 			},
 		},

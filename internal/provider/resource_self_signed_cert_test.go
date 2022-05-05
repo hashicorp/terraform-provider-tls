@@ -19,7 +19,7 @@ func TestSelfSignedCert(t *testing.T) {
 			{
 				Config: selfSignedCertConfig(1, 0),
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestMatchResourceAttr("tls_self_signed_cert.test1", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----`)),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test1", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 					r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
 						block, _ := pem.Decode([]byte(value))
 						cert, err := x509.ParseCertificate(block.Bytes)
@@ -129,7 +129,7 @@ EOT
                     }
                 `, testPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestMatchResourceAttr("tls_self_signed_cert.test2", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----`)),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test2", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 					r.TestCheckResourceAttrWith("tls_self_signed_cert.test2", "cert_pem", func(value string) error {
 						block, _ := pem.Decode([]byte(value))
 						cert, err := x509.ParseCertificate(block.Bytes)
@@ -199,7 +199,7 @@ func TestSelfSignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 			{
 				Config: selfSignedCertConfigWithDeprecatedKeyAlgorithm(1, 0),
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestMatchResourceAttr("tls_self_signed_cert.test1", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----`)),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test1", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 					r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
 						block, _ := pem.Decode([]byte(value))
 						cert, err := x509.ParseCertificate(block.Bytes)
@@ -601,7 +601,7 @@ func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
-					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 				),
 			},
 		},
@@ -633,7 +633,7 @@ func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ECDSA"),
-					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 				),
 			},
 		},
@@ -664,7 +664,7 @@ func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "RSA"),
-					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`^-----BEGIN CERTIFICATE----(.|\s)+-----END CERTIFICATE-----\n$`)),
 				),
 			},
 		},
