@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -123,29 +122,32 @@ func dataSourceCertificate() *schema.Resource {
 	}
 }
 
-func dataSourceCertificateRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+func dataSourceCertificateRead(_ context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	config := m.(*providerConfig)
+
+	var certs []interface{}
 
 	if v, ok := d.GetOk("content"); ok {
 		block, _ := pem.Decode([]byte(v.(string)))
 		if block == nil {
 			return diag.Errorf("failed to decode pem content")
 		}
+
 		preamble, err := PEMBlockToPEMPreamble(block)
 		if err != nil {
 			return diag.FromErr(err)
 		}
+
 		if preamble != PreambleCertificate {
 			return diag.Errorf("PEM must be of type 'CERTIFICATE'")
 		}
+
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
 			return diag.Errorf("unable to parse the certificate %v", err)
 		}
-		err = d.Set("certificates", []interface{}{certificateToMap(cert)})
-		if err != nil {
-			return diag.FromErr(err)
-		}
+
+		certs = []interface{}{certificateToMap(cert)}
 	} else {
 		targetURL, err := url.Parse(d.Get("url").(string))
 		if err != nil {
@@ -185,17 +187,18 @@ func dataSourceCertificateRead(ctx context.Context, d *schema.ResourceData, m in
 		}
 
 		// Convert peer certificates to a simple map
-		certs := make([]interface{}, len(peerCerts))
+		certs = make([]interface{}, len(peerCerts))
 		for i, peerCert := range peerCerts {
 			certs[len(peerCerts)-i-1] = certificateToMap(peerCert)
 		}
-		err = d.Set("certificates", certs)
-		if err != nil {
-			return diag.FromErr(err)
-		}
 	}
 
-	d.SetId(time.Now().UTC().String())
+	err := d.Set("certificates", certs)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	d.SetId(hashForState(fmt.Sprintf("%v", certs)))
 
 	return nil
 }
