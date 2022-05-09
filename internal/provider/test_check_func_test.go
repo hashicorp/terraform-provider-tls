@@ -68,30 +68,35 @@ func testCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate)
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateSubject(name, key string, expected *pkix.Name) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertSubjects(expected, &crt.Subject)
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateDNSNames(name, key string, expected []string) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertDNSNames(expected, crt.DNSNames)
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateIPAddresses(name, key string, expected []net.IP) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertIPAddresses(expected, crt.IPAddresses)
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateURIs(name, key string, expected []*url.URL) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertURIs(expected, crt.URIs)
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateKeyUsage(name, key string, expected x509.KeyUsage) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		if expected != crt.KeyUsage {
@@ -101,12 +106,14 @@ func testCheckPEMCertificateKeyUsage(name, key string, expected x509.KeyUsage) r
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateExtKeyUsages(name, key string, expected []x509.ExtKeyUsage) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareExtKeyUsages(expected, crt.ExtKeyUsage)
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateDuration(name, key string, expected time.Duration) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(cert *x509.Certificate) error {
 		now := time.Now()
