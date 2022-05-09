@@ -15,3 +15,10 @@ linters:
     - tenv
     - unconvert
     - unparam
+
+issues:
+  exclude-rules:
+    - linters:
+        - unparam
+      text: "always receives"
+      path: internal/provider/test_check_func_test.go
