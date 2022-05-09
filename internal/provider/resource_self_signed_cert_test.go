@@ -3,15 +3,15 @@ package provider
 import (
 	"bytes"
 	"crypto/x509"
-	"encoding/pem"
+	"crypto/x509/pkix"
 	"fmt"
+	"net"
+	"net/url"
 	"regexp"
-	"strings"
 	"testing"
 	"time"
 
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 func TestSelfSignedCert(t *testing.T) {
@@ -19,109 +19,47 @@ func TestSelfSignedCert(t *testing.T) {
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
-				Config: selfSignedCertConfig(1, 0, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-
-					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE----") {
-						return fmt.Errorf("key is missing cert PEM preamble")
-					}
-					block, _ := pem.Decode([]byte(got))
-					cert, err := x509.ParseCertificate(block.Bytes)
-					if err != nil {
-						return fmt.Errorf("error parsing cert: %s", err)
-					}
-					if expected, got := "2", cert.Subject.SerialNumber; got != expected {
-						return fmt.Errorf("incorrect subject serial number: expected %v, got %v", expected, got)
-					}
-					if expected, got := "example.com", cert.Subject.CommonName; got != expected {
-						return fmt.Errorf("incorrect subject common name: expected %v, got %v", expected, got)
-					}
-					if expected, got := "Example, Inc", cert.Subject.Organization[0]; got != expected {
-						return fmt.Errorf("incorrect subject organization: expected %v, got %v", expected, got)
-					}
-					if expected, got := "Department of Terraform Testing", cert.Subject.OrganizationalUnit[0]; got != expected {
-						return fmt.Errorf("incorrect subject organizational unit: expected %v, got %v", expected, got)
-					}
-					if expected, got := "5879 Cotton Link", cert.Subject.StreetAddress[0]; got != expected {
-						return fmt.Errorf("incorrect subject street address: expected %v, got %v", expected, got)
-					}
-					if expected, got := "Pirate Harbor", cert.Subject.Locality[0]; got != expected {
-						return fmt.Errorf("incorrect subject locality: expected %v, got %v", expected, got)
-					}
-					if expected, got := "CA", cert.Subject.Province[0]; got != expected {
-						return fmt.Errorf("incorrect subject province: expected %v, got %v", expected, got)
-					}
-					if expected, got := "US", cert.Subject.Country[0]; got != expected {
-						return fmt.Errorf("incorrect subject country: expected %v, got %v", expected, got)
-					}
-					if expected, got := "95559-1227", cert.Subject.PostalCode[0]; got != expected {
-						return fmt.Errorf("incorrect subject postal code: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 2, len(cert.DNSNames); got != expected {
-						return fmt.Errorf("incorrect number of DNS names: expected %v, got %v", expected, got)
-					}
-					if expected, got := "example.com", cert.DNSNames[0]; got != expected {
-						return fmt.Errorf("incorrect DNS name 0: expected %v, got %v", expected, got)
-					}
-					if expected, got := "example.net", cert.DNSNames[1]; got != expected {
-						return fmt.Errorf("incorrect DNS name 0: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 2, len(cert.IPAddresses); got != expected {
-						return fmt.Errorf("incorrect number of IP addresses: expected %v, got %v", expected, got)
-					}
-					if expected, got := "127.0.0.1", cert.IPAddresses[0].String(); got != expected {
-						return fmt.Errorf("incorrect IP address 0: expected %v, got %v", expected, got)
-					}
-					if expected, got := "127.0.0.2", cert.IPAddresses[1].String(); got != expected {
-						return fmt.Errorf("incorrect IP address 0: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 2, len(cert.URIs); got != expected {
-						return fmt.Errorf("incorrect number of URIs: expected %v, got %v", expected, got)
-					}
-					if expected, got := "spiffe://example-trust-domain/ca", cert.URIs[0].String(); got != expected {
-						return fmt.Errorf("incorrect URI 0: expected %v, got %v", expected, got)
-					}
-					if expected, got := "spiffe://example-trust-domain/ca2", cert.URIs[1].String(); got != expected {
-						return fmt.Errorf("incorrect URI 1: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 2, len(cert.ExtKeyUsage); got != expected {
-						return fmt.Errorf("incorrect number of ExtKeyUsage: expected %v, got %v", expected, got)
-					}
-					if expected, got := x509.ExtKeyUsageServerAuth, cert.ExtKeyUsage[0]; got != expected {
-						return fmt.Errorf("incorrect ExtKeyUsage[0]: expected %v, got %v", expected, got)
-					}
-					if expected, got := x509.ExtKeyUsageClientAuth, cert.ExtKeyUsage[1]; got != expected {
-						return fmt.Errorf("incorrect ExtKeyUsage[1]: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature, cert.KeyUsage; got != expected {
-						return fmt.Errorf("incorrect KeyUsage: expected %v, got %v", expected, got)
-					}
-
-					// This time checking is a bit sloppy to avoid inconsistent test results
-					// depending on the power of the machine running the tests.
-					now := time.Now()
-					if cert.NotBefore.After(now) {
-						return fmt.Errorf("certificate validity begins in the future")
-					}
-					if now.Sub(cert.NotBefore) > (2 * time.Minute) {
-						return fmt.Errorf("certificate validity begins more than two minutes in the past")
-					}
-					if cert.NotAfter.Sub(cert.NotBefore) != time.Hour {
-						return fmt.Errorf("certificate validity is not one hour")
-					}
-
-					return nil
-				},
+				Config: selfSignedCertConfig(1, 0),
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMFormat("tls_self_signed_cert.test1", "cert_pem", PreambleCertificate),
+					testCheckPEMCertificateSubject("tls_self_signed_cert.test1", "cert_pem", &pkix.Name{
+						SerialNumber:       "2",
+						CommonName:         "example.com",
+						Organization:       []string{"Example, Inc"},
+						OrganizationalUnit: []string{"Department of Terraform Testing"},
+						StreetAddress:      []string{"5879 Cotton Link"},
+						Locality:           []string{"Pirate Harbor"},
+						Province:           []string{"CA"},
+						Country:            []string{"US"},
+						PostalCode:         []string{"95559-1227"},
+					}),
+					testCheckPEMCertificateDNSNames("tls_self_signed_cert.test1", "cert_pem", []string{
+						"example.com",
+						"example.net",
+					}),
+					testCheckPEMCertificateIPAddresses("tls_self_signed_cert.test1", "cert_pem", []net.IP{
+						net.ParseIP("127.0.0.1"),
+						net.ParseIP("127.0.0.2"),
+					}),
+					testCheckPEMCertificateURIs("tls_self_signed_cert.test1", "cert_pem", []*url.URL{
+						{
+							Scheme: "spiffe",
+							Host:   "example-trust-domain",
+							Path:   "ca",
+						},
+						{
+							Scheme: "spiffe",
+							Host:   "example-trust-domain",
+							Path:   "ca2",
+						},
+					}),
+					testCheckPEMCertificateKeyUsage("tls_self_signed_cert.test1", "cert_pem", x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature),
+					testCheckPEMCertificateExtKeyUsages("tls_self_signed_cert.test1", "cert_pem", []x509.ExtKeyUsage{
+						x509.ExtKeyUsageServerAuth,
+						x509.ExtKeyUsageClientAuth,
+					}),
+					testCheckPEMCertificateDuration("tls_self_signed_cert.test1", "cert_pem", time.Hour),
+				),
 			},
 			{
 				Config: fmt.Sprintf(`
@@ -135,74 +73,18 @@ func TestSelfSignedCert(t *testing.T) {
 %s
 EOT
                     }
-                    output "key_pem_2" {
-                        value = tls_self_signed_cert.test2.cert_pem
-                    }
                 `, testPrivateKeyPEM),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_2"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_2\" is not a string")
-					}
-
-					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE----") {
-						return fmt.Errorf("key is missing cert PEM preamble")
-					}
-					block, _ := pem.Decode([]byte(got))
-					cert, err := x509.ParseCertificate(block.Bytes)
-					if err != nil {
-						return fmt.Errorf("error parsing cert: %s", err)
-					}
-					if expected, got := "42", cert.Subject.SerialNumber; got != expected {
-						return fmt.Errorf("incorrect subject serial number: expected %v, got %v", expected, got)
-					}
-					if expected, got := "", cert.Subject.CommonName; got != expected {
-						return fmt.Errorf("incorrect subject common name: expected %v, got %v", expected, got)
-					}
-					if expected, got := 0, len(cert.Subject.Organization); got != expected {
-						return fmt.Errorf("incorrect subject organization: expected %v, got %v", expected, got)
-					}
-					if expected, got := 0, len(cert.Subject.OrganizationalUnit); got != expected {
-						return fmt.Errorf("incorrect subject organizational unit: expected %v, got %v", expected, got)
-					}
-					if expected, got := 0, len(cert.Subject.StreetAddress); got != expected {
-						return fmt.Errorf("incorrect subject street address: expected %v, got %v", expected, got)
-					}
-					if expected, got := 0, len(cert.Subject.Locality); got != expected {
-						return fmt.Errorf("incorrect subject locality: expected %v, got %v", expected, got)
-					}
-					if expected, got := 0, len(cert.Subject.Province); got != expected {
-						return fmt.Errorf("incorrect subject province: expected %v, got %v", expected, got)
-					}
-					if expected, got := 0, len(cert.Subject.Country); got != expected {
-						return fmt.Errorf("incorrect subject country: expected %v, got %v", expected, got)
-					}
-					if expected, got := 0, len(cert.Subject.PostalCode); got != expected {
-						return fmt.Errorf("incorrect subject postal code: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 0, len(cert.DNSNames); got != expected {
-						return fmt.Errorf("incorrect number of DNS names: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 0, len(cert.IPAddresses); got != expected {
-						return fmt.Errorf("incorrect number of IP addresses: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 0, len(cert.ExtKeyUsage); got != expected {
-						return fmt.Errorf("incorrect number of ExtKeyUsage: expected %v, got %v", expected, got)
-					}
-					if expected, got := []byte(``), cert.SubjectKeyId; !bytes.Equal(got, expected) {
-						return fmt.Errorf("incorrect subject key id: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := x509.KeyUsage(0), cert.KeyUsage; got != expected {
-						return fmt.Errorf("incorrect KeyUsage: expected %v, got %v", expected, got)
-					}
-
-					return nil
-				},
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMFormat("tls_self_signed_cert.test2", "cert_pem", PreambleCertificate),
+					testCheckPEMCertificateSubject("tls_self_signed_cert.test2", "cert_pem", &pkix.Name{
+						SerialNumber: "42",
+					}),
+					testCheckPEMCertificateDNSNames("tls_self_signed_cert.test2", "cert_pem", []string{}),
+					testCheckPEMCertificateIPAddresses("tls_self_signed_cert.test2", "cert_pem", []net.IP{}),
+					testCheckPEMCertificateURIs("tls_self_signed_cert.test2", "cert_pem", []*url.URL{}),
+					testCheckPEMCertificateKeyUsage("tls_self_signed_cert.test2", "cert_pem", x509.KeyUsage(0)),
+					testCheckPEMCertificateExtKeyUsages("tls_self_signed_cert.test2", "cert_pem", []x509.ExtKeyUsage{}),
+				),
 			},
 		},
 	})
@@ -214,109 +96,47 @@ func TestSelfSignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
-				Config: selfSignedCertConfig(1, 0, true),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-
-					if !strings.HasPrefix(got, "-----BEGIN CERTIFICATE----") {
-						return fmt.Errorf("key is missing cert PEM preamble")
-					}
-					block, _ := pem.Decode([]byte(got))
-					cert, err := x509.ParseCertificate(block.Bytes)
-					if err != nil {
-						return fmt.Errorf("error parsing cert: %s", err)
-					}
-					if expected, got := "2", cert.Subject.SerialNumber; got != expected {
-						return fmt.Errorf("incorrect subject serial number: expected %v, got %v", expected, got)
-					}
-					if expected, got := "example.com", cert.Subject.CommonName; got != expected {
-						return fmt.Errorf("incorrect subject common name: expected %v, got %v", expected, got)
-					}
-					if expected, got := "Example, Inc", cert.Subject.Organization[0]; got != expected {
-						return fmt.Errorf("incorrect subject organization: expected %v, got %v", expected, got)
-					}
-					if expected, got := "Department of Terraform Testing", cert.Subject.OrganizationalUnit[0]; got != expected {
-						return fmt.Errorf("incorrect subject organizational unit: expected %v, got %v", expected, got)
-					}
-					if expected, got := "5879 Cotton Link", cert.Subject.StreetAddress[0]; got != expected {
-						return fmt.Errorf("incorrect subject street address: expected %v, got %v", expected, got)
-					}
-					if expected, got := "Pirate Harbor", cert.Subject.Locality[0]; got != expected {
-						return fmt.Errorf("incorrect subject locality: expected %v, got %v", expected, got)
-					}
-					if expected, got := "CA", cert.Subject.Province[0]; got != expected {
-						return fmt.Errorf("incorrect subject province: expected %v, got %v", expected, got)
-					}
-					if expected, got := "US", cert.Subject.Country[0]; got != expected {
-						return fmt.Errorf("incorrect subject country: expected %v, got %v", expected, got)
-					}
-					if expected, got := "95559-1227", cert.Subject.PostalCode[0]; got != expected {
-						return fmt.Errorf("incorrect subject postal code: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 2, len(cert.DNSNames); got != expected {
-						return fmt.Errorf("incorrect number of DNS names: expected %v, got %v", expected, got)
-					}
-					if expected, got := "example.com", cert.DNSNames[0]; got != expected {
-						return fmt.Errorf("incorrect DNS name 0: expected %v, got %v", expected, got)
-					}
-					if expected, got := "example.net", cert.DNSNames[1]; got != expected {
-						return fmt.Errorf("incorrect DNS name 0: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 2, len(cert.IPAddresses); got != expected {
-						return fmt.Errorf("incorrect number of IP addresses: expected %v, got %v", expected, got)
-					}
-					if expected, got := "127.0.0.1", cert.IPAddresses[0].String(); got != expected {
-						return fmt.Errorf("incorrect IP address 0: expected %v, got %v", expected, got)
-					}
-					if expected, got := "127.0.0.2", cert.IPAddresses[1].String(); got != expected {
-						return fmt.Errorf("incorrect IP address 0: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 2, len(cert.URIs); got != expected {
-						return fmt.Errorf("incorrect number of URIs: expected %v, got %v", expected, got)
-					}
-					if expected, got := "spiffe://example-trust-domain/ca", cert.URIs[0].String(); got != expected {
-						return fmt.Errorf("incorrect URI 0: expected %v, got %v", expected, got)
-					}
-					if expected, got := "spiffe://example-trust-domain/ca2", cert.URIs[1].String(); got != expected {
-						return fmt.Errorf("incorrect URI 1: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := 2, len(cert.ExtKeyUsage); got != expected {
-						return fmt.Errorf("incorrect number of ExtKeyUsage: expected %v, got %v", expected, got)
-					}
-					if expected, got := x509.ExtKeyUsageServerAuth, cert.ExtKeyUsage[0]; got != expected {
-						return fmt.Errorf("incorrect ExtKeyUsage[0]: expected %v, got %v", expected, got)
-					}
-					if expected, got := x509.ExtKeyUsageClientAuth, cert.ExtKeyUsage[1]; got != expected {
-						return fmt.Errorf("incorrect ExtKeyUsage[1]: expected %v, got %v", expected, got)
-					}
-
-					if expected, got := x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature, cert.KeyUsage; got != expected {
-						return fmt.Errorf("incorrect KeyUsage: expected %v, got %v", expected, got)
-					}
-
-					// This time checking is a bit sloppy to avoid inconsistent test results
-					// depending on the power of the machine running the tests.
-					now := time.Now()
-					if cert.NotBefore.After(now) {
-						return fmt.Errorf("certificate validity begins in the future")
-					}
-					if now.Sub(cert.NotBefore) > (2 * time.Minute) {
-						return fmt.Errorf("certificate validity begins more than two minutes in the past")
-					}
-					if cert.NotAfter.Sub(cert.NotBefore) != time.Hour {
-						return fmt.Errorf("certificate validity is not one hour")
-					}
-
-					return nil
-				},
+				Config: selfSignedCertConfigWithDeprecatedKeyAlgorithm(1, 0),
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMFormat("tls_self_signed_cert.test1", "cert_pem", PreambleCertificate),
+					testCheckPEMCertificateSubject("tls_self_signed_cert.test1", "cert_pem", &pkix.Name{
+						SerialNumber:       "2",
+						CommonName:         "example.com",
+						Organization:       []string{"Example, Inc"},
+						OrganizationalUnit: []string{"Department of Terraform Testing"},
+						StreetAddress:      []string{"5879 Cotton Link"},
+						Locality:           []string{"Pirate Harbor"},
+						Province:           []string{"CA"},
+						Country:            []string{"US"},
+						PostalCode:         []string{"95559-1227"},
+					}),
+					testCheckPEMCertificateDNSNames("tls_self_signed_cert.test1", "cert_pem", []string{
+						"example.com",
+						"example.net",
+					}),
+					testCheckPEMCertificateIPAddresses("tls_self_signed_cert.test1", "cert_pem", []net.IP{
+						net.ParseIP("127.0.0.1"),
+						net.ParseIP("127.0.0.2"),
+					}),
+					testCheckPEMCertificateURIs("tls_self_signed_cert.test1", "cert_pem", []*url.URL{
+						{
+							Scheme: "spiffe",
+							Host:   "example-trust-domain",
+							Path:   "ca",
+						},
+						{
+							Scheme: "spiffe",
+							Host:   "example-trust-domain",
+							Path:   "ca2",
+						},
+					}),
+					testCheckPEMCertificateKeyUsage("tls_self_signed_cert.test1", "cert_pem", x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature),
+					testCheckPEMCertificateExtKeyUsages("tls_self_signed_cert.test1", "cert_pem", []x509.ExtKeyUsage{
+						x509.ExtKeyUsageServerAuth,
+						x509.ExtKeyUsageClientAuth,
+					}),
+					testCheckPEMCertificateDuration("tls_self_signed_cert.test1", "cert_pem", time.Hour),
+				),
 			},
 		},
 	})
@@ -330,69 +150,46 @@ func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
-				Config: selfSignedCertConfig(10, 2, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-					previousCert = got
+				Config: selfSignedCertConfig(10, 2),
+				Check: r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
+					previousCert = value
 					return nil
-				},
+				}),
 			},
 			{
-				Config: selfSignedCertConfig(10, 2, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-
-					if got != previousCert {
+				Config: selfSignedCertConfig(10, 2),
+				Check: r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
+					if previousCert != value {
 						return fmt.Errorf("certificate updated even though no time has passed")
 					}
 
-					previousCert = got
+					previousCert = value
 					return nil
-				},
+				}),
 			},
 			{
 				PreConfig: setTimeForTest("2019-06-14T19:00:00Z"),
-				Config:    selfSignedCertConfig(10, 2, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-
-					if got != previousCert {
+				Config:    selfSignedCertConfig(10, 2),
+				Check: r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
+					if previousCert != value {
 						return fmt.Errorf("certificate updated even though not enough time has passed")
 					}
 
-					previousCert = got
+					previousCert = value
 					return nil
-				},
+				}),
 			},
 			{
 				PreConfig: setTimeForTest("2019-06-14T21:00:00Z"),
-				Config:    selfSignedCertConfig(10, 2, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-
-					if got == previousCert {
+				Config:    selfSignedCertConfig(10, 2),
+				Check: r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
+					if previousCert == value {
 						return fmt.Errorf("certificate not updated even though passed early renewal")
 					}
 
-					previousCert = got
+					previousCert = value
 					return nil
-				},
+				}),
 			},
 		},
 	})
@@ -407,69 +204,46 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
-				Config: selfSignedCertConfig(10, 2, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-					previousCert = got
+				Config: selfSignedCertConfig(10, 2),
+				Check: r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
+					previousCert = value
 					return nil
-				},
+				}),
 			},
 			{
-				Config: selfSignedCertConfig(10, 3, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-
-					if got != previousCert {
+				Config: selfSignedCertConfig(10, 3),
+				Check: r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
+					if previousCert != value {
 						return fmt.Errorf("certificate updated even though still time until early renewal")
 					}
 
-					previousCert = got
+					previousCert = value
 					return nil
-				},
+				}),
 			},
 			{
 				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
-				Config:    selfSignedCertConfig(10, 3, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-
-					if got != previousCert {
+				Config:    selfSignedCertConfig(10, 3),
+				Check: r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
+					if previousCert != value {
 						return fmt.Errorf("certificate updated even though still time until early renewal")
 					}
 
-					previousCert = got
+					previousCert = value
 					return nil
-				},
+				}),
 			},
 			{
 				PreConfig: setTimeForTest("2019-06-14T16:00:00Z"),
-				Config:    selfSignedCertConfig(10, 9, false),
-				Check: func(s *terraform.State) error {
-					gotUntyped := s.RootModule().Outputs["key_pem_1"].Value
-					got, ok := gotUntyped.(string)
-					if !ok {
-						return fmt.Errorf("output for \"key_pem_1\" is not a string")
-					}
-
-					if got == previousCert {
+				Config:    selfSignedCertConfig(10, 9),
+				Check: r.TestCheckResourceAttrWith("tls_self_signed_cert.test1", "cert_pem", func(value string) error {
+					if previousCert == value {
 						return fmt.Errorf("certificate not updated even though early renewal time has passed")
 					}
 
-					previousCert = got
+					previousCert = value
 					return nil
-				},
+				}),
 			},
 		},
 	})
@@ -483,35 +257,26 @@ func TestAccSelfSignedCertSetSubjectKeyID(t *testing.T) {
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
-				resource "tls_self_signed_cert" "test" {
-					subject {
-						serial_number = "42"
-					}
-					validity_period_hours = 1
-					allowed_uses = []
-					set_subject_key_id = true
-					private_key_pem = <<EOT
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							serial_number = "42"
+						}
+						validity_period_hours = 1
+						allowed_uses = []
+						set_subject_key_id = true
+						private_key_pem = <<EOT
 %s
 EOT
-				}
-				output "cert_pem" {
-					value = tls_self_signed_cert.test.cert_pem
-				}
-				`, testPrivateKeyPEM),
-				Check: func(s *terraform.State) error {
-					certPEM := s.RootModule().Outputs["cert_pem"].Value
-					block, _ := pem.Decode([]byte(certPEM.(string)))
-					cert, err := x509.ParseCertificate(block.Bytes)
-					if err != nil {
-						return fmt.Errorf("error parsing cert: %s", err)
 					}
+				`, testPrivateKeyPEM),
+				Check: testCheckPEMCertificateWith("tls_self_signed_cert.test", "cert_pem", func(cert *x509.Certificate) error {
 					got := cert.SubjectKeyId
 					want := []byte{207, 81, 38, 63, 172, 18, 241, 109, 195, 169, 6, 109, 237, 6, 18, 214, 52, 231, 17, 222}
 					if !bytes.Equal(got, want) {
 						return fmt.Errorf("incorrect subject key id\ngot:  %v\nwant: %v", got, want)
 					}
 					return nil
-				},
+				}),
 			},
 		},
 	})
@@ -533,9 +298,6 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						set_subject_key_id = true
 						private_key_pem = "does not matter"
 					}
-					output "cert_pem" {
-						value = tls_self_signed_cert.test.cert_pem
-					}
 				`,
 				ExpectError: regexp.MustCompile(`expected validity_period_hours to be at least \(0\), got -1`),
 			},
@@ -552,9 +314,6 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 						set_subject_key_id = true
 						private_key_pem = "does not matter"
 					}
-					output "cert_pem" {
-						value = tls_self_signed_cert.test.cert_pem
-					}
 				`,
 				ExpectError: regexp.MustCompile(`expected early_renewal_hours to be at least \(0\), got -10`),
 			},
@@ -562,61 +321,99 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 	})
 }
 
-func selfSignedCertConfig(validity, earlyRenewal uint32, setKeyAlgorithm bool) string {
-	keyAlgorithmCfg := ""
-	if setKeyAlgorithm {
-		keyAlgorithmCfg = `key_algorithm = "RSA"`
-	}
-
+func selfSignedCertConfig(validity, earlyRenewal uint32) string {
 	return fmt.Sprintf(`
-                    resource "tls_self_signed_cert" "test1" {
-                        subject {
-                            common_name = "example.com"
-                            organization = "Example, Inc"
-                            organizational_unit = "Department of Terraform Testing"
-                            street_address = ["5879 Cotton Link"]
-                            locality = "Pirate Harbor"
-                            province = "CA"
-                            country = "US"
-                            postal_code = "95559-1227"
-                            serial_number = "2"
-                        }
+        resource "tls_self_signed_cert" "test1" {
+            subject {
+                common_name = "example.com"
+                organization = "Example, Inc"
+                organizational_unit = "Department of Terraform Testing"
+                street_address = ["5879 Cotton Link"]
+                locality = "Pirate Harbor"
+                province = "CA"
+                country = "US"
+                postal_code = "95559-1227"
+                serial_number = "2"
+            }
 
-                        dns_names = [
-                            "example.com",
-                            "example.net",
-                        ]
+            dns_names = [
+                "example.com",
+                "example.net",
+            ]
 
-                        ip_addresses = [
-                            "127.0.0.1",
-                            "127.0.0.2",
-                        ]
+            ip_addresses = [
+                "127.0.0.1",
+                "127.0.0.2",
+            ]
 
-						uris = [
-                            "spiffe://example-trust-domain/ca",
-                            "spiffe://example-trust-domain/ca2",
-                        ]
+            uris = [
+                "spiffe://example-trust-domain/ca",
+                "spiffe://example-trust-domain/ca2",
+            ]
 
-                        validity_period_hours = %d
-                        early_renewal_hours = %d
+            validity_period_hours = %d
+            early_renewal_hours = %d
 
-                        allowed_uses = [
-                            "key_encipherment",
-                            "digital_signature",
-                            "server_auth",
-                            "client_auth",
-                            "non_repudiation",
-                        ]
+            allowed_uses = [
+                "key_encipherment",
+                "digital_signature",
+                "server_auth",
+                "client_auth",
+                "non_repudiation",
+            ]
 
-                        %s
-                        private_key_pem = <<EOT
+            private_key_pem = <<EOT
 %s
 EOT
-                    }
-                    output "key_pem_1" {
-                        value = tls_self_signed_cert.test1.cert_pem
-                    }
-                `, validity, earlyRenewal, keyAlgorithmCfg, testPrivateKeyPEM)
+        }`, validity, earlyRenewal, testPrivateKeyPEM)
+}
+
+func selfSignedCertConfigWithDeprecatedKeyAlgorithm(validity, earlyRenewal uint32) string {
+	return fmt.Sprintf(`
+        resource "tls_self_signed_cert" "test1" {
+            subject {
+                common_name = "example.com"
+                organization = "Example, Inc"
+                organizational_unit = "Department of Terraform Testing"
+                street_address = ["5879 Cotton Link"]
+                locality = "Pirate Harbor"
+                province = "CA"
+                country = "US"
+                postal_code = "95559-1227"
+                serial_number = "2"
+            }
+
+            dns_names = [
+                "example.com",
+                "example.net",
+            ]
+
+            ip_addresses = [
+                "127.0.0.1",
+                "127.0.0.2",
+            ]
+
+            uris = [
+                "spiffe://example-trust-domain/ca",
+                "spiffe://example-trust-domain/ca2",
+            ]
+
+            validity_period_hours = %d
+            early_renewal_hours = %d
+
+            allowed_uses = [
+                "key_encipherment",
+                "digital_signature",
+                "server_auth",
+                "client_auth",
+                "non_repudiation",
+            ]
+
+            key_algorithm = "RSA"
+            private_key_pem = <<EOT
+%s
+EOT
+        }`, validity, earlyRenewal, testPrivateKeyPEM)
 }
 
 func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
@@ -628,7 +425,6 @@ func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 					resource "tls_private_key" "test" {
 						algorithm = "ED25519"
 					}
-					
 					resource "tls_self_signed_cert" "test" {
 						private_key_pem = tls_private_key.test.private_key_pem
 						subject {
@@ -643,7 +439,7 @@ func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
-					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
 			},
 		},
@@ -660,7 +456,6 @@ func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 						algorithm   = "ECDSA"
 						ecdsa_curve = "P521"
 					}
-					
 					resource "tls_self_signed_cert" "test" {
 						private_key_pem = tls_private_key.test.private_key_pem
 						subject {
@@ -676,7 +471,7 @@ func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ECDSA"),
-					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
 			},
 		},
@@ -692,7 +487,6 @@ func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 						algorithm = "RSA"
 						rsa_bits  = 4096
 					}
-					
 					resource "tls_self_signed_cert" "test" {
 						private_key_pem = tls_private_key.test.private_key_pem
 						subject {
@@ -708,7 +502,7 @@ func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 				`,
 				Check: r.ComposeTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "RSA"),
-					r.TestMatchResourceAttr("tls_self_signed_cert.test", "cert_pem", regexp.MustCompile(`-----BEGIN CERTIFICATE-----((.|\n)+?)-----END CERTIFICATE-----`)),
+					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
 			},
 		},

@@ -80,9 +80,10 @@ type PEMPreamble string
 const (
 	PreamblePublicKey PEMPreamble = "PUBLIC KEY"
 
-	PreamblePrivateKeyPKCS8 PEMPreamble = "PRIVATE KEY"
-	PreamblePrivateKeyRSA   PEMPreamble = "RSA PRIVATE KEY"
-	PreamblePrivateKeyEC    PEMPreamble = "EC PRIVATE KEY"
+	PreamblePrivateKeyPKCS8   PEMPreamble = "PRIVATE KEY"
+	PreamblePrivateKeyRSA     PEMPreamble = "RSA PRIVATE KEY"
+	PreamblePrivateKeyEC      PEMPreamble = "EC PRIVATE KEY"
+	PreamblePrivateKeyOpenSSH PEMPreamble = "OPENSSH PRIVATE KEY"
 
 	PreambleCertificate        PEMPreamble = "CERTIFICATE"
 	PreambleCertificateRequest PEMPreamble = "CERTIFICATE REQUEST"
