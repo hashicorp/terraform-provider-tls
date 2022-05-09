@@ -50,7 +50,7 @@ EOT
                     }
                 `, testPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
-					testCheckPEMCertificateFormat("tls_cert_request.test1", "cert_request_pem", PreambleCertificateRequest),
+					testCheckPEMFormat("tls_cert_request.test1", "cert_request_pem", PreambleCertificateRequest),
 					testCheckPEMCertificateRequestSubject("tls_cert_request.test1", "cert_request_pem", &pkix.Name{
 						SerialNumber:       "2",
 						CommonName:         "example.com",
@@ -97,17 +97,9 @@ EOT
                     }
                 `, testPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
-					testCheckPEMCertificateFormat("tls_cert_request.test2", "cert_request_pem", PreambleCertificateRequest),
+					testCheckPEMFormat("tls_cert_request.test2", "cert_request_pem", PreambleCertificateRequest),
 					testCheckPEMCertificateRequestSubject("tls_cert_request.test2", "cert_request_pem", &pkix.Name{
-						SerialNumber:       "42",
-						CommonName:         "",
-						Organization:       []string{},
-						OrganizationalUnit: []string{},
-						StreetAddress:      []string{},
-						Locality:           []string{},
-						Province:           []string{},
-						Country:            []string{},
-						PostalCode:         []string{},
+						SerialNumber: "42",
 					}),
 					testCheckPEMCertificateRequestDNSNames("tls_cert_request.test2", "cert_request_pem", []string{}),
 					testCheckPEMCertificateRequestIPAddresses("tls_cert_request.test2", "cert_request_pem", []net.IP{}),
