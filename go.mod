@@ -6,7 +6,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20220328115640-894aeddb713e
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2
 	github.com/hashicorp/terraform-plugin-docs v0.8.0
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.15.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0
 	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
 )
 
@@ -32,7 +32,7 @@ require (
 	github.com/hashicorp/go-plugin v1.4.3 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.4.0 // indirect
-	github.com/hashicorp/hc-install v0.3.1 // indirect
+	github.com/hashicorp/hc-install v0.3.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.12.0 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/terraform-exec v0.16.1 // indirect
