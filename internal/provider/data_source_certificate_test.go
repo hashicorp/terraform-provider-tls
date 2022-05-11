@@ -2,16 +2,14 @@ package provider
 
 import (
 	"fmt"
-	"io/ioutil"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
 func TestAccDataSourceCertificate_CertificateContent(t *testing.T) {
-	certPem, _ := ioutil.ReadFile("testdata/tls_certs/certificate.pem")
-
 	resource.UnitTest(t, resource.TestCase{
 		ProviderFactories: testProviders,
 
@@ -36,7 +34,7 @@ func TestAccDataSourceCertificate_CertificateContent(t *testing.T) {
 					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_after", "2019-11-08T19:01:36Z"),
 					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
 					testCheckPEMFormat("data.tls_certificate.test", "certificates.0.cert_pem", PreambleCertificate),
-					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.cert_pem", string(certPem)),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.cert_pem", strings.TrimSpace(testTlsDataSourceCertFromContent)+"\n"),
 				),
 			},
 		},
@@ -366,9 +364,6 @@ func TestAccDataSourceCertificate_HTTPSSchemeViaProxyButNoProxyAvailable(t *test
 }
 
 func localTestCertificateChainCheckFunc() resource.TestCheckFunc {
-	certPEM0, _ := ioutil.ReadFile("testdata/tls_certs/public_0.pem")
-	certPEM1, _ := ioutil.ReadFile("testdata/tls_certs/public_1.pem")
-
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
 
@@ -383,7 +378,7 @@ func localTestCertificateChainCheckFunc() resource.TestCheckFunc {
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_after", "2019-12-17T15:47:48Z"),
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "5829a9bcc57f317719c5c98d1f48d6c9957cb44e"),
 		testCheckPEMFormat("data.tls_certificate.test", "certificates.0.cert_pem", PreambleCertificate),
-		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.cert_pem", string(certPEM0)),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.cert_pem", strings.TrimSpace(testTlsDataSourceCertFromURL00)+"\n"),
 
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
@@ -396,7 +391,7 @@ func localTestCertificateChainCheckFunc() resource.TestCheckFunc {
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_after", "2019-11-08T19:01:36Z"),
 		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
 		testCheckPEMFormat("data.tls_certificate.test", "certificates.1.cert_pem", PreambleCertificate),
-		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.cert_pem", string(certPEM1)),
+		resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.cert_pem", strings.TrimSpace(testTlsDataSourceCertFromURL01)+"\n"),
 	)
 }
 
