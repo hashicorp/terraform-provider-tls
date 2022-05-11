@@ -13,6 +13,10 @@ BUG FIXES:
 
 * data-source/tls_certificate: Prevent plan differences with the `id` attribute ([#79](https://github.com/hashicorp/terraform-provider-tls/issues/79), [#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
 
+* resource/tls_cert_request: Allow for absent or empty `subject` block ([#209](https://github.com/hashicorp/terraform-provider-tls/pull/209))
+
+* resource/tls_self_signed_cert: Allow for absent or empty `subject` block ([#209](https://github.com/hashicorp/terraform-provider-tls/pull/209))
+
 ## 3.3.0 (April 07, 2022)
 
 NEW FEATURES:
