@@ -5,50 +5,48 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"regexp"
 	"testing"
 
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestCertRequest(t *testing.T) {
+func TestAccResourceCertRequest(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
 			{
-				Config: fmt.Sprintf(`
-                    resource "tls_cert_request" "test1" {
-                        subject {
-                            common_name = "example.com"
-                            organization = "Example, Inc"
-                            organizational_unit = "Department of Terraform Testing"
-                            street_address = ["5879 Cotton Link"]
-                            locality = "Pirate Harbor"
-                            province = "CA"
-                            country = "US"
-                            postal_code = "95559-1227"
-                            serial_number = "2"
-                        }
-
-                        dns_names = [
-                            "example.com",
-                            "example.net",
-                        ]
-
-                        ip_addresses = [
-                            "127.0.0.1",
-                            "127.0.0.2",
-                        ]
-
-                        uris = [
-                            "spiffe://example-trust-domain/workload",
-                            "spiffe://example-trust-domain/workload2",
-                        ]
-
-                        private_key_pem = <<EOT
-%s
-EOT
-                    }
-                `, testPrivateKeyPEM),
+				Config: `
+					resource "tls_private_key" "test1" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test1" {
+						subject {
+							common_name = "example.com"
+							organization = "Example, Inc"
+							organizational_unit = "Department of Terraform Testing"
+							street_address = ["5879 Cotton Link"]
+							locality = "Pirate Harbor"
+							province = "CA"
+							country = "US"
+							postal_code = "95559-1227"
+							serial_number = "2"
+						}
+						dns_names = [
+							"example.com",
+							"example.net",
+						]
+						ip_addresses = [
+							"127.0.0.1",
+							"127.0.0.2",
+						]
+						uris = [
+							"spiffe://example-trust-domain/workload",
+							"spiffe://example-trust-domain/workload2",
+						]
+						private_key_pem = tls_private_key.test1.private_key_pem
+					}
+                `,
 				Check: r.ComposeAggregateTestCheckFunc(
 					testCheckPEMFormat("tls_cert_request.test1", "cert_request_pem", PreambleCertificateRequest),
 					testCheckPEMCertificateRequestSubject("tls_cert_request.test1", "cert_request_pem", &pkix.Name{
@@ -86,16 +84,16 @@ EOT
 			},
 			{
 				Config: fmt.Sprintf(`
-                    resource "tls_cert_request" "test2" {
-                        subject {
-						serial_number = "42"
+					resource "tls_private_key" "test2" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test2" {
+						subject {
+							serial_number = "42"
 						}
-
-                        private_key_pem = <<EOT
-%s
-EOT
-                    }
-                `, testPrivateKeyPEM),
+						private_key_pem = tls_private_key.test2.private_key_pem
+					}
+                `),
 				Check: r.ComposeAggregateTestCheckFunc(
 					testCheckPEMFormat("tls_cert_request.test2", "cert_request_pem", PreambleCertificateRequest),
 					testCheckPEMCertificateRequestSubject("tls_cert_request.test2", "cert_request_pem", &pkix.Name{
@@ -111,7 +109,7 @@ EOT
 }
 
 // TODO Remove this as part of https://github.com/hashicorp/terraform-provider-tls/issues/174
-func TestCertRequest_HandleKeyAlgorithmDeprecation(t *testing.T) {
+func TestAccResourceCertRequest_HandleKeyAlgorithmDeprecation(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
@@ -147,4 +145,113 @@ func TestCertRequest_HandleKeyAlgorithmDeprecation(t *testing.T) {
 		},
 	},
 	)
+}
+
+func TestAccResourceCertRequest_NoSubject(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProviderFactories: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						dns_names = [
+							"pippo.pluto.paperino",
+						]
+						ip_addresses = [
+							"127.0.0.2",
+						]
+						uris = [
+							"disney://pippo.pluto.paperino/minnie",
+						]
+						private_key_pem = tls_private_key.test.private_key_pem
+                    }
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest),
+					testCheckPEMCertificateRequestDNSNames("tls_cert_request.test", "cert_request_pem", []string{
+						"pippo.pluto.paperino",
+					}),
+					testCheckPEMCertificateRequestIPAddresses("tls_cert_request.test", "cert_request_pem", []net.IP{
+						net.ParseIP("127.0.0.2"),
+					}),
+					testCheckPEMCertificateRequestURIs("tls_cert_request.test", "cert_request_pem", []*url.URL{
+						{
+							Scheme: "disney",
+							Host:   "pippo.pluto.paperino",
+							Path:   "minnie",
+						},
+					}),
+				),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {}
+						dns_names = [
+							"pippo.pluto.paperino",
+						]
+						ip_addresses = [
+							"127.0.0.2",
+						]
+						uris = [
+							"disney://pippo.pluto.paperino/minnie",
+						]
+						private_key_pem = tls_private_key.test.private_key_pem
+                    }
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest),
+					testCheckPEMCertificateRequestDNSNames("tls_cert_request.test", "cert_request_pem", []string{
+						"pippo.pluto.paperino",
+					}),
+					testCheckPEMCertificateRequestIPAddresses("tls_cert_request.test", "cert_request_pem", []net.IP{
+						net.ParseIP("127.0.0.2"),
+					}),
+					testCheckPEMCertificateRequestURIs("tls_cert_request.test", "cert_request_pem", []*url.URL{
+						{
+							Scheme: "disney",
+							Host:   "pippo.pluto.paperino",
+							Path:   "minnie",
+						},
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceCertRequest_InvalidConfigs(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProviderFactories: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {}
+						subject {}
+						dns_names = [
+							"pippo.pluto.paperino",
+						]
+						ip_addresses = [
+							"127.0.0.2",
+						]
+						uris = [
+							"disney://pippo.pluto.paperino/minnie",
+						]
+						private_key_pem = tls_private_key.test.private_key_pem
+                    }
+                `,
+				ExpectError: regexp.MustCompile("Too many subject blocks"),
+			},
+		},
+	})
 }
