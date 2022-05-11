@@ -449,43 +449,56 @@ func updateCertificate(_ context.Context, _ *schema.ResourceData, _ interface{})
 	return nil
 }
 
-// distinguishedNamesFromSubjectAttributes it takes a map subject attributes and
-// converts it to a pkix.Name (X.509 distinguished names).
-func distinguishedNamesFromSubjectAttributes(nameMap map[string]interface{}) *pkix.Name {
+// getSubjectDistinguishedNames it looks for the "subject" attribute: if found and non-empty, it returns
+// a *pkix.Name useful for creating x509.Certificate or x509.CertificateRequest.
+func getSubjectDistinguishedNames(d *schema.ResourceData) (*pkix.Name, error) {
+	subjectList := d.Get("subject").([]interface{})
+
+	if len(subjectList) == 0 {
+		// No subject block was provided
+		return nil, nil
+	}
+
+	subject, ok := subjectList[0].(map[string]interface{})
+	if !ok {
+		// Empty subject block was provided
+		return nil, nil
+	}
+
 	result := &pkix.Name{}
 
-	if value := nameMap["common_name"]; value != "" {
+	if value := subject["common_name"]; value != "" {
 		result.CommonName = value.(string)
 	}
-	if value := nameMap["organization"]; value != "" {
+	if value := subject["organization"]; value != "" {
 		result.Organization = []string{value.(string)}
 	}
-	if value := nameMap["organizational_unit"]; value != "" {
+	if value := subject["organizational_unit"]; value != "" {
 		result.OrganizationalUnit = []string{value.(string)}
 	}
-	if value := nameMap["street_address"].([]interface{}); len(value) > 0 {
+	if value := subject["street_address"].([]interface{}); len(value) > 0 {
 		result.StreetAddress = make([]string, len(value))
 		for i, vi := range value {
 			result.StreetAddress[i] = vi.(string)
 		}
 	}
-	if value := nameMap["locality"]; value != "" {
+	if value := subject["locality"]; value != "" {
 		result.Locality = []string{value.(string)}
 	}
-	if value := nameMap["province"]; value != "" {
+	if value := subject["province"]; value != "" {
 		result.Province = []string{value.(string)}
 	}
-	if value := nameMap["country"]; value != "" {
+	if value := subject["country"]; value != "" {
 		result.Country = []string{value.(string)}
 	}
-	if value := nameMap["postal_code"]; value != "" {
+	if value := subject["postal_code"]; value != "" {
 		result.PostalCode = []string{value.(string)}
 	}
-	if value := nameMap["serial_number"]; value != "" {
+	if value := subject["serial_number"]; value != "" {
 		result.SerialNumber = value.(string)
 	}
 
-	return result
+	return result, nil
 }
 
 func parseCertificate(d *schema.ResourceData, pemKey string) (*x509.Certificate, error) {

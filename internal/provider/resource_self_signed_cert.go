@@ -38,19 +38,16 @@ func createSelfSignedCert(_ context.Context, d *schema.ResourceData, _ interface
 		return diag.Errorf("error setting value on key 'key_algorithm': %s", err)
 	}
 
-	subjectConfs := d.Get("subject").([]interface{})
-	if len(subjectConfs) != 1 {
-		return diag.Errorf("must have exactly one 'subject' block")
+	// Look for a 'subject' block
+	subject, err := getSubjectDistinguishedNames(d)
+	if err != nil {
+		return diag.FromErr(err)
 	}
-	subjectConf, ok := subjectConfs[0].(map[string]interface{})
-	if !ok {
-		return diag.Errorf("subject block cannot be empty")
-	}
-	subject := distinguishedNamesFromSubjectAttributes(subjectConf)
 
-	cert := x509.Certificate{
-		Subject:               *subject,
-		BasicConstraintsValid: true,
+	// Add a `Subject` to the `Certificate` only if it was provided
+	cert := x509.Certificate{BasicConstraintsValid: true}
+	if subject != nil {
+		cert.Subject = *subject
 	}
 
 	dnsNamesI := d.Get("dns_names").([]interface{})
