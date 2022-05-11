@@ -249,7 +249,7 @@ func TestAccResourceCertRequest_InvalidConfigs(t *testing.T) {
 						private_key_pem = tls_private_key.test.private_key_pem
                     }
                 `,
-				ExpectError: regexp.MustCompile("Too many subject blocks"),
+				ExpectError: regexp.MustCompile("Too many (list items|subject blocks)"),
 			},
 		},
 	})

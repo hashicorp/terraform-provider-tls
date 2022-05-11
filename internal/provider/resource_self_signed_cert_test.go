@@ -337,7 +337,7 @@ func TestAccResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 						]
 					}
 				`,
-				ExpectError: regexp.MustCompile("Too many subject blocks"),
+				ExpectError: regexp.MustCompile("Too many (list items|subject blocks)"),
 			},
 		},
 	})
