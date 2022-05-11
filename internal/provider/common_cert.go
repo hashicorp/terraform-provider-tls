@@ -451,18 +451,18 @@ func updateCertificate(_ context.Context, _ *schema.ResourceData, _ interface{})
 
 // getSubjectDistinguishedNames it looks for the "subject" attribute: if found and non-empty, it returns
 // a *pkix.Name useful for creating x509.Certificate or x509.CertificateRequest.
-func getSubjectDistinguishedNames(d *schema.ResourceData) (*pkix.Name, error) {
+func getSubjectDistinguishedNames(d *schema.ResourceData) *pkix.Name {
 	subjectList := d.Get("subject").([]interface{})
 
 	if len(subjectList) == 0 {
 		// No subject block was provided
-		return nil, nil
+		return nil
 	}
 
 	subject, ok := subjectList[0].(map[string]interface{})
 	if !ok {
 		// Empty subject block was provided
-		return nil, nil
+		return nil
 	}
 
 	result := &pkix.Name{}
@@ -498,7 +498,7 @@ func getSubjectDistinguishedNames(d *schema.ResourceData) (*pkix.Name, error) {
 		result.SerialNumber = value.(string)
 	}
 
-	return result, nil
+	return result
 }
 
 func parseCertificate(d *schema.ResourceData, pemKey string) (*x509.Certificate, error) {

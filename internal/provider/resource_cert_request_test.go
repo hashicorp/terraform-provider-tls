@@ -2,7 +2,6 @@ package provider
 
 import (
 	"crypto/x509/pkix"
-	"fmt"
 	"net"
 	"net/url"
 	"regexp"
@@ -83,7 +82,7 @@ func TestAccResourceCertRequest(t *testing.T) {
 				),
 			},
 			{
-				Config: fmt.Sprintf(`
+				Config: `
 					resource "tls_private_key" "test2" {
 						algorithm = "ED25519"
 					}
@@ -93,7 +92,7 @@ func TestAccResourceCertRequest(t *testing.T) {
 						}
 						private_key_pem = tls_private_key.test2.private_key_pem
 					}
-                `),
+                `,
 				Check: r.ComposeAggregateTestCheckFunc(
 					testCheckPEMFormat("tls_cert_request.test2", "cert_request_pem", PreambleCertificateRequest),
 					testCheckPEMCertificateRequestSubject("tls_cert_request.test2", "cert_request_pem", &pkix.Name{

@@ -39,10 +39,7 @@ func createSelfSignedCert(_ context.Context, d *schema.ResourceData, _ interface
 	}
 
 	// Look for a 'subject' block
-	subject, err := getSubjectDistinguishedNames(d)
-	if err != nil {
-		return diag.FromErr(err)
-	}
+	subject := getSubjectDistinguishedNames(d)
 
 	// Add a `Subject` to the `Certificate` only if it was provided
 	cert := x509.Certificate{BasicConstraintsValid: true}
