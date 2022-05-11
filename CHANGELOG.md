@@ -2,7 +2,8 @@
 
 NEW FEATURES:
 
-* data-source/tls_certificate: Support for `content`. When used, the provider will read the PEM formatted data directly. ([#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
+* data-source/tls_certificate: New attribute `content` that can be used in alternative to `url`, to provide the certificate in PEM format ([#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
+* data-source/tls_certificate: Objects in the `certificates` chain attribute expose a new attribute `cert_pem` (PEM format) ([#208](https://github.com/hashicorp/terraform-provider-tls/pull/208)).
 
 NOTES:
 

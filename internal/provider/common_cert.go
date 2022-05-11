@@ -522,6 +522,8 @@ func parseCertificateRequest(d *schema.ResourceData, pemKey string) (*x509.Certi
 }
 
 func certificateToMap(cert *x509.Certificate) map[string]interface{} {
+	certPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificate.String(), Bytes: cert.Raw}))
+
 	return map[string]interface{}{
 		"signature_algorithm":  cert.SignatureAlgorithm.String(),
 		"public_key_algorithm": cert.PublicKeyAlgorithm.String(),
@@ -533,6 +535,7 @@ func certificateToMap(cert *x509.Certificate) map[string]interface{} {
 		"not_before":           cert.NotBefore.Format(time.RFC3339),
 		"not_after":            cert.NotAfter.Format(time.RFC3339),
 		"sha1_fingerprint":     fmt.Sprintf("%x", sha1.Sum(cert.Raw)),
+		"cert_pem":             certPem,
 	}
 }
 
