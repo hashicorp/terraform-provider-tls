@@ -164,8 +164,9 @@ func setCertificateSubjectSchema(s map[string]*schema.Schema) {
 
 	s["subject"] = &schema.Schema{
 		Type:     schema.TypeList,
-		Required: true,
+		Optional: true,
 		ForceNew: true,
+		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"organization": {
