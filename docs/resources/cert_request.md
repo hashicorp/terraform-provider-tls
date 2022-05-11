@@ -38,13 +38,13 @@ resource "tls_cert_request" "example" {
 ### Required
 
 - `private_key_pem` (String, Sensitive) Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, that the certificate will belong to. This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) interpolation function. Only an irreversible secure hash of the private key will be stored in the Terraform state.
-- `subject` (Block List, Min: 1) The subject for which a certificate is being requested. The acceptable arguments are all optional and their naming is based upon [Issuer Distinguished Names (RFC5280)](https://tools.ietf.org/html/rfc5280#section-4.1.2.4) section. (see [below for nested schema](#nestedblock--subject))
 
 ### Optional
 
 - `dns_names` (List of String) List of DNS names for which a certificate is being requested (i.e. certificate subjects).
 - `ip_addresses` (List of String) List of IP addresses for which a certificate is being requested (i.e. certificate subjects).
 - `key_algorithm` (String, Deprecated) Name of the algorithm used when generating the private key provided in `private_key_pem`. **NOTE**: this is deprecated and ignored, as the key algorithm is now inferred from the key.
+- `subject` (Block List, Max: 1) The subject for which a certificate is being requested. The acceptable arguments are all optional and their naming is based upon [Issuer Distinguished Names (RFC5280)](https://tools.ietf.org/html/rfc5280#section-4.1.2.4) section. (see [below for nested schema](#nestedblock--subject))
 - `uris` (List of String) List of URIs for which a certificate is being requested (i.e. certificate subjects).
 
 ### Read-Only
