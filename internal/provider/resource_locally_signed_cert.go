@@ -71,6 +71,8 @@ func resourceLocallySignedCert() *schema.Resource {
 }
 
 func createLocallySignedCert(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+
 	certReq, err := parseCertificateRequest(d, "cert_request_pem")
 	if err != nil {
 		return diag.FromErr(err)
@@ -89,6 +91,13 @@ func createLocallySignedCert(_ context.Context, d *schema.ResourceData, _ interf
 	if err != nil {
 		return diag.FromErr(err)
 	}
+	if !caCert.IsCA {
+		diags = append(diags, diag.Diagnostic{
+			Severity: diag.Warning,
+			Summary:  "CA is not a CA",
+			Detail:   "Certificate provided as Authority does not appear to be as much: the resulting certificate might fail validations",
+		})
+	}
 
 	cert := x509.Certificate{
 		Subject:               certReq.Subject,
@@ -98,5 +107,5 @@ func createLocallySignedCert(_ context.Context, d *schema.ResourceData, _ interf
 		BasicConstraintsValid: true,
 	}
 
-	return createCertificate(d, &cert, caCert, certReq.PublicKey, caKey)
+	return append(diags, createCertificate(d, &cert, caCert, certReq.PublicKey, caKey)...)
 }
