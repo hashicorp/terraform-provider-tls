@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -354,6 +355,12 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	}
 
 	if d.Get("is_ca_certificate").(bool) {
+		// NOTE: if the Certificate we are trying to create is a Certificate Authority,
+		// then https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.6 requires
+		// the `.Subject` to contain at least 1 Distinguished Name.
+		if cmp.Equal(template.Subject, pkix.Name{}) {
+			return diag.Errorf("Certificate Subject must contain at least one Distinguished Name when creating Certificate Authority (CA)")
+		}
 		template.IsCA = true
 
 		template.SubjectKeyId, err = generateSubjectKeyID(pub)

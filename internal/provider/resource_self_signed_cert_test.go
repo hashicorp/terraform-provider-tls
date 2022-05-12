@@ -324,7 +324,6 @@ func TestAccResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 					}
 					resource "tls_self_signed_cert" "test" {
 						private_key_pem = tls_private_key.test.private_key_pem
-						is_ca_certificate     = true
 						set_subject_key_id    = true
 						validity_period_hours = 8760
 						subject {}
@@ -338,6 +337,26 @@ func TestAccResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 					}
 				`,
 				ExpectError: regexp.MustCompile("Too many (list items|subject blocks)"),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						is_ca_certificate     = true
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"key_encipherment",
+						]
+						ip_addresses = [
+							"127.0.0.2",
+						]
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Certificate Subject must contain at least one Distinguished Name when creating Certificate Authority \(CA\)`),
 			},
 		},
 	})
@@ -543,7 +562,6 @@ func TestAccResourceSelfSignedCert_NoSubject(t *testing.T) {
 					}
 					resource "tls_self_signed_cert" "test" {
 						private_key_pem = tls_private_key.test.private_key_pem
-						is_ca_certificate     = true
 						set_subject_key_id    = true
 						validity_period_hours = 8760
 						subject {}
@@ -595,7 +613,6 @@ func TestAccResourceSelfSignedCert_NoSubject(t *testing.T) {
 					}
 					resource "tls_self_signed_cert" "test" {
 						private_key_pem = tls_private_key.test.private_key_pem
-						is_ca_certificate     = true
 						set_subject_key_id    = true
 						validity_period_hours = 8760
 						allowed_uses = [

@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"regexp"
 	"testing"
 	"time"
 
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestLocallySignedCert(t *testing.T) {
+func TestAccResourceLocallySignedCert(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
@@ -64,7 +65,7 @@ func TestLocallySignedCert(t *testing.T) {
 	})
 }
 
-func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
+func TestAccResourceLocallySignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
@@ -115,7 +116,7 @@ func TestAccLocallySignedCertRecreatesAfterExpired(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
-func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
+func TestAccResourceLocallySignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
@@ -167,7 +168,7 @@ func TestAccLocallySignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testin
 }
 
 // TODO Remove this as part of https://github.com/hashicorp/terraform-provider-tls/issues/174
-func TestAccLocallySignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
+func TestAccResourceLocallySignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
@@ -411,6 +412,51 @@ func TestAccResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "RSA"),
 					testCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
+			},
+		},
+	})
+}
+
+func TestAccResourceLocallySignedCert_InvalidConfigs(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProviderFactories: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+					}
+					resource "tls_locally_signed_cert" "test" {
+						is_ca_certificate = true
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = [
+							"server_auth",
+							"client_auth",
+						]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Certificate Subject must contain at least one Distinguished Name when creating Certificate Authority \(CA\)`),
 			},
 		},
 	})
