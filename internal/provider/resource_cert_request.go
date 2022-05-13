@@ -61,7 +61,7 @@ func createCertRequest(_ context.Context, d *schema.ResourceData, _ interface{})
 	}
 
 	// Look for a 'subject' block
-	subject := getSubjectDistinguishedNames(d)
+	subject := createSubjectDistinguishedNames(d.Get("subject").([]interface{}))
 
 	// Add a `Subject` to the `Certificate` only if it was provided
 	certReq := x509.CertificateRequest{}

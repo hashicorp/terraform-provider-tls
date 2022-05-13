@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -35,6 +36,12 @@ func testCheckPEMCertificateRequestWith(name, key string, f func(csr *x509.Certi
 func testCheckPEMCertificateRequestSubject(name, key string, expected *pkix.Name) r.TestCheckFunc {
 	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return compareCertSubjects(expected, &csr.Subject)
+	})
+}
+
+func testCheckPEMCertificateRequestNoSubject(name, key string) r.TestCheckFunc {
+	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+		return confirmSubjectIsEmpty(csr.Subject)
 	})
 }
 
@@ -75,6 +82,12 @@ func testCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate)
 func testCheckPEMCertificateSubject(name, key string, expected *pkix.Name) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertSubjects(expected, &crt.Subject)
+	})
+}
+
+func testCheckPEMCertificateNoSubject(name, key string) r.TestCheckFunc {
+	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+		return confirmSubjectIsEmpty(crt.Subject)
 	})
 }
 
@@ -251,6 +264,15 @@ func compareExtKeyUsages(expected, actual []x509.ExtKeyUsage) error {
 		if expected[i] != actual[i] {
 			return fmt.Errorf("incorrect Extended Key Usages: expected %v, got %v", expected, actual)
 		}
+	}
+
+	return nil
+}
+
+func confirmSubjectIsEmpty(subject pkix.Name) error {
+	emptySubject := pkix.Name{}
+	if !cmp.Equal(subject, emptySubject) {
+		return fmt.Errorf("expected an empty Subject but got %v", subject)
 	}
 
 	return nil

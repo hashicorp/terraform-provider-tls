@@ -308,7 +308,7 @@ func TestAccResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T
 						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "ED25519"),
 					testCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
@@ -358,7 +358,7 @@ func TestAccResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) 
 						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "ECDSA"),
 					testCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
@@ -408,7 +408,7 @@ func TestAccResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "RSA"),
 					testCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate),
 				),

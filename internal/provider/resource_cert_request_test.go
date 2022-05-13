@@ -170,6 +170,7 @@ func TestAccResourceCertRequest_NoSubject(t *testing.T) {
                 `,
 				Check: r.ComposeAggregateTestCheckFunc(
 					testCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest),
+					testCheckPEMCertificateRequestNoSubject("tls_cert_request.test", "cert_request_pem"),
 					testCheckPEMCertificateRequestDNSNames("tls_cert_request.test", "cert_request_pem", []string{
 						"pippo.pluto.paperino",
 					}),
@@ -206,6 +207,7 @@ func TestAccResourceCertRequest_NoSubject(t *testing.T) {
                 `,
 				Check: r.ComposeAggregateTestCheckFunc(
 					testCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest),
+					testCheckPEMCertificateRequestNoSubject("tls_cert_request.test", "cert_request_pem"),
 					testCheckPEMCertificateRequestDNSNames("tls_cert_request.test", "cert_request_pem", []string{
 						"pippo.pluto.paperino",
 					}),

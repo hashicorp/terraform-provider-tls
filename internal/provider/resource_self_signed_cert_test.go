@@ -478,7 +478,7 @@ func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 						]
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
 					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
@@ -510,7 +510,7 @@ func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 						]
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ECDSA"),
 					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
@@ -542,7 +542,7 @@ func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 						]
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "RSA"),
 					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
@@ -583,9 +583,10 @@ func TestAccResourceSelfSignedCert_NoSubject(t *testing.T) {
 						]
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
 					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
+					testCheckPEMCertificateNoSubject("tls_self_signed_cert.test", "cert_pem"),
 					testCheckPEMCertificateKeyUsage("tls_self_signed_cert.test", "cert_pem", x509.KeyUsageCertSign|x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature),
 					testCheckPEMCertificateExtKeyUsages("tls_self_signed_cert.test", "cert_pem", []x509.ExtKeyUsage{
 						x509.ExtKeyUsageServerAuth,
@@ -633,9 +634,10 @@ func TestAccResourceSelfSignedCert_NoSubject(t *testing.T) {
 						]
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
 					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
+					testCheckPEMCertificateNoSubject("tls_self_signed_cert.test", "cert_pem"),
 					testCheckPEMCertificateKeyUsage("tls_self_signed_cert.test", "cert_pem", x509.KeyUsageCertSign|x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature),
 					testCheckPEMCertificateExtKeyUsages("tls_self_signed_cert.test", "cert_pem", []x509.ExtKeyUsage{
 						x509.ExtKeyUsageServerAuth,

@@ -456,11 +456,9 @@ func updateCertificate(_ context.Context, _ *schema.ResourceData, _ interface{})
 	return nil
 }
 
-// getSubjectDistinguishedNames it looks for the "subject" attribute: if found and non-empty, it returns
-// a *pkix.Name useful for creating x509.Certificate or x509.CertificateRequest.
-func getSubjectDistinguishedNames(d *schema.ResourceData) *pkix.Name {
-	subjectList := d.Get("subject").([]interface{})
-
+// createSubjectDistinguishedNames return a *pkix.Name (i.e. a "Certificate Subject") if the non-empty.
+// This used for creating x509.Certificate or x509.CertificateRequest.
+func createSubjectDistinguishedNames(subjectList []interface{}) *pkix.Name {
 	if len(subjectList) == 0 {
 		// No subject block was provided
 		return nil
