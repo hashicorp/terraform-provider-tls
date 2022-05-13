@@ -94,8 +94,8 @@ func createLocallySignedCert(_ context.Context, d *schema.ResourceData, _ interf
 	if !caCert.IsCA {
 		diags = append(diags, diag.Diagnostic{
 			Severity: diag.Warning,
-			Summary:  "CA is not a CA",
-			Detail:   "Certificate provided as Authority does not appear to be as much: the resulting certificate might fail validations",
+			Summary:  "Potentially Invalid Certificate Authority",
+			Detail:   "Certificate provided as Authority does not appear to be a valid Certificate Authority. The resulting certificate might fail certificate validation.",
 		})
 	}
 
