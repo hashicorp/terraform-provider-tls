@@ -354,7 +354,7 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 		}
 	}
 
-	if d.Get("is_ca_certificate").(bool) {
+	if isCaCertificate, ok := d.GetOk("is_ca_certificate"); ok && isCaCertificate.(bool) {
 		// NOTE: if the Certificate we are trying to create is a Certificate Authority,
 		// then https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.6 requires
 		// the `.Subject` to contain at least 1 Distinguished Name.
@@ -369,11 +369,19 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 		}
 	}
 
-	if d.Get("set_subject_key_id").(bool) {
+	if setSubjectKeyId, ok := d.GetOk("set_subject_key_id"); ok && setSubjectKeyId.(bool) {
 		template.SubjectKeyId, err = generateSubjectKeyID(pub)
 		if err != nil {
 			return diag.Errorf("failed to set subject key identifier: %s", err)
 		}
+	}
+
+	if setAuthorityKeyId, ok := d.GetOk("set_authority_key_id"); ok && setAuthorityKeyId.(bool) {
+		if len(parent.SubjectKeyId) == 0 {
+			return diag.Errorf("could not determine the Authority Key Identifier from the Certificate Authority")
+		}
+
+		template.AuthorityKeyId = parent.SubjectKeyId
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, prv)

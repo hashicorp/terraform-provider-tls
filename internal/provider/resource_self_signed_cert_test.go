@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"bytes"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
@@ -250,7 +249,7 @@ func TestAccResourceSelfSignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *
 	overridableTimeFunc = oldNow
 }
 
-func TestAccResourceSelfSignedCert_SetSubjectKeyID(t *testing.T) {
+func TestAccResourceSelfSignedCert_KeyIDs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
@@ -269,14 +268,30 @@ func TestAccResourceSelfSignedCert_SetSubjectKeyID(t *testing.T) {
 EOT
 					}
 				`, testPrivateKeyPEM),
-				Check: testCheckPEMCertificateWith("tls_self_signed_cert.test", "cert_pem", func(cert *x509.Certificate) error {
-					got := cert.SubjectKeyId
-					want := []byte{207, 81, 38, 63, 172, 18, 241, 109, 195, 169, 6, 109, 237, 6, 18, 214, 52, 231, 17, 222}
-					if !bytes.Equal(got, want) {
-						return fmt.Errorf("incorrect subject key id\ngot:  %v\nwant: %v", got, want)
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMCertificateSubjectKeyID("tls_self_signed_cert.test", "cert_pem", testPrivateKeyPEMSubjectKeyID),
+					testCheckPEMCertificateAuthorityKeyID("tls_self_signed_cert.test", "cert_pem", nil),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							serial_number = "42"
+						}
+						validity_period_hours = 1
+						allowed_uses = []
+						set_subject_key_id = true
+						set_authority_key_id = true
+						private_key_pem = <<EOT
+%s
+EOT
 					}
-					return nil
-				}),
+				`, testPrivateKeyPEM),
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMCertificateSubjectKeyID("tls_self_signed_cert.test", "cert_pem", testPrivateKeyPEMSubjectKeyID),
+					testCheckPEMCertificateAuthorityKeyID("tls_self_signed_cert.test", "cert_pem", testPrivateKeyPEMSubjectKeyID),
+				),
 			},
 		},
 	})
@@ -357,6 +372,22 @@ func TestAccResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 					}
 				`,
 				ExpectError: regexp.MustCompile(`Certificate Subject must contain at least one Distinguished Name when creating Certificate Authority \(CA\)`),
+			},
+			{
+				Config: fmt.Sprintf(`
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							serial_number = "42"
+						}
+						validity_period_hours = 1
+						allowed_uses = []
+						set_authority_key_id = true
+						private_key_pem = <<EOT
+%s
+EOT
+					}
+				`, testPrivateKeyPEM),
+				ExpectError: regexp.MustCompile("could not determine the Authority Key Identifier from the Certificate Authority"),
 			},
 		},
 	})
