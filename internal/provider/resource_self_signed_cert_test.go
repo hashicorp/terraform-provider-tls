@@ -14,7 +14,7 @@ import (
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestSelfSignedCert(t *testing.T) {
+func TestAccResourceSelfSignedCert(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
@@ -91,7 +91,7 @@ EOT
 }
 
 // TODO Remove this as part of https://github.com/hashicorp/terraform-provider-tls/issues/174
-func TestSelfSignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
+func TestAccResourceSelfSignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
@@ -142,7 +142,7 @@ func TestSelfSignedCert_HandleKeyAlgorithmDeprecation(t *testing.T) {
 	})
 }
 
-func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
+func TestAccResourceSelfSignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
@@ -196,7 +196,7 @@ func TestAccSelfSignedCertRecreatesAfterExpired(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
-func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
+func TestAccResourceSelfSignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
@@ -250,7 +250,7 @@ func TestAccSelfSignedCertNotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T
 	overridableTimeFunc = oldNow
 }
 
-func TestAccSelfSignedCertSetSubjectKeyID(t *testing.T) {
+func TestAccResourceSelfSignedCert_SetSubjectKeyID(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		PreCheck:          setTimeForTest("2019-06-14T12:00:00Z"),
@@ -282,7 +282,7 @@ EOT
 	})
 }
 
-func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
+func TestAccResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
 		Steps: []r.TestStep{
@@ -316,6 +316,47 @@ func TestAccSelfSignedCert_InvalidConfigs(t *testing.T) {
 					}
 				`,
 				ExpectError: regexp.MustCompile(`expected early_renewal_hours to be at least \(0\), got -10`),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						subject {}
+						subject {}
+						allowed_uses = [
+							"key_encipherment",
+						]
+						ip_addresses = [
+							"127.0.0.2",
+						]
+					}
+				`,
+				ExpectError: regexp.MustCompile("Too many (list items|subject blocks)"),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						is_ca_certificate     = true
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"key_encipherment",
+						]
+						ip_addresses = [
+							"127.0.0.2",
+						]
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Certificate Subject must contain at least one Distinguished Name when creating Certificate Authority \(CA\)`),
 			},
 		},
 	})
@@ -437,7 +478,7 @@ func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 						]
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
 					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
@@ -469,7 +510,7 @@ func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 						]
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ECDSA"),
 					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
 				),
@@ -477,6 +518,7 @@ func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 		},
 	})
 }
+
 func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProviderFactories: testProviders,
@@ -500,9 +542,120 @@ func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 						]
 					}
 				`,
-				Check: r.ComposeTestCheckFunc(
+				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "RSA"),
 					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceSelfSignedCert_NoSubject(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProviderFactories: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						subject {}
+						allowed_uses = [
+							"key_encipherment",
+							"digital_signature",
+							"server_auth",
+							"client_auth",
+							"cert_signing",
+						]
+						dns_names = [
+							"pippo.pluto.paperino",
+						]
+						ip_addresses = [
+							"127.0.0.2",
+						]
+						uris = [
+							"disney://pippo.pluto.paperino/minnie",
+						]
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
+					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
+					testCheckPEMCertificateNoSubject("tls_self_signed_cert.test", "cert_pem"),
+					testCheckPEMCertificateKeyUsage("tls_self_signed_cert.test", "cert_pem", x509.KeyUsageCertSign|x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature),
+					testCheckPEMCertificateExtKeyUsages("tls_self_signed_cert.test", "cert_pem", []x509.ExtKeyUsage{
+						x509.ExtKeyUsageServerAuth,
+						x509.ExtKeyUsageClientAuth,
+					}),
+					testCheckPEMCertificateDNSNames("tls_self_signed_cert.test", "cert_pem", []string{
+						"pippo.pluto.paperino",
+					}),
+					testCheckPEMCertificateIPAddresses("tls_self_signed_cert.test", "cert_pem", []net.IP{
+						net.ParseIP("127.0.0.2"),
+					}),
+					testCheckPEMCertificateURIs("tls_self_signed_cert.test", "cert_pem", []*url.URL{
+						{
+							Scheme: "disney",
+							Host:   "pippo.pluto.paperino",
+							Path:   "minnie",
+						},
+					}),
+				),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"key_encipherment",
+							"digital_signature",
+							"server_auth",
+							"client_auth",
+							"cert_signing",
+						]
+						dns_names = [
+							"pippo.pluto.paperino",
+						]
+						ip_addresses = [
+							"127.0.0.2",
+						]
+						uris = [
+							"disney://pippo.pluto.paperino/minnie",
+						]
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ED25519"),
+					testCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate),
+					testCheckPEMCertificateNoSubject("tls_self_signed_cert.test", "cert_pem"),
+					testCheckPEMCertificateKeyUsage("tls_self_signed_cert.test", "cert_pem", x509.KeyUsageCertSign|x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature),
+					testCheckPEMCertificateExtKeyUsages("tls_self_signed_cert.test", "cert_pem", []x509.ExtKeyUsage{
+						x509.ExtKeyUsageServerAuth,
+						x509.ExtKeyUsageClientAuth,
+					}),
+					testCheckPEMCertificateDNSNames("tls_self_signed_cert.test", "cert_pem", []string{
+						"pippo.pluto.paperino",
+					}),
+					testCheckPEMCertificateIPAddresses("tls_self_signed_cert.test", "cert_pem", []net.IP{
+						net.ParseIP("127.0.0.2"),
+					}),
+					testCheckPEMCertificateURIs("tls_self_signed_cert.test", "cert_pem", []*url.URL{
+						{
+							Scheme: "disney",
+							Host:   "pippo.pluto.paperino",
+							Path:   "minnie",
+						},
+					}),
 				),
 			},
 		},

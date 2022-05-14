@@ -8,6 +8,7 @@ install: build
 
 # See https://golangci-lint.run/
 lint:
+	golangci-lint cache clean
 	golangci-lint run
 
 generate:

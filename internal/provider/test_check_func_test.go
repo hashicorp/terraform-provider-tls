@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -38,18 +39,27 @@ func testCheckPEMCertificateRequestSubject(name, key string, expected *pkix.Name
 	})
 }
 
+func testCheckPEMCertificateRequestNoSubject(name, key string) r.TestCheckFunc {
+	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+		return confirmSubjectIsEmpty(csr.Subject)
+	})
+}
+
+//nolint:unparam // `key` parameter always receives `cert_request_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateRequestDNSNames(name, key string, expected []string) r.TestCheckFunc {
 	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return compareCertDNSNames(expected, csr.DNSNames)
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_request_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateRequestIPAddresses(name, key string, expected []net.IP) r.TestCheckFunc {
 	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return compareCertIPAddresses(expected, csr.IPAddresses)
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_request_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateRequestURIs(name, key string, expected []*url.URL) r.TestCheckFunc {
 	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return compareCertURIs(expected, csr.URIs)
@@ -72,6 +82,12 @@ func testCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate)
 func testCheckPEMCertificateSubject(name, key string, expected *pkix.Name) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertSubjects(expected, &crt.Subject)
+	})
+}
+
+func testCheckPEMCertificateNoSubject(name, key string) r.TestCheckFunc {
+	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+		return confirmSubjectIsEmpty(crt.Subject)
 	})
 }
 
@@ -248,6 +264,15 @@ func compareExtKeyUsages(expected, actual []x509.ExtKeyUsage) error {
 		if expected[i] != actual[i] {
 			return fmt.Errorf("incorrect Extended Key Usages: expected %v, got %v", expected, actual)
 		}
+	}
+
+	return nil
+}
+
+func confirmSubjectIsEmpty(subject pkix.Name) error {
+	emptySubject := pkix.Name{}
+	if !cmp.Equal(subject, emptySubject) {
+		return fmt.Errorf("expected an empty Subject but got %v", subject)
 	}
 
 	return nil

@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -164,8 +165,9 @@ func setCertificateSubjectSchema(s map[string]*schema.Schema) {
 
 	s["subject"] = &schema.Schema{
 		Type:     schema.TypeList,
-		Required: true,
+		Optional: true,
 		ForceNew: true,
+		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
 				"organization": {
@@ -353,6 +355,12 @@ func createCertificate(d *schema.ResourceData, template, parent *x509.Certificat
 	}
 
 	if d.Get("is_ca_certificate").(bool) {
+		// NOTE: if the Certificate we are trying to create is a Certificate Authority,
+		// then https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.6 requires
+		// the `.Subject` to contain at least 1 Distinguished Name.
+		if cmp.Equal(template.Subject, pkix.Name{}) {
+			return diag.Errorf("Certificate Subject must contain at least one Distinguished Name when creating Certificate Authority (CA)")
+		}
 		template.IsCA = true
 
 		template.SubjectKeyId, err = generateSubjectKeyID(pub)
@@ -448,39 +456,50 @@ func updateCertificate(_ context.Context, _ *schema.ResourceData, _ interface{})
 	return nil
 }
 
-// distinguishedNamesFromSubjectAttributes it takes a map subject attributes and
-// converts it to a pkix.Name (X.509 distinguished names).
-func distinguishedNamesFromSubjectAttributes(nameMap map[string]interface{}) *pkix.Name {
+// createSubjectDistinguishedNames return a *pkix.Name (i.e. a "Certificate Subject") if the non-empty.
+// This used for creating x509.Certificate or x509.CertificateRequest.
+func createSubjectDistinguishedNames(subjectList []interface{}) *pkix.Name {
+	if len(subjectList) == 0 {
+		// No subject block was provided
+		return nil
+	}
+
+	subject, ok := subjectList[0].(map[string]interface{})
+	if !ok {
+		// Empty subject block was provided
+		return nil
+	}
+
 	result := &pkix.Name{}
 
-	if value := nameMap["common_name"]; value != "" {
+	if value := subject["common_name"]; value != "" {
 		result.CommonName = value.(string)
 	}
-	if value := nameMap["organization"]; value != "" {
+	if value := subject["organization"]; value != "" {
 		result.Organization = []string{value.(string)}
 	}
-	if value := nameMap["organizational_unit"]; value != "" {
+	if value := subject["organizational_unit"]; value != "" {
 		result.OrganizationalUnit = []string{value.(string)}
 	}
-	if value := nameMap["street_address"].([]interface{}); len(value) > 0 {
+	if value := subject["street_address"].([]interface{}); len(value) > 0 {
 		result.StreetAddress = make([]string, len(value))
 		for i, vi := range value {
 			result.StreetAddress[i] = vi.(string)
 		}
 	}
-	if value := nameMap["locality"]; value != "" {
+	if value := subject["locality"]; value != "" {
 		result.Locality = []string{value.(string)}
 	}
-	if value := nameMap["province"]; value != "" {
+	if value := subject["province"]; value != "" {
 		result.Province = []string{value.(string)}
 	}
-	if value := nameMap["country"]; value != "" {
+	if value := subject["country"]; value != "" {
 		result.Country = []string{value.(string)}
 	}
-	if value := nameMap["postal_code"]; value != "" {
+	if value := subject["postal_code"]; value != "" {
 		result.PostalCode = []string{value.(string)}
 	}
-	if value := nameMap["serial_number"]; value != "" {
+	if value := subject["serial_number"]; value != "" {
 		result.SerialNumber = value.(string)
 	}
 

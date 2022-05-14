@@ -5,6 +5,10 @@ NEW FEATURES:
 * data-source/tls_certificate: New attribute `content` that can be used in alternative to `url`, to provide the certificate in PEM format ([#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
 * data-source/tls_certificate: Objects in the `certificates` chain attribute expose a new attribute `cert_pem` (PEM format) ([#208](https://github.com/hashicorp/terraform-provider-tls/pull/208)).
 
+ENHANCEMENTS:
+
+* resource/tls_locally_signed_cert: If CA provided via `ca_cert_pem` is not an actual CA, a warning will be raised, but the certificate will still be created ([#209](https://github.com/hashicorp/terraform-provider-tls/pull/209)). 
+
 NOTES:
 
 * data-source/tls_certificate: The `id` attribute has changed to the hashing of all certificates information in the chain. The first apply of this updated data source may show this difference ([#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
@@ -12,6 +16,10 @@ NOTES:
 BUG FIXES:
 
 * data-source/tls_certificate: Prevent plan differences with the `id` attribute ([#79](https://github.com/hashicorp/terraform-provider-tls/issues/79), [#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
+
+* resource/tls_cert_request: Allow for absent or empty `subject` block ([#209](https://github.com/hashicorp/terraform-provider-tls/pull/209)).
+
+* resource/tls_self_signed_cert: Allow for absent or empty `subject` block ([#209](https://github.com/hashicorp/terraform-provider-tls/pull/209)).
 
 ## 3.3.0 (April 07, 2022)
 

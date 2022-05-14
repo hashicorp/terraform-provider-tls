@@ -15,3 +15,6 @@ linters:
     - tenv
     - unconvert
     - unparam
+
+run:
+  allow-parallel-runners: true
