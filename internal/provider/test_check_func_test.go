@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"bytes"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -150,6 +151,34 @@ func testCheckPEMCertificateDuration(name, key string, expected time.Duration) r
 
 		return nil
 	})
+}
+
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
+func testCheckPEMCertificateSubjectKeyID(name, key string, expected []byte) r.TestCheckFunc {
+	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+		if !bytes.Equal(crt.SubjectKeyId, expected) {
+			return fmt.Errorf("incorrect Subject Key ID\n  expected: %v\n  got: %v", expected, crt.SubjectKeyId)
+		}
+		return nil
+	})
+}
+
+func testCheckPEMCertificateNoSubjectKeyID(name, key string) r.TestCheckFunc {
+	return testCheckPEMCertificateSubjectKeyID(name, key, nil)
+}
+
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
+func testCheckPEMCertificateAuthorityKeyID(name, key string, expected []byte) r.TestCheckFunc {
+	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+		if !bytes.Equal(crt.AuthorityKeyId, expected) {
+			return fmt.Errorf("incorrect Authority Key ID\n\t\texpected: %v\n\t\tgot: %v", expected, crt.AuthorityKeyId)
+		}
+		return nil
+	})
+}
+
+func testCheckPEMCertificateNoAuthorityKeyID(name, key string) r.TestCheckFunc {
+	return testCheckPEMCertificateAuthorityKeyID(name, key, nil)
 }
 
 func testCheckPEMCertificateAgainstPEMRootCA(name, key string, rootCA []byte) r.TestCheckFunc {

@@ -16,6 +16,16 @@ func resourceSelfSignedCert() *schema.Resource {
 	setCertificateCommonSchema(s)
 	setCertificateSubjectSchema(s)
 
+	s["set_authority_key_id"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		ForceNew: true,
+		Description: "Should the generated certificate include an " +
+			"[authority key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.1): " +
+			"for self-signed certificates this is the same value as the " +
+			"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
+	}
+
 	return &schema.Resource{
 		CreateContext: createSelfSignedCert,
 		DeleteContext: deleteCertificate,

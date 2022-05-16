@@ -174,6 +174,10 @@ DsM3TQL4LuEE9V2lU2L2f3kXKrkYzLJj7R4sGck5Fo/E8eeIFm1Z5FCPcia82N+C
 xDsNFvV3r8TsRH60IxFekKddI+ivepa97SvC4r+69MPyxULHNwDtSL+8T4q01LEP
 VKT7dWjBK3K0xxH0SPCtlqRbGalWz4adNNHazN/x7ebK+WB9ReSM
 -----END CERTIFICATE-----
-
 `
+)
+
+var (
+	testPrivateKeyPEMSubjectKeyID = []byte{207, 81, 38, 63, 172, 18, 241, 109, 195, 169, 6, 109, 237, 6, 18, 214, 52, 231, 17, 222}
+	testCAPrivateKeySubjectKeyID  = []byte{242, 39, 231, 129, 23, 93, 231, 171, 243, 171, 29, 48, 45, 93, 12, 82, 97, 100, 255, 81}
 )

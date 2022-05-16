@@ -59,6 +59,7 @@ func TestAccResourceLocallySignedCert(t *testing.T) {
 					}),
 					testCheckPEMCertificateAgainstPEMRootCA("tls_locally_signed_cert.test", "cert_pem", []byte(testCACert)),
 					testCheckPEMCertificateDuration("tls_locally_signed_cert.test", "cert_pem", time.Hour),
+					testCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", testCAPrivateKeySubjectKeyID),
 				),
 			},
 		},
@@ -214,6 +215,7 @@ func TestAccResourceLocallySignedCert_HandleKeyAlgorithmDeprecation(t *testing.T
 					}),
 					testCheckPEMCertificateAgainstPEMRootCA("tls_locally_signed_cert.test", "cert_pem", []byte(testCACert)),
 					testCheckPEMCertificateDuration("tls_locally_signed_cert.test", "cert_pem", time.Hour),
+					testCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", testCAPrivateKeySubjectKeyID),
 				),
 			},
 		},
@@ -265,6 +267,92 @@ EOT
 %s
 EOT
         }`, testCertRequest, validity, earlyRenewal, testCACert, testCAPrivateKey)
+}
+
+func TestAccResourceLocallySignedCert_KeyIDs(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProviderFactories: testProviders,
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+					resource "tls_locally_signed_cert" "test" {
+						cert_request_pem = <<EOT
+%s
+EOT
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = ["server_auth"]
+						set_subject_key_id = false
+						ca_cert_pem = <<EOT
+%s
+EOT
+						ca_private_key_pem = <<EOT
+%s
+EOT
+                    }`, testCertRequest, testCACert, testCAPrivateKey,
+				),
+				// Even if `set_subject_key_id` is set to `false`, the certificate will still get
+				// an Authority Key Identifier as it's provided by the CA
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMCertificateNoSubjectKeyID("tls_locally_signed_cert.test", "cert_pem"),
+					testCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", testCAPrivateKeySubjectKeyID),
+				),
+			},
+			{
+				Config: fmt.Sprintf(`
+					resource "tls_locally_signed_cert" "test" {
+						cert_request_pem = <<EOT
+%s
+EOT
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = ["server_auth"]
+						set_subject_key_id = true
+						ca_cert_pem = <<EOT
+%s
+EOT
+						ca_private_key_pem = <<EOT
+%s
+EOT
+                    }`, testCertRequest, testCACert, testCAPrivateKey,
+				),
+				Check: r.ComposeAggregateTestCheckFunc(
+					testCheckPEMCertificateSubjectKeyID("tls_locally_signed_cert.test", "cert_pem", testPrivateKeyPEMSubjectKeyID),
+					testCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", testCAPrivateKeySubjectKeyID),
+				),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						validity_period_hours = 8760
+						allowed_uses = ["cert_signing"]
+					}
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+					}
+					resource "tls_locally_signed_cert" "test" {
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = ["server_auth", "client_auth"]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				// NOTE: As the CA used for this certificate is a non-CA self-signed certificate that doesn't
+				// carry a Subject Key Identifier, this is reflected in the child certificate that has no
+				// Authority Key Identifier
+				Check: testCheckPEMCertificateNoAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem"),
+			},
+		},
+	})
 }
 
 func TestAccResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
@@ -433,9 +521,7 @@ func TestAccResourceLocallySignedCert_InvalidConfigs(t *testing.T) {
 						}
 						is_ca_certificate     = true
 						validity_period_hours = 8760
-						allowed_uses = [
-							"cert_signing",
-						]
+						allowed_uses = ["cert_signing"]
 					}
 					resource "tls_private_key" "test" {
 						algorithm = "ED25519"
@@ -447,10 +533,7 @@ func TestAccResourceLocallySignedCert_InvalidConfigs(t *testing.T) {
 						is_ca_certificate = true
 						validity_period_hours = 1
 						early_renewal_hours = 0
-						allowed_uses = [
-							"server_auth",
-							"client_auth",
-						]
+						allowed_uses = ["server_auth", "client_auth"]
 						cert_request_pem = tls_cert_request.test.cert_request_pem
 						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
 						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
