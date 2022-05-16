@@ -294,7 +294,7 @@ EOT
 				// Even if `set_subject_key_id` is set to `false`, the certificate will still get
 				// an Authority Key Identifier as it's provided by the CA
 				Check: r.ComposeAggregateTestCheckFunc(
-					testCheckPEMCertificateSubjectKeyID("tls_locally_signed_cert.test", "cert_pem", nil),
+					testCheckPEMCertificateNoSubjectKeyID("tls_locally_signed_cert.test", "cert_pem"),
 					testCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", testCAPrivateKeySubjectKeyID),
 				),
 			},
@@ -349,7 +349,7 @@ EOT
 				// NOTE: As the CA used for this certificate is a non-CA self-signed certificate that doesn't
 				// carry a Subject Key Identifier, this is reflected in the child certificate that has no
 				// Authority Key Identifier
-				Check: testCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", nil),
+				Check: testCheckPEMCertificateNoAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem"),
 			},
 		},
 	})

@@ -270,7 +270,7 @@ EOT
 				`, testPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
 					testCheckPEMCertificateSubjectKeyID("tls_self_signed_cert.test", "cert_pem", testPrivateKeyPEMSubjectKeyID),
-					testCheckPEMCertificateAuthorityKeyID("tls_self_signed_cert.test", "cert_pem", nil),
+					testCheckPEMCertificateNoAuthorityKeyID("tls_self_signed_cert.test", "cert_pem"),
 				),
 			},
 			{

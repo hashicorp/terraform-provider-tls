@@ -163,6 +163,10 @@ func testCheckPEMCertificateSubjectKeyID(name, key string, expected []byte) r.Te
 	})
 }
 
+func testCheckPEMCertificateNoSubjectKeyID(name, key string) r.TestCheckFunc {
+	return testCheckPEMCertificateSubjectKeyID(name, key, nil)
+}
+
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
 func testCheckPEMCertificateAuthorityKeyID(name, key string, expected []byte) r.TestCheckFunc {
 	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
@@ -171,6 +175,10 @@ func testCheckPEMCertificateAuthorityKeyID(name, key string, expected []byte) r.
 		}
 		return nil
 	})
+}
+
+func testCheckPEMCertificateNoAuthorityKeyID(name, key string) r.TestCheckFunc {
+	return testCheckPEMCertificateAuthorityKeyID(name, key, nil)
 }
 
 func testCheckPEMCertificateAgainstPEMRootCA(name, key string, rootCA []byte) r.TestCheckFunc {
