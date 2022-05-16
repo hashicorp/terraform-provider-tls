@@ -1,9 +1,11 @@
-## 3.4.0 (UNRELEASED)
+## 3.4.0 (May 16, 2022)
 
 NEW FEATURES:
 
 * data-source/tls_certificate: New attribute `content` that can be used in alternative to `url`, to provide the certificate in PEM format ([#189](https://github.com/hashicorp/terraform-provider-tls/pull/189)).
 * data-source/tls_certificate: Objects in the `certificates` chain attribute expose a new attribute `cert_pem` (PEM format) ([#208](https://github.com/hashicorp/terraform-provider-tls/pull/208)).
+
+* resource/tls_self_signed_cert: New attribute `set_authority_key_id` to make the generated certificate include an [authority key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.1) ([#212](https://github.com/hashicorp/terraform-provider-tls/pull/212)).
 
 ENHANCEMENTS:
 
