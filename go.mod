@@ -6,7 +6,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20220328115640-894aeddb713e
 	github.com/elazarl/goproxy/ext v0.0.0-20190711103511-473e67f1d7d2
 	github.com/google/go-cmp v0.5.8
-	github.com/hashicorp/terraform-plugin-docs v0.9.0
+	github.com/hashicorp/terraform-plugin-docs v0.10.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.17.0
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e
 )
