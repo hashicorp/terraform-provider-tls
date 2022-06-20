@@ -27,14 +27,10 @@ jobs:
 
     steps:
 
-    - name: Setup Go
-      uses: actions/setup-go@v3
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
       with:
         go-version: ${{ matrix.go-version }}
-        check-latest: true
-
-    - name: Check out code
-      uses: actions/checkout@v3
 
     - name: Run linters
       uses: golangci/golangci-lint-action@v3
@@ -66,23 +62,17 @@ jobs:
           - windows-latest
           - ubuntu-latest
         terraform:
-          - '0.12.*'
-          - '0.13.*'
-          - '0.14.*'
           - '0.15.*'
           - '1.0.*'
           - '1.1.*'
+          - '1.2.*'
 
     steps:
 
-    - name: Setup Go
-      uses: actions/setup-go@v2
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
       with:
-        go-version: '1.17'
-        check-latest: true
-
-    - name: Check out code
-      uses: actions/checkout@v3
+        go-version-file: 'go.mod'
 
     - name: Setup Terraform ${{ matrix.terraform }}
       uses: hashicorp/setup-terraform@v2
