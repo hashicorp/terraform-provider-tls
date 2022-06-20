@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -11,28 +12,36 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+
 	"golang.org/x/crypto/ssh"
 )
 
 // keyGenerator extracts data from the given *schema.ResourceData,
 // and generates a new public/private key-pair according to the
 // selected algorithm.
-type keyGenerator func(d *schema.ResourceData) (crypto.PrivateKey, error)
+type keyGenerator func(prvKeyConf *privateKeyResourceModel) (crypto.PrivateKey, error)
 
 // keyParser parses a private key from the given []byte,
 // according to the selected algorithm.
 type keyParser func([]byte) (crypto.PrivateKey, error)
 
-// keyGenerators provides a keyGenerator given a specific Algorithm.
 var keyGenerators = map[Algorithm]keyGenerator{
-	RSA: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
-		rsaBits := d.Get("rsa_bits").(int)
-		return rsa.GenerateKey(rand.Reader, rsaBits)
+	RSA: func(prvKeyConf *privateKeyResourceModel) (crypto.PrivateKey, error) {
+		if prvKeyConf.RSABits.IsUnknown() || prvKeyConf.RSABits.IsNull() {
+			return nil, fmt.Errorf("RSA bits curve not provided")
+		}
+
+		return rsa.GenerateKey(rand.Reader, int(prvKeyConf.RSABits.Value))
 	},
-	ECDSA: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
-		curve := ECDSACurve(d.Get("ecdsa_curve").(string))
+	ECDSA: func(prvKeyConf *privateKeyResourceModel) (crypto.PrivateKey, error) {
+		if prvKeyConf.ECDSACurve.IsUnknown() || prvKeyConf.ECDSACurve.IsNull() {
+			return nil, fmt.Errorf("ECDSA curve not provided")
+		}
+
+		curve := ECDSACurve(prvKeyConf.ECDSACurve.Value)
 		switch curve {
 		case P224:
 			return ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
@@ -43,10 +52,10 @@ var keyGenerators = map[Algorithm]keyGenerator{
 		case P521:
 			return ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 		default:
-			return nil, fmt.Errorf("invalid ECDSA curve; supported values are: %v", SupportedECDSACurves())
+			return nil, fmt.Errorf("invalid ECDSA curve; supported values are: %v", supportedECDSACurves())
 		}
 	},
-	ED25519: func(d *schema.ResourceData) (crypto.PrivateKey, error) {
+	ED25519: func(_ *privateKeyResourceModel) (crypto.PrivateKey, error) {
 		_, key, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate ED25519 key: %s", err)
@@ -78,7 +87,7 @@ func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, Algorithm, error
 	}
 
 	// Identify the PEM preamble from the block
-	preamble, err := PEMBlockToPEMPreamble(pemBlock)
+	preamble, err := pemBlockToPEMPreamble(pemBlock)
 	if err != nil {
 		return nil, "", err
 	}
@@ -147,25 +156,39 @@ func privateKeyToAlgorithm(prvKey crypto.PrivateKey) (Algorithm, error) {
 }
 
 // setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
-// encodes related attributes on the given schema.ResourceData.
-func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) diag.Diagnostics {
+// encodes related attributes on the given *tfsdk.State.
+func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.PrivateKey) diag.Diagnostics {
+	var diags diag.Diagnostics
+
 	pubKey, err := privateKeyToPublicKey(prvKey)
 	if err != nil {
-		return diag.Errorf("failed to get public key from private key: %v", err)
+		diags.Append(diag.NewErrorDiagnostic(
+			"Failed to get public key from private key",
+			err.Error(),
+		))
+		return diags
 	}
 	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
-		return diag.Errorf("failed to marshal public key: %v", err)
+		diags.Append(diag.NewErrorDiagnostic(
+			"Failed to marshal public key",
+			err.Error(),
+		))
+		return diags
 	}
 	pubKeyPemBlock := &pem.Block{
 		Type:  PreamblePublicKey.String(),
 		Bytes: pubKeyBytes,
 	}
 
-	d.SetId(hashForState(string(pubKeyBytes)))
+	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), hashForState(string(pubKeyBytes)))...)
+	if diags.HasError() {
+		return diags
+	}
 
-	if err := d.Set("public_key_pem", string(pem.EncodeToMemory(pubKeyPemBlock))); err != nil {
-		return diag.Errorf("error setting value on key 'public_key_pem': %s", err)
+	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("public_key_pem"), string(pem.EncodeToMemory(pubKeyPemBlock)))...)
+	if diags.HasError() {
+		return diags
 	}
 
 	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
@@ -180,16 +203,19 @@ func setPublicKeyAttributes(d *schema.ResourceData, prvKey crypto.PrivateKey) di
 		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
 	}
 
-	if err := d.Set("public_key_openssh", pubKeySSH); err != nil {
-		return diag.Errorf("error setting value on key 'public_key_openssh': %s", err)
+	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("public_key_openssh"), pubKeySSH)...)
+	if diags.HasError() {
+		return diags
 	}
 
-	if err := d.Set("public_key_fingerprint_md5", pubKeySSHFingerprintMD5); err != nil {
-		return diag.Errorf("error setting value on key 'public_key_fingerprint_md5': %s", err)
+	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("public_key_fingerprint_md5"), pubKeySSHFingerprintMD5)...)
+	if diags.HasError() {
+		return diags
 	}
 
-	if err := d.Set("public_key_fingerprint_sha256", pubKeySSHFingerprintSHA256); err != nil {
-		return diag.Errorf("error setting value on key 'public_key_fingerprint_sha256': %s", err)
+	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("public_key_fingerprint_sha256"), pubKeySSHFingerprintSHA256)...)
+	if diags.HasError() {
+		return diags
 	}
 
 	return nil

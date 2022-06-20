@@ -3,6 +3,9 @@ package provider
 import (
 	"encoding/pem"
 	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Algorithm represents a type of private key algorithm.
@@ -18,8 +21,8 @@ func (a Algorithm) String() string {
 	return string(a)
 }
 
-// SupportedAlgorithms returns a slice of Algorithm currently supported by this provider.
-func SupportedAlgorithms() []Algorithm {
+// supportedAlgorithms returns a slice of Algorithm currently supported by this provider.
+func supportedAlgorithms() []Algorithm {
 	return []Algorithm{
 		RSA,
 		ECDSA,
@@ -27,12 +30,22 @@ func SupportedAlgorithms() []Algorithm {
 	}
 }
 
-// SupportedAlgorithmsStr returns the same content of SupportedAlgorithms but as a slice of string.
-func SupportedAlgorithmsStr() []string {
-	supported := SupportedAlgorithms()
+// supportedAlgorithmsStr returns the same content of supportedAlgorithms but as a slice of string.
+func supportedAlgorithmsStr() []string {
+	supported := supportedAlgorithms()
 	supportedStr := make([]string, len(supported))
 	for i := range supported {
-		supportedStr[i] = string(supported[i])
+		supportedStr[i] = supported[i].String()
+	}
+	return supportedStr
+}
+
+// supportedAlgorithmsAttrValue returns the same content of supportedAlgorithms but as a slice of attr.Value.
+func supportedAlgorithmsAttrValue() []attr.Value {
+	supported := supportedAlgorithms()
+	supportedStr := make([]attr.Value, len(supported))
+	for i := range supported {
+		supportedStr[i] = types.String{Value: supported[i].String()}
 	}
 	return supportedStr
 }
@@ -51,8 +64,8 @@ func (e ECDSACurve) String() string {
 	return string(e)
 }
 
-// SupportedECDSACurves returns an array of ECDSACurve currently supported by this provider.
-func SupportedECDSACurves() []ECDSACurve {
+// supportedECDSACurves returns an array of ECDSACurve currently supported by this provider.
+func supportedECDSACurves() []ECDSACurve {
 	return []ECDSACurve{
 		P224,
 		P256,
@@ -61,12 +74,22 @@ func SupportedECDSACurves() []ECDSACurve {
 	}
 }
 
-// SupportedECDSACurvesStr returns the same content of SupportedECDSACurves but as a slice of string.
-func SupportedECDSACurvesStr() []string {
-	supported := SupportedECDSACurves()
+// supportedECDSACurvesStr returns the same content of supportedECDSACurves but as a slice of string.
+func supportedECDSACurvesStr() []string {
+	supported := supportedECDSACurves()
 	supportedStr := make([]string, len(supported))
 	for i := range supported {
-		supportedStr[i] = string(supported[i])
+		supportedStr[i] = supported[i].String()
+	}
+	return supportedStr
+}
+
+// SupportedECDSACurvesAttrValue returns the same content of supportedECDSACurves but as a slice of attr.Value.
+func SupportedECDSACurvesAttrValue() []attr.Value {
+	supported := supportedECDSACurves()
+	supportedStr := make([]attr.Value, len(supported))
+	for i := range supported {
+		supportedStr[i] = types.String{Value: supported[i].String()}
 	}
 	return supportedStr
 }
@@ -93,8 +116,8 @@ func (p PEMPreamble) String() string {
 	return string(p)
 }
 
-// PEMBlockToPEMPreamble takes a pem.Block and returns the related PEMPreamble, if supported.
-func PEMBlockToPEMPreamble(block *pem.Block) (PEMPreamble, error) {
+// pemBlockToPEMPreamble takes a pem.Block and returns the related PEMPreamble, if supported.
+func pemBlockToPEMPreamble(block *pem.Block) (PEMPreamble, error) {
 	switch block.Type {
 	case PreamblePublicKey.String():
 		return PreamblePublicKey, nil
@@ -126,8 +149,8 @@ func (p ProxyScheme) String() string {
 	return string(p)
 }
 
-// SupportedProxySchemes returns an array of ProxyScheme currently supported by this provider.
-func SupportedProxySchemes() []ProxyScheme {
+// supportedProxySchemes returns an array of ProxyScheme currently supported by this provider.
+func supportedProxySchemes() []ProxyScheme {
 	return []ProxyScheme{
 		HTTPProxy,
 		HTTPSProxy,
@@ -135,9 +158,9 @@ func SupportedProxySchemes() []ProxyScheme {
 	}
 }
 
-// SupportedProxySchemesStr returns the same content of SupportedProxySchemes but as a slice of string.
-func SupportedProxySchemesStr() []string {
-	supported := SupportedProxySchemes()
+// supportedProxySchemesStr returns the same content of supportedProxySchemes but as a slice of string.
+func supportedProxySchemesStr() []string {
+	supported := supportedProxySchemes()
 	supportedStr := make([]string, len(supported))
 	for i := range supported {
 		supportedStr[i] = string(supported[i])
@@ -157,17 +180,17 @@ func (p URLScheme) String() string {
 	return string(p)
 }
 
-// SupportedURLSchemes returns an array of URLScheme currently supported by this provider.
-func SupportedURLSchemes() []URLScheme {
+// supportedURLSchemes returns an array of URLScheme currently supported by this provider.
+func supportedURLSchemes() []URLScheme {
 	return []URLScheme{
 		HTTPSScheme,
 		TLSScheme,
 	}
 }
 
-// SupportedURLSchemesStr returns the same content of SupportedURLSchemes but as a slice of string.
-func SupportedURLSchemesStr() []string {
-	supported := SupportedURLSchemes()
+// supportedURLSchemesStr returns the same content of supportedURLSchemes but as a slice of string.
+func supportedURLSchemesStr() []string {
+	supported := supportedURLSchemes()
 	supportedStr := make([]string, len(supported))
 	for i := range supported {
 		supportedStr[i] = string(supported[i])

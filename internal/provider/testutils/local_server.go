@@ -1,4 +1,4 @@
-package provider
+package testutils
 
 import (
 	"log"
@@ -15,8 +15,8 @@ type LocalServerTest struct {
 	server   *http.Server
 }
 
-// newHTTPServer creates an HTTP server that listens on a random port.
-func newHTTPServer() (*LocalServerTest, error) {
+// NewHTTPServer creates an HTTP server that listens on a random port.
+func NewHTTPServer() (*LocalServerTest, error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return nil, err
@@ -30,8 +30,8 @@ func newHTTPServer() (*LocalServerTest, error) {
 	}, nil
 }
 
-// newHTTPProxyServer creates an HTTP Proxy server that listens on a random port.
-func newHTTPProxyServer() (*LocalServerTest, error) {
+// NewHTTPProxyServer creates an HTTP Proxy server that listens on a random port.
+func NewHTTPProxyServer() (*LocalServerTest, error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return nil, err
@@ -46,8 +46,8 @@ func newHTTPProxyServer() (*LocalServerTest, error) {
 	}, nil
 }
 
-// newHTTPProxyServer creates an HTTP Proxy server that listens on a random port and expects HTTP Basic Auth.
-func newHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) (*LocalServerTest, error) {
+// NewHTTPProxyServerWithBasicAuth creates an HTTP Proxy server that listens on a random port and expects HTTP Basic Auth.
+func NewHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) (*LocalServerTest, error) {
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func newHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) 
 
 // ServeTLS makes the server begin listening for TLS client connections.
 func (lst *LocalServerTest) ServeTLS() {
-	err := lst.server.ServeTLS(lst.listener, "testdata/tls_certs/public.pem", "testdata/tls_certs/private.pem")
+	err := lst.server.ServeTLS(lst.listener, "fixtures/public.pem", "fixtures/private.pem")
 	if err != nil {
 		log.Println("Failed to start LocalServerTest with TLS", err)
 	}

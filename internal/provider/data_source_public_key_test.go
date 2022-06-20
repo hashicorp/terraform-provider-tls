@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 )
 
 const (
@@ -28,15 +29,15 @@ data "tls_public_key" "test" {
 
 func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		ProviderFactories: testProviders,
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(configDataSourcePublicKeyViaPEM, testPrivateKeyPEM),
+				Config: fmt.Sprintf(configDataSourcePublicKeyViaPEM, tu.TestPrivateKeyPEM),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(testPublicKeyPEM)+"\n"),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(testPublicKeyOpenSSH)+"\n"),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(testPublicKeyOpenSSHFingerprintMD5)),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(testPublicKeyOpenSSHFingerprintSHA256)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(tu.TestPublicKeyPEM)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(tu.TestPublicKeyOpenSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(tu.TestPublicKeyOpenSSHFingerprintMD5)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(tu.TestPublicKeyOpenSSHFingerprintSHA256)),
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "algorithm", "RSA"),
 				),
 			},
@@ -82,15 +83,15 @@ func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 
 func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		ProviderFactories: testProviders,
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, testPrivateKeyOpenSSHPEM),
+				Config: fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, tu.TestPrivateKeyOpenSSHPEM),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(testPublicKeyPEM)+"\n"),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(testPublicKeyOpenSSH)+"\n"),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(testPublicKeyOpenSSHFingerprintMD5)),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(testPublicKeyOpenSSHFingerprintSHA256)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(tu.TestPublicKeyPEM)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(tu.TestPublicKeyOpenSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(tu.TestPublicKeyOpenSSHFingerprintMD5)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(tu.TestPublicKeyOpenSSHFingerprintSHA256)),
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "algorithm", "RSA"),
 				),
 			},
@@ -135,7 +136,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 
 func TestAccPublicKey_dataSource_errorCases(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		ProviderFactories: testProviders,
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
 				Config: `
@@ -144,14 +145,14 @@ func TestAccPublicKey_dataSource_errorCases(t *testing.T) {
 						private_key_openssh = "does not matter"
 					}
 				`,
-				ExpectError: regexp.MustCompile("Invalid combination of arguments"),
+				ExpectError: regexp.MustCompile("Invalid combination of arguments: more than one attribute set, when only one was expected"),
 			},
 			{
 				Config: `
 					data "tls_public_key" "test" {
 					}
 				`,
-				ExpectError: regexp.MustCompile("Invalid combination of arguments"),
+				ExpectError: regexp.MustCompile("Invalid combination of arguments: no attribute set, when one and only one was expected"),
 			},
 		},
 	})

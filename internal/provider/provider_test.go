@@ -5,13 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
-
-var testProviders = map[string]func() (*schema.Provider, error){
-	"tls": New,
-}
 
 func setTimeForTest(timeStr string) func() {
 	return func() {
@@ -22,26 +19,21 @@ func setTimeForTest(timeStr string) func() {
 	}
 }
 
-func TestProvider(t *testing.T) {
-	provider, err := New()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if err := provider.InternalValidate(); err != nil {
-		t.Fatalf("err: %s", err)
+func protoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {
+	return map[string]func() (tfprotov6.ProviderServer, error){
+		"tls": providerserver.NewProtocol6WithError(New()),
 	}
 }
 
 func TestProvider_InvalidProxyConfig(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		ProviderFactories: testProviders,
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 
 		Steps: []resource.TestStep{
 			{
 				Config: `
 					provider "tls" {
-						proxy {
+						proxy = {
 							url = "https://proxy.host.com"
 							from_env = true
 						}
@@ -50,12 +42,12 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.0.url": conflicts with proxy.0.from_env|"proxy.0.from_env": conflicts with proxy.0.url`),
+				ExpectError: regexp.MustCompile(`"proxy.url" cannot be specified when "proxy.from_env" is specified|"proxy.from_env" cannot be specified when "proxy.url" is specified`),
 			},
 			{
 				Config: `
 					provider "tls" {
-						proxy {
+						proxy = {
 							username = "user"
 						}
 					}
@@ -63,12 +55,12 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile("\"proxy.0.username\": all of `proxy.0.url,proxy.0.username` must be specified"),
+				ExpectError: regexp.MustCompile(`"proxy.url" must be specified when "proxy.username" is specified`),
 			},
 			{
 				Config: `
 					provider "tls" {
-						proxy {
+						proxy = {
 							password = "pwd"
 						}
 					}
@@ -76,12 +68,12 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile("\"proxy.0.password\": all of `proxy.0.password,proxy.0.username` must be"),
+				ExpectError: regexp.MustCompile(`"proxy.username" must be specified when "proxy.password" is specified`),
 			},
 			{
 				Config: `
 					provider "tls" {
-						proxy {
+						proxy = {
 							username = "user"
 							password = "pwd"
 						}
@@ -90,12 +82,12 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile("\"proxy.0.username\": all of `proxy.0.url,proxy.0.username` must be specified"),
+				ExpectError: regexp.MustCompile(`"proxy.url" must be specified when "proxy.username" is specified`),
 			},
 			{
 				Config: `
 					provider "tls" {
-						proxy {
+						proxy = {
 							username = "user"
 							from_env = true
 						}
@@ -104,7 +96,7 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.0.from_env": conflicts with proxy.0.username`),
+				ExpectError: regexp.MustCompile(`"proxy.username" cannot be specified when "proxy.from_env" is specified|"proxy.url" must be specified when "proxy.username" is specified`),
 			},
 		},
 	})

@@ -1,4 +1,4 @@
-package provider
+package testutils
 
 import (
 	"bytes"
@@ -18,11 +18,11 @@ import (
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func testCheckPEMFormat(name, key string, expected PEMPreamble) r.TestCheckFunc {
+func TestCheckPEMFormat(name, key string, expected string) r.TestCheckFunc {
 	return r.TestMatchResourceAttr(name, key, regexp.MustCompile(fmt.Sprintf(`^-----BEGIN %[1]s-----\n(.|\s)+\n-----END %[1]s-----\n$`, expected)))
 }
 
-func testCheckPEMCertificateRequestWith(name, key string, f func(csr *x509.CertificateRequest) error) r.TestCheckFunc {
+func TestCheckPEMCertificateRequestWith(name, key string, f func(csr *x509.CertificateRequest) error) r.TestCheckFunc {
 	return r.TestCheckResourceAttrWith(name, key, func(value string) error {
 		block, _ := pem.Decode([]byte(value))
 		csr, err := x509.ParseCertificateRequest(block.Bytes)
@@ -34,40 +34,40 @@ func testCheckPEMCertificateRequestWith(name, key string, f func(csr *x509.Certi
 	})
 }
 
-func testCheckPEMCertificateRequestSubject(name, key string, expected *pkix.Name) r.TestCheckFunc {
-	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+func TestCheckPEMCertificateRequestSubject(name, key string, expected *pkix.Name) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return compareCertSubjects(expected, &csr.Subject)
 	})
 }
 
-func testCheckPEMCertificateRequestNoSubject(name, key string) r.TestCheckFunc {
-	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+func TestCheckPEMCertificateRequestNoSubject(name, key string) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return confirmSubjectIsEmpty(csr.Subject)
 	})
 }
 
 //nolint:unparam // `key` parameter always receives `cert_request_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateRequestDNSNames(name, key string, expected []string) r.TestCheckFunc {
-	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+func TestCheckPEMCertificateRequestDNSNames(name, key string, expected []string) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return compareCertDNSNames(expected, csr.DNSNames)
 	})
 }
 
 //nolint:unparam // `key` parameter always receives `cert_request_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateRequestIPAddresses(name, key string, expected []net.IP) r.TestCheckFunc {
-	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+func TestCheckPEMCertificateRequestIPAddresses(name, key string, expected []net.IP) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return compareCertIPAddresses(expected, csr.IPAddresses)
 	})
 }
 
 //nolint:unparam // `key` parameter always receives `cert_request_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateRequestURIs(name, key string, expected []*url.URL) r.TestCheckFunc {
-	return testCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+func TestCheckPEMCertificateRequestURIs(name, key string, expected []*url.URL) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
 		return compareCertURIs(expected, csr.URIs)
 	})
 }
 
-func testCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate) error) r.TestCheckFunc {
+func TestCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate) error) r.TestCheckFunc {
 	return r.TestCheckResourceAttrWith(name, key, func(value string) error {
 		block, _ := pem.Decode([]byte(value))
 		crt, err := x509.ParseCertificate(block.Bytes)
@@ -80,42 +80,42 @@ func testCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate)
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateSubject(name, key string, expected *pkix.Name) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateSubject(name, key string, expected *pkix.Name) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertSubjects(expected, &crt.Subject)
 	})
 }
 
-func testCheckPEMCertificateNoSubject(name, key string) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateNoSubject(name, key string) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return confirmSubjectIsEmpty(crt.Subject)
 	})
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateDNSNames(name, key string, expected []string) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateDNSNames(name, key string, expected []string) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertDNSNames(expected, crt.DNSNames)
 	})
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateIPAddresses(name, key string, expected []net.IP) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateIPAddresses(name, key string, expected []net.IP) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertIPAddresses(expected, crt.IPAddresses)
 	})
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateURIs(name, key string, expected []*url.URL) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateURIs(name, key string, expected []*url.URL) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertURIs(expected, crt.URIs)
 	})
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateKeyUsage(name, key string, expected x509.KeyUsage) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateKeyUsage(name, key string, expected x509.KeyUsage) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		if expected != crt.KeyUsage {
 			return fmt.Errorf("incorrect Key Usage: expected %v, got %v", expected, crt.KeyUsage)
 		}
@@ -124,15 +124,15 @@ func testCheckPEMCertificateKeyUsage(name, key string, expected x509.KeyUsage) r
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateExtKeyUsages(name, key string, expected []x509.ExtKeyUsage) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateExtKeyUsages(name, key string, expected []x509.ExtKeyUsage) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareExtKeyUsages(expected, crt.ExtKeyUsage)
 	})
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateDuration(name, key string, expected time.Duration) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(cert *x509.Certificate) error {
+func TestCheckPEMCertificateDuration(name, key string, expected time.Duration) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(cert *x509.Certificate) error {
 		now := time.Now()
 
 		if cert.NotBefore.After(now) {
@@ -154,8 +154,8 @@ func testCheckPEMCertificateDuration(name, key string, expected time.Duration) r
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateSubjectKeyID(name, key string, expected []byte) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateSubjectKeyID(name, key string, expected []byte) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		if !bytes.Equal(crt.SubjectKeyId, expected) {
 			return fmt.Errorf("incorrect Subject Key ID\n  expected: %v\n  got: %v", expected, crt.SubjectKeyId)
 		}
@@ -163,13 +163,13 @@ func testCheckPEMCertificateSubjectKeyID(name, key string, expected []byte) r.Te
 	})
 }
 
-func testCheckPEMCertificateNoSubjectKeyID(name, key string) r.TestCheckFunc {
-	return testCheckPEMCertificateSubjectKeyID(name, key, nil)
+func TestCheckPEMCertificateNoSubjectKeyID(name, key string) r.TestCheckFunc {
+	return TestCheckPEMCertificateSubjectKeyID(name, key, nil)
 }
 
 //nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
-func testCheckPEMCertificateAuthorityKeyID(name, key string, expected []byte) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateAuthorityKeyID(name, key string, expected []byte) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		if !bytes.Equal(crt.AuthorityKeyId, expected) {
 			return fmt.Errorf("incorrect Authority Key ID\n\t\texpected: %v\n\t\tgot: %v", expected, crt.AuthorityKeyId)
 		}
@@ -177,12 +177,12 @@ func testCheckPEMCertificateAuthorityKeyID(name, key string, expected []byte) r.
 	})
 }
 
-func testCheckPEMCertificateNoAuthorityKeyID(name, key string) r.TestCheckFunc {
-	return testCheckPEMCertificateAuthorityKeyID(name, key, nil)
+func TestCheckPEMCertificateNoAuthorityKeyID(name, key string) r.TestCheckFunc {
+	return TestCheckPEMCertificateAuthorityKeyID(name, key, nil)
 }
 
-func testCheckPEMCertificateAgainstPEMRootCA(name, key string, rootCA []byte) r.TestCheckFunc {
-	return testCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+func TestCheckPEMCertificateAgainstPEMRootCA(name, key string, rootCA []byte) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		// Certificate verification must fail if no CA Cert Pool is provided
 		_, err := crt.Verify(x509.VerifyOptions{})
 		if err == nil {
