@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 )
 
-// defaultValueAttributePlanModifier allows to specify a default value (attr.Value) for an attribute.
+// defaultValueAttributePlanModifier specifies a default value (attr.Value) for an attribute.
 type defaultValueAttributePlanModifier struct {
 	DefaultValue attr.Value
 }

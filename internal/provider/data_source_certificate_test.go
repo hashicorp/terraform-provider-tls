@@ -43,6 +43,102 @@ func TestAccDataSourceCertificate_CertificateContent(t *testing.T) {
 	})
 }
 
+// NOTE: Yes, this test is fetching a live certificate.
+// It can potentially break over time, and we will need to keep the
+// data we check against up to date, when that happens.
+func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+
+		Steps: []resource.TestStep{
+			{
+				Config: `
+					data "tls_certificate" "test" {
+					  url = "https://www.terraform.io/"
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "3"),
+
+					// ISRG Root X1
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=DST Root CA X3,O=Digital Signature Trust Co."),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "933c6ddee95c9c41a40f9f50493d82be03ad87bf"),
+
+					// R3
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
+					resource.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=R3,O=Let's Encrypt,C=US"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "true"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "a053375bfe84e8b748782c7cee15827a6af5a405"),
+
+					// terraform.io
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.issuer", "CN=R3,O=Let's Encrypt,C=US"),
+					resource.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.2.issuer", "data.tls_certificate.test", "certificates.1.subject"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.subject", "CN=www.terraform.io"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.is_ca", "false"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.sha1_fingerprint", "128e1d7a24682c43ab04fcf28b873c169fac0d82"),
+				),
+			},
+		},
+	})
+}
+
+// NOTE: Yes, this test is fetching a live certificate.
+// It can potentially break over time, and we will need to keep the
+// data we check against up to date, when that happens.
+func TestTestAccDataSourceCertificate_BadSSL(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+
+		Steps: []resource.TestStep{
+			{
+				Config: `
+					data "tls_certificate" "test" {
+					  url = "https://untrusted-root.badssl.com/"
+					}
+				`,
+				ExpectError: regexp.MustCompile(`certificate signed by unknown authority`),
+			},
+			{
+				Config: `
+					data "tls_certificate" "test" {
+					  url = "https://untrusted-root.badssl.com/"
+					  verify_chain = false
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
+
+					// BadSSL Untrusted Root Certificate Authority
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=BadSSL Untrusted Root Certificate Authority,O=BadSSL,L=San Francisco,ST=California,C=US"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=BadSSL Untrusted Root Certificate Authority,O=BadSSL,L=San Francisco,ST=California,C=US"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "7890c8934d5869b25d2f8d0d646f9a5d7385ba85"),
+
+					// BadSSL
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=BadSSL Untrusted Root Certificate Authority,O=BadSSL,L=San Francisco,ST=California,C=US"),
+					resource.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=*.badssl.com,O=BadSSL,L=San Francisco,ST=California,C=US"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "dfa540cf03c6b61a0d78e6c61dc6ea9823245d4f"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDataSourceCertificate_CertificateContentNegativeTests(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),

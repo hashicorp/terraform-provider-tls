@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
 )
 
@@ -68,7 +67,6 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 			"verify_chain": {
 				Type:     types.BoolType,
 				Optional: true,
-				//Default:       true,
 				Validators: []tfsdk.AttributeValidator{
 					attribute_validation.ConflictsWith(
 						tftypes.NewAttributePath().WithAttributeName("content"),
@@ -169,7 +167,18 @@ func (dst *certificateDataSourceType) NewDataSource(_ context.Context, p tfsdk.P
 
 func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, res *tfsdk.ReadDataSourceResponse) {
 	var newState certificateDataSourceModel
-	req.Config.Get(ctx, &newState)
+	res.Diagnostics.Append(req.Config.Get(ctx, &newState)...)
+	if res.Diagnostics.HasError() {
+		return
+	}
+
+	// Enforce `verify_chain` to `true` if not set.
+	//
+	// NOTE: Currently it's not possible to specify `Default` values against
+	// attributes of Data Sources nor Providers.
+	if newState.VerifyChain.IsNull() {
+		newState.VerifyChain = types.Bool{Value: true}
+	}
 
 	var certs []CertificateModel
 	if !newState.Content.IsNull() && !newState.Content.IsUnknown() {
