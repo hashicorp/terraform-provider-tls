@@ -1,4 +1,4 @@
-## 4.0.0-preview (UNRELEASED)
+## 4.0.0-rc.1 (UNRELEASED)
 
 NOTES:
 
