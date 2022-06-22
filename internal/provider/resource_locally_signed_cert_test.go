@@ -68,6 +68,105 @@ func TestAccResourceLocallySignedCert(t *testing.T) {
 	})
 }
 
+func TestAccResourceLocallySignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion340(),
+				Config:            locallySignedCertConfig(1, 0),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateSubject("tls_locally_signed_cert.test", "cert_pem", &pkix.Name{
+						SerialNumber:       "2",
+						CommonName:         "example.com",
+						Organization:       []string{"Example, Inc"},
+						OrganizationalUnit: []string{"Department of Terraform Testing"},
+						StreetAddress:      []string{"5879 Cotton Link"},
+						Locality:           []string{"Pirate Harbor"},
+						Province:           []string{"CA"},
+						Country:            []string{"US"},
+						PostalCode:         []string{"95559-1227"},
+					}),
+					tu.TestCheckPEMCertificateDNSNames("tls_locally_signed_cert.test", "cert_pem", []string{
+						"example.com",
+						"example.net",
+					}),
+					tu.TestCheckPEMCertificateIPAddresses("tls_locally_signed_cert.test", "cert_pem", []net.IP{
+						net.ParseIP("127.0.0.1"),
+						net.ParseIP("127.0.0.2"),
+					}),
+					tu.TestCheckPEMCertificateURIs("tls_locally_signed_cert.test", "cert_pem", []*url.URL{
+						{
+							Scheme: "spiffe",
+							Host:   "example-trust-domain",
+							Path:   "workload",
+						},
+						{
+							Scheme: "spiffe",
+							Host:   "example-trust-domain",
+							Path:   "workload2",
+						},
+					}),
+					tu.TestCheckPEMCertificateKeyUsage("tls_locally_signed_cert.test", "cert_pem", x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature),
+					tu.TestCheckPEMCertificateExtKeyUsages("tls_locally_signed_cert.test", "cert_pem", []x509.ExtKeyUsage{
+						x509.ExtKeyUsageServerAuth,
+						x509.ExtKeyUsageClientAuth,
+					}),
+					tu.TestCheckPEMCertificateAgainstPEMRootCA("tls_locally_signed_cert.test", "cert_pem", []byte(fixtures.TestCACert)),
+					tu.TestCheckPEMCertificateDuration("tls_locally_signed_cert.test", "cert_pem", time.Hour),
+					tu.TestCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", fixtures.TestCAPrivateKeySubjectKeyID),
+				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config:                   locallySignedCertConfig(1, 0),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateSubject("tls_locally_signed_cert.test", "cert_pem", &pkix.Name{
+						SerialNumber:       "2",
+						CommonName:         "example.com",
+						Organization:       []string{"Example, Inc"},
+						OrganizationalUnit: []string{"Department of Terraform Testing"},
+						StreetAddress:      []string{"5879 Cotton Link"},
+						Locality:           []string{"Pirate Harbor"},
+						Province:           []string{"CA"},
+						Country:            []string{"US"},
+						PostalCode:         []string{"95559-1227"},
+					}),
+					tu.TestCheckPEMCertificateDNSNames("tls_locally_signed_cert.test", "cert_pem", []string{
+						"example.com",
+						"example.net",
+					}),
+					tu.TestCheckPEMCertificateIPAddresses("tls_locally_signed_cert.test", "cert_pem", []net.IP{
+						net.ParseIP("127.0.0.1"),
+						net.ParseIP("127.0.0.2"),
+					}),
+					tu.TestCheckPEMCertificateURIs("tls_locally_signed_cert.test", "cert_pem", []*url.URL{
+						{
+							Scheme: "spiffe",
+							Host:   "example-trust-domain",
+							Path:   "workload",
+						},
+						{
+							Scheme: "spiffe",
+							Host:   "example-trust-domain",
+							Path:   "workload2",
+						},
+					}),
+					tu.TestCheckPEMCertificateKeyUsage("tls_locally_signed_cert.test", "cert_pem", x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature),
+					tu.TestCheckPEMCertificateExtKeyUsages("tls_locally_signed_cert.test", "cert_pem", []x509.ExtKeyUsage{
+						x509.ExtKeyUsageServerAuth,
+						x509.ExtKeyUsageClientAuth,
+					}),
+					tu.TestCheckPEMCertificateAgainstPEMRootCA("tls_locally_signed_cert.test", "cert_pem", []byte(fixtures.TestCACert)),
+					tu.TestCheckPEMCertificateDuration("tls_locally_signed_cert.test", "cert_pem", time.Hour),
+					tu.TestCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", fixtures.TestCAPrivateKeySubjectKeyID),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceLocallySignedCert_DetectExpiringAndExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	r.UnitTest(t, r.TestCase{

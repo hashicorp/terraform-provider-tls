@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 )
 
 const (
@@ -32,12 +32,12 @@ func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(configDataSourcePublicKeyViaPEM, tu.TestPrivateKeyPEM),
+				Config: fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(tu.TestPublicKeyPEM)+"\n"),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(tu.TestPublicKeyOpenSSH)+"\n"),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(tu.TestPublicKeyOpenSSHFingerprintMD5)),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(tu.TestPublicKeyOpenSSHFingerprintSHA256)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintSHA256)),
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "algorithm", "RSA"),
 				),
 			},
@@ -81,17 +81,46 @@ func TestAccPublicKey_dataSource_PEM(t *testing.T) {
 	})
 }
 
+func TestAccPublicKey_dataSource_PEM_UpgradeFromVersion3_4_0(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Steps: []resource.TestStep{
+			{
+				ExternalProviders: providerVersion340(),
+				Config:            fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintSHA256)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "algorithm", "RSA"),
+				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config:                   fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintSHA256)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "algorithm", "RSA"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []resource.TestStep{
 			{
-				Config: fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, tu.TestPrivateKeyOpenSSHPEM),
+				Config: fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, fixtures.TestPrivateKeyOpenSSHPEM),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(tu.TestPublicKeyPEM)+"\n"),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(tu.TestPublicKeyOpenSSH)+"\n"),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(tu.TestPublicKeyOpenSSHFingerprintMD5)),
-					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(tu.TestPublicKeyOpenSSHFingerprintSHA256)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintSHA256)),
 					resource.TestCheckResourceAttr("data.tls_public_key.test", "algorithm", "RSA"),
 				),
 			},
@@ -129,6 +158,35 @@ func TestAccPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 			{
 				Config:      fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, "corrupt"),
 				ExpectError: regexp.MustCompile("ssh: no key found"),
+			},
+		},
+	})
+}
+
+func TestAccPublicKey_dataSource_OpenSSHPEM_UpgradeFromVersion3_4_0(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Steps: []resource.TestStep{
+			{
+				ExternalProviders: providerVersion340(),
+				Config:            fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, fixtures.TestPrivateKeyOpenSSHPEM),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintSHA256)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "algorithm", "RSA"),
+				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config:                   fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, fixtures.TestPrivateKeyOpenSSHPEM),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_sha256", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintSHA256)),
+					resource.TestCheckResourceAttr("data.tls_public_key.test", "algorithm", "RSA"),
+				),
 			},
 		},
 	})

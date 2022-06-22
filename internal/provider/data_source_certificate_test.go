@@ -43,6 +43,62 @@ func TestAccDataSourceCertificate_CertificateContent(t *testing.T) {
 	})
 }
 
+func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+
+		Steps: []resource.TestStep{
+			{
+				ExternalProviders: providerVersion340(),
+				Config: `
+					data "tls_certificate" "test" {
+					  content = file("fixtures/certificate.pem")
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "1"),
+
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.serial_number", "266244246501122064554217434340898012243"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "false"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.version", "3"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=Root CA,O=Test Org,L=Here"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=Child Cert,O=Child Co.,L=Everywhere"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_before", "2019-11-08T09:01:36Z"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_after", "2019-11-08T19:01:36Z"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
+					tu.TestCheckPEMFormat("data.tls_certificate.test", "certificates.0.cert_pem", PreambleCertificate.String()),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.cert_pem", strings.TrimSpace(fixtures.TestTlsDataSourceCertFromContent)+"\n"),
+				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config: `
+					data "tls_certificate" "test" {
+					  content = file("fixtures/certificate.pem")
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "1"),
+
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.serial_number", "266244246501122064554217434340898012243"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "false"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.version", "3"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=Root CA,O=Test Org,L=Here"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=Child Cert,O=Child Co.,L=Everywhere"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_before", "2019-11-08T09:01:36Z"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_after", "2019-11-08T19:01:36Z"),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
+					tu.TestCheckPEMFormat("data.tls_certificate.test", "certificates.0.cert_pem", PreambleCertificate.String()),
+					resource.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.cert_pem", strings.TrimSpace(fixtures.TestTlsDataSourceCertFromContent)+"\n"),
+				),
+			},
+		},
+	})
+}
+
 // NOTE: Yes, this test is fetching a live certificate.
 // It can potentially break over time, and we will need to keep the
 // data we check against up to date, when that happens.

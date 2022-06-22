@@ -55,6 +55,57 @@ func TestPrivateKeyRSA(t *testing.T) {
 	})
 }
 
+func TestPrivateKeyRSA_UpgradeFromVersion3_4_0(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion340(),
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyRSA.String()),
+					r.TestCheckResourceAttrWith("tls_private_key.test", "private_key_pem", func(pem string) error {
+						if len(pem) > 1700 {
+							return fmt.Errorf("private key PEM looks too long for a 2048-bit key (got %v characters)", len(pem))
+						}
+						return nil
+					}),
+					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_openssh", PreamblePrivateKeyOpenSSH.String()),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_openssh", regexp.MustCompile(`^ssh-rsa `)),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", regexp.MustCompile(`^([abcdef\d]{2}:){15}[abcdef\d]{2}`)),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", regexp.MustCompile(`^SHA256:`)),
+				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyRSA.String()),
+					r.TestCheckResourceAttrWith("tls_private_key.test", "private_key_pem", func(pem string) error {
+						if len(pem) > 1700 {
+							return fmt.Errorf("private key PEM looks too long for a 2048-bit key (got %v characters)", len(pem))
+						}
+						return nil
+					}),
+					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_openssh", PreamblePrivateKeyOpenSSH.String()),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_openssh", regexp.MustCompile(`^ssh-rsa `)),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", regexp.MustCompile(`^([abcdef\d]{2}:){15}[abcdef\d]{2}`)),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", regexp.MustCompile(`^SHA256:`)),
+				),
+			},
+		},
+	})
+}
+
 func TestPrivateKeyECDSA(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
@@ -94,11 +145,90 @@ func TestPrivateKeyECDSA(t *testing.T) {
 	})
 }
 
+func TestPrivateKeyECDSA_UpgradeFromVersion3_4_0(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion340(),
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ECDSA"
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyEC.String()),
+					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
+					r.TestCheckResourceAttr("tls_private_key.test", "private_key_openssh", ""),
+					r.TestCheckResourceAttr("tls_private_key.test", "public_key_openssh", ""),
+					r.TestCheckResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", ""),
+					r.TestCheckResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", ""),
+				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ECDSA"
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyEC.String()),
+					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
+					r.TestCheckResourceAttr("tls_private_key.test", "private_key_openssh", ""),
+					r.TestCheckResourceAttr("tls_private_key.test", "public_key_openssh", ""),
+					r.TestCheckResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", ""),
+					r.TestCheckResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", ""),
+				),
+			},
+		},
+	})
+}
+
 func TestPrivateKeyED25519(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
 			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyPKCS8.String()),
+					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_openssh", PreamblePrivateKeyOpenSSH.String()),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_openssh", regexp.MustCompile(`^ssh-ed25519 `)),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", regexp.MustCompile(`^([abcdef\d]{2}:){15}[abcdef\d]{2}`)),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", regexp.MustCompile(`^SHA256:`)),
+				),
+			},
+		},
+	})
+}
+
+func TestPrivateKeyED25519_UpgradeFromVersion3_4_0(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion340(),
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyPKCS8.String()),
+					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
+					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_openssh", PreamblePrivateKeyOpenSSH.String()),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_openssh", regexp.MustCompile(`^ssh-ed25519 `)),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", regexp.MustCompile(`^([abcdef\d]{2}:){15}[abcdef\d]{2}`)),
+					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", regexp.MustCompile(`^SHA256:`)),
+				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "ED25519"
