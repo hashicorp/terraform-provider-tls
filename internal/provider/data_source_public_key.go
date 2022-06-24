@@ -3,50 +3,71 @@ package provider
 import (
 	"context"
 	"crypto"
+	"fmt"
+	"strings"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
 )
 
-func dataSourcePublicKey() *schema.Resource {
-	return &schema.Resource{
-		ReadContext: readDataSourcePublicKey,
+type (
+	publicKeyDataSourceType struct{}
+	publicKeyDataSource     struct{}
+)
 
-		Description: "Get a public key from a PEM-encoded private key.\n\n" +
-			"Use this data source to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
-			"or [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formatted private key, " +
-			"for use in other resources.",
+var (
+	_ tfsdk.DataSourceType = (*publicKeyDataSourceType)(nil)
+	_ tfsdk.DataSource     = (*publicKeyDataSource)(nil)
+)
 
-		Schema: map[string]*schema.Schema{
+func (dst *publicKeyDataSourceType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
+		Attributes: map[string]tfsdk.Attribute{
+			// Required attributes
 			"private_key_pem": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				ExactlyOneOf: []string{"private_key_pem", "private_key_openssh"},
+				Type:      types.StringType,
+				Optional:  true,
+				Sensitive: true,
+				Validators: []tfsdk.AttributeValidator{
+					attribute_validation.ExactlyOneOf(
+						tftypes.NewAttributePath().WithAttributeName("private_key_pem"),
+						tftypes.NewAttributePath().WithAttributeName("private_key_openssh"),
+					),
+				},
 				Description: "The private key (in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format) " +
-					"to extract the public key from. Currently-supported algorithms for keys are `RSA`, `ECDSA` and `ED25519`. " +
-					"This is _mutually exclusive_ with `private_key_openssh`.",
+					"to extract the public key from. " +
+					"This is _mutually exclusive_ with `private_key_openssh`. " +
+					fmt.Sprintf("Currently-supported algorithms for keys are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
 			},
-
 			"private_key_openssh": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				ExactlyOneOf: []string{"private_key_pem", "private_key_openssh"},
+				Type:      types.StringType,
+				Optional:  true,
+				Sensitive: true,
+				Validators: []tfsdk.AttributeValidator{
+					attribute_validation.ExactlyOneOf(
+						tftypes.NewAttributePath().WithAttributeName("private_key_pem"),
+						tftypes.NewAttributePath().WithAttributeName("private_key_openssh"),
+					),
+				},
 				Description: "The private key (in  [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format) " +
-					"to extract the public key from. Currently-supported algorithms for keys are `RSA`, `ECDSA` and `ED25519`. " +
-					"This is _mutually exclusive_ with `private_key_pem`.",
+					"to extract the public key from. " +
+					"This is _mutually exclusive_ with `private_key_pem`. " +
+					fmt.Sprintf("Currently-supported algorithms for keys are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
 			},
 
+			// Computed attributes
 			"algorithm": {
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 				Description: "The name of the algorithm used by the given private key. " +
-					"Possible values are: `RSA`, `ECDSA` and `ED25519`.",
+					fmt.Sprintf("Possible values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
 			},
-
 			"public_key_pem": {
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 				Description: "The public key, in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
@@ -55,66 +76,78 @@ func dataSourcePublicKey() *schema.Resource {
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-
 			"public_key_openssh": {
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 				Description: "The public key, in  [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format. " +
 					"This is also known as ['Authorized Keys'](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
-					"This is populated only if the configured private key is supported: this includes all `RSA` and `ED25519` keys, as well as `ECDSA` keys " +
-					"with curves `P256`, `P384` and `P521`; `ECDSA` with curve `P224` [is not supported](../../docs#limitations). " +
+					"This is not populated for `ECDSA` with curve `P224`, as it is [not supported](../../docs#limitations). " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
 					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
 					"value append a `\\n` at the end of the PEM. " +
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-
 			"public_key_fingerprint_md5": {
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 				Description: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
 					"Only available if the selected private key format is compatible, as per the rules for " +
 					"`public_key_openssh` and [ECDSA P224 limitations](../../docs#limitations).",
 			},
-
 			"public_key_fingerprint_sha256": {
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 				Description: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
 					"Only available if the selected private key format is compatible, as per the rules for " +
 					"`public_key_openssh` and [ECDSA P224 limitations](../../docs#limitations).",
 			},
-
 			"id": {
-				Type:     schema.TypeString,
+				Type:     types.StringType,
 				Computed: true,
 				Description: "Unique identifier for this data source: " +
 					"hexadecimal representation of the SHA1 checksum of the data source.",
 			},
 		},
-	}
+		MarkdownDescription: "Get a public key from a PEM-encoded private key.\n\n" +
+			"Use this data source to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
+			"or [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formatted private key, " +
+			"for use in other resources.",
+	}, nil
 }
 
-func readDataSourcePublicKey(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
+func (dst *publicKeyDataSourceType) NewDataSource(_ context.Context, _ tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
+	return &publicKeyDataSource{}, nil
+}
+
+func (ds *publicKeyDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, res *tfsdk.ReadDataSourceResponse) {
+	tflog.Debug(ctx, "Reading public key resource")
+
 	var prvKey crypto.PrivateKey
 	var algorithm Algorithm
 	var err error
 
 	// Given the use of `ExactlyOneOf` in the Schema, we are guaranteed
 	// that either `private_key_pem` or `private_key_openssh` will be set.
-	if prvKeyArg, ok := d.GetOk("private_key_pem"); ok {
-		prvKey, algorithm, err = parsePrivateKeyPEM([]byte(prvKeyArg.(string)))
-	} else if prvKeyArg, ok := d.GetOk("private_key_openssh"); ok {
-		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.(string)))
+	var prvKeyArg types.String
+	if req.Config.GetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("private_key_pem"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
+		tflog.Debug(ctx, "Parsing private key from PEM")
+		prvKey, algorithm, err = parsePrivateKeyPEM([]byte(prvKeyArg.Value))
+	} else if req.Config.GetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("private_key_openssh"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
+		tflog.Debug(ctx, "Parsing private key from OpenSSH PEM")
+		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.Value))
 	}
 	if err != nil {
-		return diag.FromErr(err)
+		res.Diagnostics.AddError("Unable to parse private key", err.Error())
+		return
 	}
 
-	if err := d.Set("algorithm", algorithm); err != nil {
-		return diag.Errorf("error setting attribute 'algorithm = %s': %v", algorithm, err)
+	tflog.Debug(ctx, "Storing private key algorithm info into the state")
+	res.Diagnostics.Append(res.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("algorithm"), &algorithm)...)
+	if res.Diagnostics.HasError() {
+		return
 	}
 
-	return setPublicKeyAttributes(d, prvKey)
+	tflog.Debug(ctx, "Storing private key's public key info into the state")
+	res.Diagnostics.Append(setPublicKeyAttributes(ctx, &res.State, prvKey)...)
 }

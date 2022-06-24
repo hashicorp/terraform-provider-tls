@@ -44,13 +44,13 @@ resource "tls_locally_signed_cert" "example" {
 
 ### Optional
 
-- `ca_key_algorithm` (String, Deprecated) Name of the algorithm used when generating the private key provided in `ca_private_key_pem`. **NOTE**: this is deprecated and ignored, as the key algorithm is now inferred from the key.
 - `early_renewal_hours` (Number) The resource will consider the certificate to have expired the given number of hours before its actual expiry time. This can be useful to deploy an updated certificate in advance of the expiration of the current certificate. However, the old certificate remains valid until its true expiration time, since this resource does not (and cannot) support certificate revocation. Also, this advance update can only be performed should the Terraform configuration be applied during the early renewal period. (default: `0`)
 - `is_ca_certificate` (Boolean) Is the generated certificate representing a Certificate Authority (CA) (default: `false`).
 - `set_subject_key_id` (Boolean) Should the generated certificate include a [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).
 
 ### Read-Only
 
+- `ca_key_algorithm` (String) Name of the algorithm used when generating the private key provided in `ca_private_key_pem`.
 - `cert_pem` (String) Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 - `id` (String) Unique identifier for this resource: the certificate serial number.
 - `ready_for_renewal` (Boolean) Is the certificate either expired (i.e. beyond the `validity_period_hours`) or ready for an early renewal (i.e. within the `early_renewal_hours`)?

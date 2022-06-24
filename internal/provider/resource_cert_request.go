@@ -5,111 +5,322 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"net"
 	"net/url"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-func resourceCertRequest() *schema.Resource {
-	s := map[string]*schema.Schema{
-		"cert_request_pem": {
-			Type:     schema.TypeString,
-			Computed: true,
-			Description: "The certificate request data in " +
-				"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
-				"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
-				"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
-				"value append a `\\n` at the end of the PEM. " +
-				"In case this disrupts your use case, we recommend using " +
-				"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
+type (
+	certRequestResourceType struct{}
+	certRequestResource     struct{}
+)
+
+var (
+	_ tfsdk.ResourceType = (*certRequestResourceType)(nil)
+	_ tfsdk.Resource     = (*certRequestResource)(nil)
+)
+
+func (rt *certRequestResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return tfsdk.Schema{
+		Attributes: map[string]tfsdk.Attribute{
+			// Required attributes
+			"private_key_pem": {
+				Type:     types.StringType,
+				Required: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					requireReplaceIfStateContainsPEMString(),
+				},
+				Sensitive: true,
+				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
+					"that the certificate will belong to. " +
+					"This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) " +
+					"interpolation function. " +
+					"Only an irreversible secure hash of the private key will be stored in the Terraform state.",
+			},
+
+			// Optional attributes
+			"dns_names": {
+				Type:     types.ListType{ElemType: types.StringType},
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
+				Description: "List of DNS names for which a certificate is being requested (i.e. certificate subjects).",
+			},
+			"ip_addresses": {
+				Type:     types.ListType{ElemType: types.StringType},
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
+				Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
+			},
+			"uris": {
+				Type:     types.ListType{ElemType: types.StringType},
+				Optional: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
+				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
+			},
+
+			// Computed attributes
+			"key_algorithm": {
+				Type:     types.StringType,
+				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+				},
+				Description: "Name of the algorithm used when generating the private key provided in `private_key_pem`. ",
+			},
+			"cert_request_pem": {
+				Type:     types.StringType,
+				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+				},
+				Description: "The certificate request data in " +
+					"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
+					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
+					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
+					"value append a `\\n` at the end of the PEM. " +
+					"In case this disrupts your use case, we recommend using " +
+					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
+			},
+			"id": {
+				Type:     types.StringType,
+				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+				},
+				Description: "Unique identifier for this resource: " +
+					"hexadecimal representation of the SHA1 checksum of the resource.",
+			},
 		},
-
-		"id": {
-			Type:     schema.TypeString,
-			Computed: true,
-			Description: "Unique identifier for this resource: " +
-				"hexadecimal representation of the SHA1 checksum of the resource.",
+		Blocks: map[string]tfsdk.Block{
+			"subject": {
+				NestingMode: tfsdk.BlockNestingModeList,
+				MinItems:    0,
+				MaxItems:    1,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.RequiresReplace(),
+				},
+				Attributes: map[string]tfsdk.Attribute{
+					"organization": {
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `O`",
+					},
+					"common_name": {
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `CN`",
+					},
+					"organizational_unit": {
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `OU`",
+					},
+					"street_address": {
+						Type: types.ListType{
+							ElemType: types.StringType,
+						},
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `STREET`",
+					},
+					"locality": {
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `L`",
+					},
+					"province": {
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `ST`",
+					},
+					"country": {
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `C`",
+					},
+					"postal_code": {
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `PC`",
+					},
+					"serial_number": {
+						Type:     types.StringType,
+						Optional: true,
+						PlanModifiers: []tfsdk.AttributePlanModifier{
+							tfsdk.RequiresReplace(),
+						},
+						Description: "Distinguished name: `SERIALNUMBER`",
+					},
+				},
+				MarkdownDescription: "The subject for which a certificate is being requested. " +
+					"The acceptable arguments are all optional and their naming is based upon " +
+					"[Issuer Distinguished Names (RFC5280)](https://tools.ietf.org/html/rfc5280#section-4.1.2.4) section.",
+			},
 		},
-	}
-	setCertificateSubjectSchema(s)
-
-	return &schema.Resource{
-		CreateContext: createCertRequest,
-		DeleteContext: deleteCertRequest,
-		ReadContext:   readCertRequest,
-
-		Description: "Creates a Certificate Signing Request (CSR) in " +
+		MarkdownDescription: "Creates a Certificate Signing Request (CSR) in " +
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.\n\n" +
 			"PEM is the typical format used to request a certificate from a Certificate Authority (CA).\n\n" +
 			"This resource is intended to be used in conjunction with a Terraform provider " +
 			"for a particular certificate authority in order to provision a new certificate.",
-
-		Schema: s,
-	}
+	}, nil
 }
 
-func createCertRequest(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
-	key, algorithm, err := parsePrivateKeyPEM([]byte(d.Get("private_key_pem").(string)))
+func (rt *certRequestResourceType) NewResource(_ context.Context, _ tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	return &certRequestResource{}, nil
+}
+
+func (r *certRequestResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, res *tfsdk.CreateResourceResponse) {
+	tflog.Debug(ctx, "Creating certificate request resource")
+
+	// Load entire configuration into the model
+	var newState certRequestResourceModel
+	res.Diagnostics.Append(req.Plan.Get(ctx, &newState)...)
+	if res.Diagnostics.HasError() {
+		return
+	}
+	tflog.Debug(ctx, "Loaded certificate request configuration", map[string]interface{}{
+		"certRequestConfig": fmt.Sprintf("%+v", newState),
+	})
+
+	// Parse the Private Key PEM
+	tflog.Debug(ctx, "Parsing Private Key PEM")
+	key, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.Value))
 	if err != nil {
-		return diag.FromErr(err)
+		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
+		return
 	}
 
-	if err := d.Set("key_algorithm", algorithm); err != nil {
-		return diag.Errorf("error setting value on key 'key_algorithm': %s", err)
-	}
+	// Set the Algorithm of the Private Key
+	tflog.Debug(ctx, "Detected key algorithm of private key", map[string]interface{}{
+		"keyAlgorithm": algorithm,
+	})
+	newState.KeyAlgorithm = types.String{Value: algorithm.String()}
 
-	// Look for a 'subject' block
-	subject := createSubjectDistinguishedNames(d.Get("subject").([]interface{}))
-
-	// Add a `Subject` to the `Certificate` only if it was provided
 	certReq := x509.CertificateRequest{}
-	if subject != nil {
-		certReq.Subject = *subject
+
+	// Add a Subject if provided
+	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elems) > 0 {
+		tflog.Debug(ctx, "Adding subject on certificate request", map[string]interface{}{
+			"subject": newState.Subject,
+		})
+
+		subject := make([]certificateSubjectModel, 1)
+		res.Diagnostics.Append(newState.Subject.ElementsAs(ctx, &subject, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		certReq.Subject = createSubjectDistinguishedNames(ctx, subject[0])
 	}
 
-	dnsNamesI := d.Get("dns_names").([]interface{})
-	for _, nameI := range dnsNamesI {
-		certReq.DNSNames = append(certReq.DNSNames, nameI.(string))
-	}
-	ipAddressesI := d.Get("ip_addresses").([]interface{})
-	for _, ipStrI := range ipAddressesI {
-		ip := net.ParseIP(ipStrI.(string))
-		if ip == nil {
-			return diag.Errorf("invalid IP address %#v", ipStrI.(string))
-		}
-		certReq.IPAddresses = append(certReq.IPAddresses, ip)
-	}
-	urisI := d.Get("uris").([]interface{})
-	for _, uriI := range urisI {
-		uri, err := url.Parse(uriI.(string))
-		if err != nil {
-			return diag.Errorf("invalid URI %#v", uriI.(string))
-		}
-		certReq.URIs = append(certReq.URIs, uri)
+	// Add DNS names if provided
+	if !newState.DNSNames.IsNull() && !newState.DNSNames.IsUnknown() {
+		tflog.Debug(ctx, "Adding DNS names on certificate request", map[string]interface{}{
+			"dnsNames": newState.DNSNames,
+		})
+
+		newState.DNSNames.ElementsAs(ctx, &certReq.DNSNames, false)
 	}
 
+	// Add IP addresses if provided
+	if !newState.IPAddresses.IsNull() && !newState.IPAddresses.IsUnknown() {
+		tflog.Debug(ctx, "Adding IP addresses on certificate request", map[string]interface{}{
+			"ipAddresses": newState.IPAddresses,
+		})
+
+		for _, ipElem := range newState.IPAddresses.Elems {
+			ipStr := ipElem.(types.String).Value
+			ip := net.ParseIP(ipStr)
+			if ip == nil {
+				res.Diagnostics.AddError("Invalid IP address", fmt.Sprintf("Failed to parse %#v", ipStr))
+				return
+			}
+			certReq.IPAddresses = append(certReq.IPAddresses, ip)
+		}
+	}
+
+	// Add URIs if provided
+	if !newState.URIs.IsNull() && !newState.URIs.IsUnknown() {
+		tflog.Debug(ctx, "Adding URIs on certificate request", map[string]interface{}{
+			"URIs": newState.URIs,
+		})
+
+		for _, uriElem := range newState.URIs.Elems {
+			uriStr := uriElem.(types.String).Value
+			uri, err := url.Parse(uriStr)
+			if err != nil {
+				res.Diagnostics.AddError("Invalid URI", fmt.Sprintf("Failed to parse %#v: %v", uriStr, err.Error()))
+				return
+			}
+			certReq.URIs = append(certReq.URIs, uri)
+		}
+	}
+
+	// Generate `Certificate Request`
+	tflog.Debug(ctx, "Generating certificate request", map[string]interface{}{
+		"certReq": certReq,
+	})
 	certReqBytes, err := x509.CreateCertificateRequest(rand.Reader, &certReq, key)
 	if err != nil {
-		return diag.Errorf("error creating certificate request: %s", err)
-	}
-	certReqPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes}))
-
-	d.SetId(hashForState(string(certReqBytes)))
-
-	if err := d.Set("cert_request_pem", certReqPem); err != nil {
-		return diag.Errorf("error setting value on key 'cert_request_pem': %s", err)
+		res.Diagnostics.AddError("Error creating certificate request", err.Error())
+		return
 	}
 
-	return nil
+	// Set `Certificate Request PEM` and `ID`
+	newState.CertRequestPEM = types.String{Value: string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes}))}
+	newState.ID = types.String{Value: hashForState(string(certReqBytes))}
+
+	// Finally, set the state
+	tflog.Debug(ctx, "Storing certificate request info into the state")
+	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 
-func deleteCertRequest(_ context.Context, d *schema.ResourceData, _ interface{}) diag.Diagnostics {
-	d.SetId("")
-	return nil
+func (r *certRequestResource) Read(ctx context.Context, _ tfsdk.ReadResourceRequest, _ *tfsdk.ReadResourceResponse) {
+	// NO-OP: all there is to read is in the State, and response is already populated with that.
+	tflog.Debug(ctx, "Reading certificate request from state")
 }
 
-func readCertRequest(_ context.Context, _ *schema.ResourceData, _ interface{}) diag.Diagnostics {
-	return nil
+func (r *certRequestResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, res *tfsdk.UpdateResourceResponse) {
+	tflog.Debug(ctx, "Updating certificate request")
+
+	updatedUsingPlan(ctx, &req, res, &certRequestResourceModel{})
+}
+
+func (r *certRequestResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {
+	// NO-OP: Returning no error is enough for the framework to remove the resource from state.
+	tflog.Debug(ctx, "Removing certificate request key from state")
 }

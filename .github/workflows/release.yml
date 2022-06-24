@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: go-version
-        run: echo "::set-output name=version::$(cat ./.go-version)"
+        run: echo "::set-output name=version::$(cat go.mod | sed -En 's/^go[[:space:]]+([[:digit:].]+)$/\1/p')"
   release-notes:
     runs-on: ubuntu-latest
     steps:

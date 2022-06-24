@@ -19,10 +19,10 @@ website/node_modules
 *.bak
 *~
 .*.swp
-.idea
+.idea/
+*.iws
 *.iml
 *.test
-*.iml
 
 website/vendor
 

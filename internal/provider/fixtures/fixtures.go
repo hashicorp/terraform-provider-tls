@@ -1,7 +1,7 @@
-package provider
+package fixtures
 
 const (
-	testPrivateKeyPEM = `
+	TestPrivateKeyPEM = `
 -----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgQDPLaq43D9C596ko9yQipWUf2FbRhFs18D3wBDBqXLIoP7W3rm5
 S292/JiNPa+mX76IYFF416zTBGG9J5w4d4VFrROn8IuMWqHgdXsCUf2szN7EnJcV
@@ -19,7 +19,7 @@ rpxCHbX0xSJh0s8j7exRHMF8W16DHjjkc265YdWPXWo=
 -----END RSA PRIVATE KEY-----
 `
 
-	testPrivateKeyOpenSSHPEM = `
+	TestPrivateKeyOpenSSHPEM = `
 -----BEGIN OPENSSH PRIVATE KEY-----
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAIEAzy2quNw/QufepKPckIqVlH9hW0YRbNfA98AQwalyyKD+1t65uUtv
@@ -38,7 +38,7 @@ LGSkspXvtpWIiMnVkAAAAAAQID
 -----END OPENSSH PRIVATE KEY-----
 `
 
-	testCertRequest = `
+	TestCertRequest = `
 -----BEGIN CERTIFICATE REQUEST-----
 MIICnjCCAgcCAQAwgcUxCzAJBgNVBAYTAlVTMQswCQYDVQQIEwJDQTEWMBQGA1UE
 BxMNUGlyYXRlIEhhcmJvcjEZMBcGA1UECRMQNTg3OSBDb3R0b24gTGluazETMBEG
@@ -58,19 +58,19 @@ ynTNwKyKaFWqB0r8hTuh60yRA5iBUNrQrpjVS6RuadFXep4fUV1mleVdUWFupzhr
 -----END CERTIFICATE REQUEST-----
 `
 
-	testPublicKeyPEM = `
+	TestPublicKeyPEM = `
 -----BEGIN PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDPLaq43D9C596ko9yQipWUf2Fb
 RhFs18D3wBDBqXLIoP7W3rm5S292/JiNPa+mX76IYFF416zTBGG9J5w4d4VFrROn
 8IuMWqHgdXsCUf2szN7EnJcVBsBzTxxWqz4DjX315vbm/PFOLlKzC0Ngs4h1iDiC
 D9Hk2MajZuFnJiqj1QIDAQAB
 -----END PUBLIC KEY-----`
-	testPublicKeyOpenSSH                  = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDPLaq43D9C596ko9yQipWUf2FbRhFs18D3wBDBqXLIoP7W3rm5S292/JiNPa+mX76IYFF416zTBGG9J5w4d4VFrROn8IuMWqHgdXsCUf2szN7EnJcVBsBzTxxWqz4DjX315vbm/PFOLlKzC0Ngs4h1iDiCD9Hk2MajZuFnJiqj1Q==`
-	testPublicKeyOpenSSHFingerprintMD5    = `62:c2:c6:7a:d0:27:72:e7:0d:bc:4e:97:42:0e:9e:e6`
-	testPublicKeyOpenSSHFingerprintSHA256 = `SHA256:V5XlMMAMdN4T4S2uBqiXBuI2C9VPNG2J8a5r1Vb8Vn8`
+	TestPublicKeyOpenSSH                  = `ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDPLaq43D9C596ko9yQipWUf2FbRhFs18D3wBDBqXLIoP7W3rm5S292/JiNPa+mX76IYFF416zTBGG9J5w4d4VFrROn8IuMWqHgdXsCUf2szN7EnJcVBsBzTxxWqz4DjX315vbm/PFOLlKzC0Ngs4h1iDiCD9Hk2MajZuFnJiqj1Q==`
+	TestPublicKeyOpenSSHFingerprintMD5    = `62:c2:c6:7a:d0:27:72:e7:0d:bc:4e:97:42:0e:9e:e6`
+	TestPublicKeyOpenSSHFingerprintSHA256 = `SHA256:V5XlMMAMdN4T4S2uBqiXBuI2C9VPNG2J8a5r1Vb8Vn8`
 
 	// NOTE: See ../scripts/make-test-ca.tf for a Terraform script to create the following CA Private Key and Certificate.
-	testCAPrivateKey = `
+	TestCAPrivateKey = `
 -----BEGIN RSA PRIVATE KEY-----
 MIICXwIBAAKBgQDl2WBP6QneAgKo+Tlim7iVldMcUVC6AbgTE5+MuDu7/ovwR6ic
 jMcj7UX8Zc8hLV3Kv0QVnqRWbLfEcdF52ZRXQ2D8+DBFnDv1BUkXPfZZv/ZNeP/p
@@ -87,7 +87,7 @@ z8EZuIOXm6sVn8GicyvFwwJBAOBrRWofUnvlqpJnry2kaX8l/JrDl5c0Jd+X9eMz
 XAWTv3RMk1fAo/H84BCCu04JohkBXjBU5Pkop2/0bV9j/ng=
 -----END RSA PRIVATE KEY-----
 `
-	testCACert = `
+	TestCACert = `
 -----BEGIN CERTIFICATE-----
 MIICvjCCAiegAwIBAgIRALLBfPvp1FbuS+9+mLIHscgwDQYJKoZIhvcNAQELBQAw
 ezELMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1QaXJhdGUgSGFy
@@ -107,7 +107,7 @@ UI+cIbsQJcr9i0SADwhqs7XYIcEz9jDqrdezenaXdGtXYg==
 -----END CERTIFICATE-----
 `
 
-	testTlsDataSourceCertFromContent = `
+	TestTlsDataSourceCertFromContent = `
 -----BEGIN CERTIFICATE-----
 MIIDUzCCAjugAwIBAgIRAMhMxtTgTXHTmo6ZU7OafFMwDQYJKoZIhvcNAQELBQAw
 NDENMAsGA1UEBxMESGVyZTERMA8GA1UEChMIVGVzdCBPcmcxEDAOBgNVBAMTB1Jv
@@ -130,7 +130,7 @@ VKT7dWjBK3K0xxH0SPCtlqRbGalWz4adNNHazN/x7ebK+WB9ReSM
 -----END CERTIFICATE-----
 `
 
-	testTlsDataSourceCertFromURL00 = `
+	TestTlsDataSourceCertFromURL00 = `
 -----BEGIN CERTIFICATE-----
 MIIDSTCCAjGgAwIBAgIQLYZHhf04h/2jlZsgJbq/1TANBgkqhkiG9w0BAQsFADA0
 MQ0wCwYDVQQHEwRIZXJlMREwDwYDVQQKEwhUZXN0IE9yZzEQMA4GA1UEAxMHUm9v
@@ -153,7 +153,7 @@ eA3ZUVSXXLsWuPlItoM02+JcMJV82Hfh9w0cYq1Z44eyBJO2EMAkLP0T5GRbWA+R
 -----END CERTIFICATE-----
 `
 
-	testTlsDataSourceCertFromURL01 = `
+	TestTlsDataSourceCertFromURL01 = `
 -----BEGIN CERTIFICATE-----
 MIIDUzCCAjugAwIBAgIRAMhMxtTgTXHTmo6ZU7OafFMwDQYJKoZIhvcNAQELBQAw
 NDENMAsGA1UEBxMESGVyZTERMA8GA1UEChMIVGVzdCBPcmcxEDAOBgNVBAMTB1Jv
@@ -178,6 +178,6 @@ VKT7dWjBK3K0xxH0SPCtlqRbGalWz4adNNHazN/x7ebK+WB9ReSM
 )
 
 var (
-	testPrivateKeyPEMSubjectKeyID = []byte{207, 81, 38, 63, 172, 18, 241, 109, 195, 169, 6, 109, 237, 6, 18, 214, 52, 231, 17, 222}
-	testCAPrivateKeySubjectKeyID  = []byte{242, 39, 231, 129, 23, 93, 231, 171, 243, 171, 29, 48, 45, 93, 12, 82, 97, 100, 255, 81}
+	TestPrivateKeyPEMSubjectKeyID = []byte{207, 81, 38, 63, 172, 18, 241, 109, 195, 169, 6, 109, 237, 6, 18, 214, 52, 231, 17, 222}
+	TestCAPrivateKeySubjectKeyID  = []byte{242, 39, 231, 129, 23, 93, 231, 171, 243, 171, 29, 48, 45, 93, 12, 82, 97, 100, 255, 81}
 )
