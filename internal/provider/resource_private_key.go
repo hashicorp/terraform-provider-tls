@@ -67,7 +67,7 @@ func (rt *privateKeyResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 					attribute_plan_modification.DefaultValue(types.String{Value: P224.String()}),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.OneOf(SupportedECDSACurvesAttrValue()...),
+					attribute_validation.OneOf(supportedECDSACurvesAttrValue()...),
 				},
 				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedECDSACurvesStr(), "`, `")) +

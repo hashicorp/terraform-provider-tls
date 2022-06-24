@@ -109,41 +109,42 @@ func TestResourceCertRequest(t *testing.T) {
 }
 
 func TestAccResourceCertRequest_UpgradeFromVersion3_4_0(t *testing.T) {
-	r.UnitTest(t, r.TestCase{
+	config := `
+		resource "tls_private_key" "test1" {
+			algorithm = "ED25519"
+		}
+		resource "tls_cert_request" "test1" {
+			subject {
+				common_name = "example.com"
+				organization = "Example, Inc"
+				organizational_unit = "Department of Terraform Testing"
+				street_address = ["5879 Cotton Link"]
+				locality = "Pirate Harbor"
+				province = "CA"
+				country = "US"
+				postal_code = "95559-1227"
+				serial_number = "2"
+			}
+			dns_names = [
+				"example.com",
+				"example.net",
+			]
+			ip_addresses = [
+				"127.0.0.1",
+				"127.0.0.2",
+			]
+			uris = [
+				"spiffe://example-trust-domain/workload",
+				"spiffe://example-trust-domain/workload2",
+			]
+			private_key_pem = tls_private_key.test1.private_key_pem
+		}`
+
+	r.Test(t, r.TestCase{
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
-				Config: `
-					resource "tls_private_key" "test1" {
-						algorithm = "ED25519"
-					}
-					resource "tls_cert_request" "test1" {
-						subject {
-							common_name = "example.com"
-							organization = "Example, Inc"
-							organizational_unit = "Department of Terraform Testing"
-							street_address = ["5879 Cotton Link"]
-							locality = "Pirate Harbor"
-							province = "CA"
-							country = "US"
-							postal_code = "95559-1227"
-							serial_number = "2"
-						}
-						dns_names = [
-							"example.com",
-							"example.net",
-						]
-						ip_addresses = [
-							"127.0.0.1",
-							"127.0.0.2",
-						]
-						uris = [
-							"spiffe://example-trust-domain/workload",
-							"spiffe://example-trust-domain/workload2",
-						]
-						private_key_pem = tls_private_key.test1.private_key_pem
-					}
-                `,
+				Config:            config,
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_cert_request.test1", "cert_request_pem", PreambleCertificateRequest.String()),
 					tu.TestCheckPEMCertificateRequestSubject("tls_cert_request.test1", "cert_request_pem", &pkix.Name{
@@ -181,37 +182,13 @@ func TestAccResourceCertRequest_UpgradeFromVersion3_4_0(t *testing.T) {
 			},
 			{
 				ProtoV6ProviderFactories: protoV6ProviderFactories(),
-				Config: `
-					resource "tls_private_key" "test1" {
-						algorithm = "ED25519"
-					}
-					resource "tls_cert_request" "test1" {
-						subject {
-							common_name = "example.com"
-							organization = "Example, Inc"
-							organizational_unit = "Department of Terraform Testing"
-							street_address = ["5879 Cotton Link"]
-							locality = "Pirate Harbor"
-							province = "CA"
-							country = "US"
-							postal_code = "95559-1227"
-							serial_number = "2"
-						}
-						dns_names = [
-							"example.com",
-							"example.net",
-						]
-						ip_addresses = [
-							"127.0.0.1",
-							"127.0.0.2",
-						]
-						uris = [
-							"spiffe://example-trust-domain/workload",
-							"spiffe://example-trust-domain/workload2",
-						]
-						private_key_pem = tls_private_key.test1.private_key_pem
-					}
-                `,
+				Config:                   config,
+				PlanOnly:                 true,
+				ExpectNonEmptyPlan:       true,
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config:                   config,
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_cert_request.test1", "cert_request_pem", PreambleCertificateRequest.String()),
 					tu.TestCheckPEMCertificateRequestSubject("tls_cert_request.test1", "cert_request_pem", &pkix.Name{

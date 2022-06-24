@@ -84,8 +84,8 @@ func supportedECDSACurvesStr() []string {
 	return supportedStr
 }
 
-// SupportedECDSACurvesAttrValue returns the same content of supportedECDSACurves but as a slice of attr.Value.
-func SupportedECDSACurvesAttrValue() []attr.Value {
+// supportedECDSACurvesAttrValue returns the same content of supportedECDSACurves but as a slice of attr.Value.
+func supportedECDSACurvesAttrValue() []attr.Value {
 	supported := supportedECDSACurves()
 	supportedStr := make([]attr.Value, len(supported))
 	for i := range supported {

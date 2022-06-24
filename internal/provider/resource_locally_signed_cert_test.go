@@ -69,7 +69,7 @@ func TestResourceLocallySignedCert(t *testing.T) {
 }
 
 func TestAccResourceLocallySignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
-	r.UnitTest(t, r.TestCase{
+	r.Test(t, r.TestCase{
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
@@ -116,6 +116,12 @@ func TestAccResourceLocallySignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 					tu.TestCheckPEMCertificateDuration("tls_locally_signed_cert.test", "cert_pem", time.Hour),
 					tu.TestCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", fixtures.TestCAPrivateKeySubjectKeyID),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config:                   locallySignedCertConfig(1, 0),
+				PlanOnly:                 true,
+				ExpectNonEmptyPlan:       true,
 			},
 			{
 				ProtoV6ProviderFactories: protoV6ProviderFactories(),
@@ -167,7 +173,7 @@ func TestAccResourceLocallySignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 	})
 }
 
-func TestAccResourceLocallySignedCert_DetectExpiringAndExpired(t *testing.T) {
+func TestResourceLocallySignedCert_DetectExpiringAndExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),

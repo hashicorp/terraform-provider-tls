@@ -91,7 +91,7 @@ EOT
 }
 
 func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
-	r.UnitTest(t, r.TestCase{
+	r.Test(t, r.TestCase{
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
@@ -136,6 +136,12 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 					}),
 					tu.TestCheckPEMCertificateDuration("tls_self_signed_cert.test1", "cert_pem", time.Hour),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config:                   selfSignedCertConfig(1, 0),
+				PlanOnly:                 true,
+				ExpectNonEmptyPlan:       true,
 			},
 			{
 				ProtoV6ProviderFactories: protoV6ProviderFactories(),

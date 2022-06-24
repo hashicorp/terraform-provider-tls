@@ -55,8 +55,8 @@ func TestPrivateKeyRSA(t *testing.T) {
 	})
 }
 
-func TestPrivateKeyRSA_UpgradeFromVersion3_4_0(t *testing.T) {
-	r.UnitTest(t, r.TestCase{
+func TestAccPrivateKeyRSA_UpgradeFromVersion3_4_0(t *testing.T) {
+	r.Test(t, r.TestCase{
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
@@ -79,6 +79,15 @@ func TestPrivateKeyRSA_UpgradeFromVersion3_4_0(t *testing.T) {
 					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", regexp.MustCompile(`^([abcdef\d]{2}:){15}[abcdef\d]{2}`)),
 					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", regexp.MustCompile(`^SHA256:`)),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+					}
+				`,
+				PlanOnly: true,
 			},
 			{
 				ProtoV6ProviderFactories: protoV6ProviderFactories(),
@@ -145,9 +154,8 @@ func TestPrivateKeyECDSA(t *testing.T) {
 	})
 }
 
-func TestPrivateKeyECDSA_UpgradeFromVersion3_4_0(t *testing.T) {
-	r.UnitTest(t, r.TestCase{
-
+func TestAccPrivateKeyECDSA_UpgradeFromVersion3_4_0(t *testing.T) {
+	r.Test(t, r.TestCase{
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
@@ -164,6 +172,15 @@ func TestPrivateKeyECDSA_UpgradeFromVersion3_4_0(t *testing.T) {
 					r.TestCheckResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", ""),
 					r.TestCheckResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", ""),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ECDSA"
+					}
+				`,
+				PlanOnly: true,
 			},
 			{
 				ProtoV6ProviderFactories: protoV6ProviderFactories(),
@@ -208,8 +225,8 @@ func TestPrivateKeyED25519(t *testing.T) {
 	})
 }
 
-func TestPrivateKeyED25519_UpgradeFromVersion3_4_0(t *testing.T) {
-	r.UnitTest(t, r.TestCase{
+func TestAccPrivateKeyED25519_UpgradeFromVersion3_4_0(t *testing.T) {
+	r.Test(t, r.TestCase{
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
@@ -226,6 +243,15 @@ func TestPrivateKeyED25519_UpgradeFromVersion3_4_0(t *testing.T) {
 					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_md5", regexp.MustCompile(`^([abcdef\d]{2}:){15}[abcdef\d]{2}`)),
 					r.TestMatchResourceAttr("tls_private_key.test", "public_key_fingerprint_sha256", regexp.MustCompile(`^SHA256:`)),
 				),
+			},
+			{
+				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+				`,
+				PlanOnly: true,
 			},
 			{
 				ProtoV6ProviderFactories: protoV6ProviderFactories(),
