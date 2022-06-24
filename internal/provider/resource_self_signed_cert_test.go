@@ -15,7 +15,7 @@ import (
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
 
-func TestAccResourceSelfSignedCert(t *testing.T) {
+func TestResourceSelfSignedCert(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -185,7 +185,7 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 	})
 }
 
-func TestAccResourceSelfSignedCert_DetectExpiringAndExpired(t *testing.T) {
+func TestResourceSelfSignedCert_DetectExpiringAndExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
@@ -211,7 +211,7 @@ func TestAccResourceSelfSignedCert_DetectExpiringAndExpired(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
-func TestAccResourceSelfSignedCert_RecreatesAfterExpired(t *testing.T) {
+func TestResourceSelfSignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
@@ -265,7 +265,7 @@ func TestAccResourceSelfSignedCert_RecreatesAfterExpired(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
-func TestAccResourceSelfSignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
+func TestResourceSelfSignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
@@ -319,7 +319,7 @@ func TestAccResourceSelfSignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *
 	overridableTimeFunc = oldNow
 }
 
-func TestAccResourceSelfSignedCert_KeyIDs(t *testing.T) {
+func TestResourceSelfSignedCert_KeyIDs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
@@ -367,7 +367,7 @@ EOT
 	})
 }
 
-func TestAccResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
+func TestResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -510,7 +510,7 @@ EOT
         }`, validity, earlyRenewal, fixtures.TestPrivateKeyPEM)
 }
 
-func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
+func TestResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -540,7 +540,7 @@ func TestAccResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	})
 }
 
-func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
+func TestResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -572,7 +572,7 @@ func TestAccResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	})
 }
 
-func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
+func TestResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -604,7 +604,7 @@ func TestAccResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	})
 }
 
-func TestAccResourceSelfSignedCert_NoSubject(t *testing.T) {
+func TestResourceSelfSignedCert_NoSubject(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{

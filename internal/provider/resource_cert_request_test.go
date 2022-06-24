@@ -11,7 +11,7 @@ import (
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
 
-func TestAccResourceCertRequest(t *testing.T) {
+func TestResourceCertRequest(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -251,7 +251,7 @@ func TestAccResourceCertRequest_UpgradeFromVersion3_4_0(t *testing.T) {
 	})
 }
 
-func TestAccResourceCertRequest_NoSubject(t *testing.T) {
+func TestResourceCertRequest_NoSubject(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -332,7 +332,7 @@ func TestAccResourceCertRequest_NoSubject(t *testing.T) {
 	})
 }
 
-func TestAccResourceCertRequest_InvalidConfigs(t *testing.T) {
+func TestResourceCertRequest_InvalidConfigs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{

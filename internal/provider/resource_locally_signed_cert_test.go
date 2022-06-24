@@ -15,7 +15,7 @@ import (
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
 
-func TestAccResourceLocallySignedCert(t *testing.T) {
+func TestResourceLocallySignedCert(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -193,7 +193,7 @@ func TestAccResourceLocallySignedCert_DetectExpiringAndExpired(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
-func TestAccResourceLocallySignedCert_RecreatesAfterExpired(t *testing.T) {
+func TestResourceLocallySignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
@@ -244,7 +244,7 @@ func TestAccResourceLocallySignedCert_RecreatesAfterExpired(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
-func TestAccResourceLocallySignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
+func TestResourceLocallySignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
@@ -318,7 +318,7 @@ EOT
         }`, fixtures.TestCertRequest, validity, earlyRenewal, fixtures.TestCACert, fixtures.TestCAPrivateKey)
 }
 
-func TestAccResourceLocallySignedCert_KeyIDs(t *testing.T) {
+func TestResourceLocallySignedCert_KeyIDs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -404,7 +404,7 @@ EOT
 	})
 }
 
-func TestAccResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
+func TestResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -454,7 +454,7 @@ func TestAccResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T
 	})
 }
 
-func TestAccResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
+func TestResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -504,7 +504,7 @@ func TestAccResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) 
 	})
 }
 
-func TestAccResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
+func TestResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
@@ -554,7 +554,7 @@ func TestAccResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	})
 }
 
-func TestAccResourceLocallySignedCert_InvalidConfigs(t *testing.T) {
+func TestResourceLocallySignedCert_InvalidConfigs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
 		Steps: []r.TestStep{
