@@ -36,7 +36,7 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Type:     types.StringType,
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					requireReplaceIfStateContainsPEMString(),
 				},
 				Sensitive: true,
 				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
@@ -431,15 +431,7 @@ func (r *selfSignedCertResource) Read(ctx context.Context, _ tfsdk.ReadResourceR
 func (r *selfSignedCertResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, res *tfsdk.UpdateResourceResponse) {
 	tflog.Debug(ctx, "Updating self signed certificate")
 
-	// Read the plan
-	var newState selfSignedCertResourceModel
-	res.Diagnostics.Append(req.Plan.Get(ctx, &newState)...)
-	if res.Diagnostics.HasError() {
-		return
-	}
-
-	// Set it as the new state
-	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
+	updatedUsingPlan(ctx, &req, res, &selfSignedCertResourceModel{})
 }
 
 func (r *selfSignedCertResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {

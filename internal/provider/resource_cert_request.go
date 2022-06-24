@@ -33,7 +33,7 @@ func (rt *certRequestResourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 				Type:     types.StringType,
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					requireReplaceIfStateContainsPEMString(),
 				},
 				Sensitive: true,
 				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
@@ -71,13 +71,19 @@ func (rt *certRequestResourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 
 			// Computed attributes
 			"key_algorithm": {
-				Type:        types.StringType,
-				Computed:    true,
+				Type:     types.StringType,
+				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+				},
 				Description: "Name of the algorithm used when generating the private key provided in `private_key_pem`. ",
 			},
 			"cert_request_pem": {
 				Type:     types.StringType,
 				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+				},
 				Description: "The certificate request data in " +
 					"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
@@ -89,6 +95,9 @@ func (rt *certRequestResourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 			"id": {
 				Type:     types.StringType,
 				Computed: true,
+				PlanModifiers: []tfsdk.AttributePlanModifier{
+					tfsdk.UseStateForUnknown(),
+				},
 				Description: "Unique identifier for this resource: " +
 					"hexadecimal representation of the SHA1 checksum of the resource.",
 			},
@@ -305,8 +314,10 @@ func (r *certRequestResource) Read(ctx context.Context, _ tfsdk.ReadResourceRequ
 	tflog.Debug(ctx, "Reading certificate request from state")
 }
 
-func (r *certRequestResource) Update(_ context.Context, _ tfsdk.UpdateResourceRequest, _ *tfsdk.UpdateResourceResponse) {
-	// NO-OP: changes to this resource will force a "re-create".
+func (r *certRequestResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, res *tfsdk.UpdateResourceResponse) {
+	tflog.Debug(ctx, "Updating certificate request")
+
+	updatedUsingPlan(ctx, &req, res, &certRequestResourceModel{})
 }
 
 func (r *certRequestResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {

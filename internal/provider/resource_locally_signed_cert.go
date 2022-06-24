@@ -35,7 +35,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.StringType,
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					requireReplaceIfStateContainsPEMString(),
 				},
 				Description: "Certificate data of the Certificate Authority (CA) " +
 					"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
@@ -44,7 +44,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.StringType,
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					requireReplaceIfStateContainsPEMString(),
 				},
 				Sensitive: true,
 				Description: "Private key of the Certificate Authority (CA) used to sign the certificate, " +
@@ -54,7 +54,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.StringType,
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					requireReplaceIfStateContainsPEMString(),
 				},
 				Description: "Certificate request data in " +
 					"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
@@ -279,15 +279,7 @@ func (r *locallySignedCertResource) Read(ctx context.Context, _ tfsdk.ReadResour
 func (r *locallySignedCertResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, res *tfsdk.UpdateResourceResponse) {
 	tflog.Debug(ctx, "Updating locally signed certificate")
 
-	// Read the plan
-	var newState locallySignedCertResourceModel
-	res.Diagnostics.Append(req.Plan.Get(ctx, &newState)...)
-	if res.Diagnostics.HasError() {
-		return
-	}
-
-	// Set it as the new state
-	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
+	updatedUsingPlan(ctx, &req, res, &locallySignedCertResourceModel{})
 }
 
 func (r *locallySignedCertResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {
