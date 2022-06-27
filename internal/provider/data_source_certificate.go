@@ -235,13 +235,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 				targetURL.Host += ":443"
 			}
 
-			// TODO remove this branch and default to use `fetchPeerCertificatesViaHTTPS`
-			//   as part of https://github.com/hashicorp/terraform-provider-tls/issues/183
-			if ds.provider.isProxyConfigured() {
-				peerCerts, err = fetchPeerCertificatesViaHTTPS(targetURL, shouldVerifyChain, ds.provider)
-			} else {
-				peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
-			}
+			peerCerts, err = fetchPeerCertificatesViaHTTPS(targetURL, shouldVerifyChain, ds.provider)
 		case TLSScheme.String():
 			if targetURL.Port() == "" {
 				res.Diagnostics.AddError("URL malformed", fmt.Sprintf("Port missing from URL: %s", targetURL.String()))
