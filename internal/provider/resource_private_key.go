@@ -87,6 +87,12 @@ func (rt *privateKeyResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.",
 			},
+			"private_key_pkcs8": {
+				Type:                types.StringType,
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
+			},
 			"public_key_pem": {
 				Type:     types.StringType,
 				Computed: true,
@@ -177,24 +183,47 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 
 	// Marshal the Key in PEM block
 	tflog.Debug(ctx, "Marshalling private key to PEM")
-	var prvKeyPemBlock *pem.Block
+	var prvKeyPemBlock, prvKeyPKCS8PemBlock *pem.Block
 	doMarshalOpenSSHKeyPemBlock := true
 	switch k := prvKey.(type) {
 	case *rsa.PrivateKey:
+		// PEM
 		prvKeyPemBlock = &pem.Block{
 			Type:  PreamblePrivateKeyRSA.String(),
 			Bytes: x509.MarshalPKCS1PrivateKey(k),
 		}
+
+		// PKCS#8 PEM
+		keyPKCS8Bytes, err := x509.MarshalPKCS8PrivateKey(k)
+		if err != nil {
+			res.Diagnostics.AddError("Unable to encode key to PKCS#8 PEM", err.Error())
+			return
+		}
+		prvKeyPKCS8PemBlock = &pem.Block{
+			Type:  PreamblePrivateKeyPKCS8.String(),
+			Bytes: keyPKCS8Bytes,
+		}
 	case *ecdsa.PrivateKey:
+		// PEM
 		keyBytes, err := x509.MarshalECPrivateKey(k)
 		if err != nil {
 			res.Diagnostics.AddError("Unable to encode key to PEM", err.Error())
 			return
 		}
-
 		prvKeyPemBlock = &pem.Block{
 			Type:  PreamblePrivateKeyEC.String(),
 			Bytes: keyBytes,
+		}
+
+		// PKCS#8 PEM
+		keyPKCS8Bytes, err := x509.MarshalPKCS8PrivateKey(k)
+		if err != nil {
+			res.Diagnostics.AddError("Unable to encode key to PKCS#8 PEM", err.Error())
+			return
+		}
+		prvKeyPKCS8PemBlock = &pem.Block{
+			Type:  PreamblePrivateKeyPKCS8.String(),
+			Bytes: keyPKCS8Bytes,
 		}
 
 		// GOTCHA: `x/crypto/ssh` doesn't handle elliptic curve P-224
@@ -202,6 +231,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 			doMarshalOpenSSHKeyPemBlock = false
 		}
 	case ed25519.PrivateKey:
+		// PEM & PKCS#8 PEM
 		prvKeyBytes, err := x509.MarshalPKCS8PrivateKey(k)
 		if err != nil {
 			res.Diagnostics.AddError("Unable to encode key to PEM", err.Error())
@@ -212,12 +242,14 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 			Type:  PreamblePrivateKeyPKCS8.String(),
 			Bytes: prvKeyBytes,
 		}
+		prvKeyPKCS8PemBlock = prvKeyPemBlock
 	default:
 		res.Diagnostics.AddError("Unsupported private key type", fmt.Sprintf("Key type %T not supported", prvKey))
 		return
 	}
 
 	newState.PrivateKeyPem = types.String{Value: string(pem.EncodeToMemory(prvKeyPemBlock))}
+	newState.PrivateKeyPKCS8 = types.String{Value: string(pem.EncodeToMemory(prvKeyPKCS8PemBlock))}
 
 	// Marshal the Key in OpenSSH PEM block, if enabled
 	tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM")
