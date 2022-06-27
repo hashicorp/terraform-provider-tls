@@ -24,10 +24,12 @@ type provider struct {
 var _ tfsdk.Provider = (*provider)(nil)
 
 func New() tfsdk.Provider {
-	return &provider{
-		proxyURL:     nil,
-		proxyFromEnv: false, //< TODO switch default to `true` as part of https://github.com/hashicorp/terraform-provider-tls/issues/183
-	}
+	return &provider{}
+}
+
+func (p *provider) resetConfig() {
+	p.proxyURL = nil
+	p.proxyFromEnv = true
 }
 
 func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -88,6 +90,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 
 func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderRequest, res *tfsdk.ConfigureProviderResponse) {
 	tflog.Debug(ctx, "Configuring provider")
+	p.resetConfig()
 
 	var err error
 
@@ -98,8 +101,8 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 		return
 	}
 	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() {
-		tflog.Debug(ctx, "No proxy configuration detected", map[string]interface{}{
-			"conf": fmt.Sprintf("%+v", conf),
+		tflog.Debug(ctx, "No proxy configuration detected: using provider defaults", map[string]interface{}{
+			"provider": fmt.Sprintf("%+v", p),
 		})
 		return
 	}
@@ -148,6 +151,10 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 
 		p.proxyFromEnv = proxyConf.FromEnv.Value
 	}
+
+	tflog.Debug(ctx, "Provider configuration", map[string]interface{}{
+		"provider": fmt.Sprintf("%+v", p),
+	})
 }
 
 func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
