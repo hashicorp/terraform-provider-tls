@@ -78,8 +78,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						},
 						MarkdownDescription: "When `true` the provider will discover the proxy configuration from environment variables. " +
 							"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
-							"and it supports the same environment variables (default: `false`). " +
-							"**NOTE**: the default value for this argument will be change to `true` in the next major release.",
+							"and it supports the same environment variables (default: `true`).",
 					},
 				}),
 				MarkdownDescription: "Proxy used by resources and data sources that connect to external endpoints.",
@@ -177,7 +176,13 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 //
 // It works by returning a function that, given an *http.Request,
 // provides the http.Client with the *url.URL to the proxy.
+//
+// It will return nil if there is no proxy configured.
 func (p *provider) proxyForRequestFunc() func(_ *http.Request) (*url.URL, error) {
+	if !p.isProxyConfigured() {
+		return nil
+	}
+
 	if p.proxyURL != nil {
 		return func(_ *http.Request) (*url.URL, error) {
 			return p.proxyURL, nil
@@ -188,9 +193,7 @@ func (p *provider) proxyForRequestFunc() func(_ *http.Request) (*url.URL, error)
 		return http.ProxyFromEnvironment
 	}
 
-	return func(_ *http.Request) (*url.URL, error) {
-		return p.proxyURL, fmt.Errorf("proxy not configured")
-	}
+	return nil
 }
 
 // isProxyConfigured returns true if a proxy configuration was detected as part of provider.Configure.

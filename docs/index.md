@@ -116,7 +116,7 @@ data "tls_certificate" "test" {
 
 Optional:
 
-- `from_env` (Boolean) When `true` the provider will discover the proxy configuration from environment variables. This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) and it supports the same environment variables (default: `false`). **NOTE**: the default value for this argument will be change to `true` in the next major release.
+- `from_env` (Boolean) When `true` the provider will discover the proxy configuration from environment variables. This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) and it supports the same environment variables (default: `true`).
 - `password` (String, Sensitive) Password used for Basic authentication against the Proxy.
 - `url` (String) URL used to connect to the Proxy. Accepted schemes are: `http`, `https`, `socks5`.
 - `username` (String) Username (or Token) used for Basic authentication against the Proxy.
