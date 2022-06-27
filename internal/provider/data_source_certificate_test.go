@@ -321,7 +321,6 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxy(t *testing.T) {
 							url = "http://%s"
 						}
 					}
-
 					data "tls_certificate" "test" {
 					  url = "https://%s"
 					  verify_chain = false
@@ -362,13 +361,15 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T)
 							username = "%s"
 						}
 					}
-			
 					data "tls_certificate" "test" {
 					  url = "https://%s"
 					  verify_chain = false
 					}
 				`, proxy.Address(), proxyUsername, server.Address()),
-				Check: localTestCertificateChainCheckFunc(),
+				Check: r.ComposeAggregateTestCheckFunc(
+					localTestCertificateChainCheckFunc(),
+					tu.TestCheckBothServerAndProxyWereUsed(server, proxy),
+				),
 			},
 			{
 
@@ -379,7 +380,6 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T)
 							username = "wrong-username"
 						}
 					}
-
 					data "tls_certificate" "test" {
 					  url = "https://%s"
 					  verify_chain = false
@@ -422,13 +422,15 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t 
 							password = "%s"
 						}
 					}
-
 					data "tls_certificate" "test" {
 					  url = "https://%s"
 					  verify_chain = false
 					}
 				`, proxy.Address(), proxyUsername, proxyPassword, server.Address()),
-				Check: localTestCertificateChainCheckFunc(),
+				Check: r.ComposeAggregateTestCheckFunc(
+					localTestCertificateChainCheckFunc(),
+					tu.TestCheckBothServerAndProxyWereUsed(server, proxy),
+				),
 			},
 			{
 
@@ -440,7 +442,6 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t 
 							password = "wrong-password"
 						}
 					}
-
 					data "tls_certificate" "test" {
 					  url = "https://%s"
 					  verify_chain = false
@@ -467,36 +468,39 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyFromEnv(t *testing.T) {
 	defer proxy.Close()
 	go proxy.Serve()
 	t.Setenv("HTTP_PROXY", fmt.Sprintf("http://%s", proxy.Address()))
+	t.Setenv("HTTPS_PROXY", fmt.Sprintf("http://%s", proxy.Address()))
 
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),
-
 		Steps: []r.TestStep{
 			{
-
 				Config: fmt.Sprintf(`
 					provider "tls" {
 						proxy = {
 							from_env = true
 						}
 					}
-
 					data "tls_certificate" "test" {
 					  url = "https://%s"
 					  verify_chain = false
 					}
 				`, server.Address()),
-				Check: localTestCertificateChainCheckFunc(),
+				Check: r.ComposeAggregateTestCheckFunc(
+					localTestCertificateChainCheckFunc(),
+					tu.TestCheckBothServerAndProxyWereUsed(server, proxy),
+				),
 			},
 			{
-
 				Config: fmt.Sprintf(`
 					data "tls_certificate" "test" {
 					  url = "https://%s"
 					  verify_chain = false
 					}
 				`, server.Address()),
-				Check: localTestCertificateChainCheckFunc(),
+				Check: r.ComposeAggregateTestCheckFunc(
+					localTestCertificateChainCheckFunc(),
+					tu.TestCheckBothServerAndProxyWereUsed(server, proxy),
+				),
 			},
 		},
 	})
