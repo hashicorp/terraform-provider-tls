@@ -169,7 +169,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 						url = "https://untrusted-root.badssl.com/"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`certificate signed by unknown authority`),
+				ExpectError: regexp.MustCompile(`certificate signed by[\s]*unknown[\s]*authority`),
 			},
 			{
 				Config: `
