@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
+	"golang.org/x/net/http/httpproxy"
 )
 
 type provider struct {
@@ -24,10 +25,12 @@ type provider struct {
 var _ tfsdk.Provider = (*provider)(nil)
 
 func New() tfsdk.Provider {
-	return &provider{
-		proxyURL:     nil,
-		proxyFromEnv: false, //< TODO switch default to `true` as part of https://github.com/hashicorp/terraform-provider-tls/issues/183
-	}
+	return &provider{}
+}
+
+func (p *provider) resetConfig() {
+	p.proxyURL = nil
+	p.proxyFromEnv = true
 }
 
 func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -76,8 +79,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						},
 						MarkdownDescription: "When `true` the provider will discover the proxy configuration from environment variables. " +
 							"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
-							"and it supports the same environment variables (default: `false`). " +
-							"**NOTE**: the default value for this argument will be change to `true` in the next major release.",
+							"and it supports the same environment variables (default: `true`).",
 					},
 				}),
 				MarkdownDescription: "Proxy used by resources and data sources that connect to external endpoints.",
@@ -88,6 +90,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 
 func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderRequest, res *tfsdk.ConfigureProviderResponse) {
 	tflog.Debug(ctx, "Configuring provider")
+	p.resetConfig()
 
 	var err error
 
@@ -98,8 +101,8 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 		return
 	}
 	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() {
-		tflog.Debug(ctx, "No proxy configuration detected", map[string]interface{}{
-			"conf": fmt.Sprintf("%+v", conf),
+		tflog.Debug(ctx, "No proxy configuration detected: using provider defaults", map[string]interface{}{
+			"provider": fmt.Sprintf("%+v", p),
 		})
 		return
 	}
@@ -148,6 +151,10 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 
 		p.proxyFromEnv = proxyConf.FromEnv.Value
 	}
+
+	tflog.Debug(ctx, "Provider configuration", map[string]interface{}{
+		"provider": fmt.Sprintf("%+v", p),
+	})
 }
 
 func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
@@ -170,20 +177,43 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 //
 // It works by returning a function that, given an *http.Request,
 // provides the http.Client with the *url.URL to the proxy.
-func (p *provider) proxyForRequestFunc() func(_ *http.Request) (*url.URL, error) {
+//
+// It will return nil if there is no proxy configured.
+func (p *provider) proxyForRequestFunc(ctx context.Context) func(_ *http.Request) (*url.URL, error) {
+	if !p.isProxyConfigured() {
+		tflog.Debug(ctx, "Proxy not configured")
+		return nil
+	}
+
 	if p.proxyURL != nil {
+		tflog.Debug(ctx, "Proxy via URL")
 		return func(_ *http.Request) (*url.URL, error) {
+			tflog.Debug(ctx, "Using proxy (URL)", map[string]interface{}{
+				"proxy": p.proxyURL,
+			})
 			return p.proxyURL, nil
 		}
 	}
 
 	if p.proxyFromEnv {
-		return http.ProxyFromEnvironment
+		tflog.Debug(ctx, "Proxy via ENV")
+		return func(req *http.Request) (*url.URL, error) {
+			// NOTE: this is based upon `http.ProxyFromEnvironment`,
+			// but it avoids a memoization optimization (i.e. fetching environment variables once)
+			// that causes issues when testing the provider.
+			proxyURL, err := httpproxy.FromEnvironment().ProxyFunc()(req.URL)
+			if err != nil {
+				return nil, err
+			}
+
+			tflog.Debug(ctx, "Using proxy (ENV)", map[string]interface{}{
+				"proxy": proxyURL,
+			})
+			return proxyURL, err
+		}
 	}
 
-	return func(_ *http.Request) (*url.URL, error) {
-		return p.proxyURL, fmt.Errorf("proxy not configured")
-	}
+	return nil
 }
 
 // isProxyConfigured returns true if a proxy configuration was detected as part of provider.Configure.
