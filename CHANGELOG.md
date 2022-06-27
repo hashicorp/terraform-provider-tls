@@ -10,6 +10,10 @@ NOTES:
 
 * resource/tls_locally_signed_cert: The`cert_request_pem`, `ca_private_key_pem`, `ca_cert_pem` are now stored in the state _as-is_, so the first apply may result in an update-in-place ([#87](https://github.com/hashicorp/terraform-provider-tls/issues/87), [#215](https://github.com/hashicorp/terraform-provider-tls/pull/215)).
 
+ENHANCEMENTS:
+
+* resource/tls_private_key: New attribute `private_key_pkcs8` ([PKCS#8](https://datatracker.ietf.org/doc/html/rfc5208)) ([#210](https://github.com/hashicorp/terraform-provider-tls/issues/210), [#xxx](https://github.com/hashicorp/terraform-provider-tls/pull/XXX)))
+
 BREAKING CHANGES:
 
 * [Terraform `>=1.0`](https://www.terraform.io/language/upgrade-guides/1-0) is now required to use this provider.
