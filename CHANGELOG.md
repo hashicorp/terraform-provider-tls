@@ -12,7 +12,7 @@ NOTES:
 
 ENHANCEMENTS:
 
-* resource/tls_private_key: New attribute `private_key_pkcs8` ([PKCS#8](https://datatracker.ietf.org/doc/html/rfc5208)) ([#210](https://github.com/hashicorp/terraform-provider-tls/issues/210), [#xxx](https://github.com/hashicorp/terraform-provider-tls/pull/XXX)))
+* resource/tls_private_key: New attribute `private_key_pkcs8` ([PKCS#8](https://datatracker.ietf.org/doc/html/rfc5208)) ([#210](https://github.com/hashicorp/terraform-provider-tls/issues/210), [#225](https://github.com/hashicorp/terraform-provider-tls/pull/225)))
 
 BREAKING CHANGES:
 
