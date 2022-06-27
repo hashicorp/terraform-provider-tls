@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
+	"golang.org/x/net/http/httpproxy"
 )
 
 type provider struct {
@@ -178,19 +179,38 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 // provides the http.Client with the *url.URL to the proxy.
 //
 // It will return nil if there is no proxy configured.
-func (p *provider) proxyForRequestFunc() func(_ *http.Request) (*url.URL, error) {
+func (p *provider) proxyForRequestFunc(ctx context.Context) func(_ *http.Request) (*url.URL, error) {
 	if !p.isProxyConfigured() {
+		tflog.Debug(ctx, "Proxy not configured")
 		return nil
 	}
 
 	if p.proxyURL != nil {
+		tflog.Debug(ctx, "Proxy via URL")
 		return func(_ *http.Request) (*url.URL, error) {
+			tflog.Debug(ctx, "Using proxy (URL)", map[string]interface{}{
+				"proxy": p.proxyURL,
+			})
 			return p.proxyURL, nil
 		}
 	}
 
 	if p.proxyFromEnv {
-		return http.ProxyFromEnvironment
+		tflog.Debug(ctx, "Proxy via ENV")
+		return func(req *http.Request) (*url.URL, error) {
+			// NOTE: this is based upon `http.ProxyFromEnvironment`,
+			// but it avoids a memoization optimization (i.e. fetching environment variables once)
+			// that causes issues when testing the provider.
+			proxyURL, err := httpproxy.FromEnvironment().ProxyFunc()(req.URL)
+			if err != nil {
+				return nil, err
+			}
+
+			tflog.Debug(ctx, "Using proxy (ENV)", map[string]interface{}{
+				"proxy": proxyURL,
+			})
+			return proxyURL, err
+		}
 	}
 
 	return nil

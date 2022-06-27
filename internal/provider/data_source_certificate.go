@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
 )
 
@@ -235,14 +236,14 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 				targetURL.Host += ":443"
 			}
 
-			peerCerts, err = fetchPeerCertificatesViaHTTPS(targetURL, shouldVerifyChain, ds.provider)
+			peerCerts, err = fetchPeerCertificatesViaHTTPS(ctx, targetURL, shouldVerifyChain, ds.provider)
 		case TLSScheme.String():
 			if targetURL.Port() == "" {
 				res.Diagnostics.AddError("URL malformed", fmt.Sprintf("Port missing from URL: %s", targetURL.String()))
 				return
 			}
 
-			peerCerts, err = fetchPeerCertificatesViaTLS(targetURL, shouldVerifyChain)
+			peerCerts, err = fetchPeerCertificatesViaTLS(ctx, targetURL, shouldVerifyChain)
 		default:
 			// NOTE: This should never happen, given we validate this at the schema level
 			res.Diagnostics.AddError("Unsupported scheme", fmt.Sprintf("Scheme %q not supported", targetURL.String()))
@@ -277,7 +278,9 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 
-func fetchPeerCertificatesViaTLS(targetURL *url.URL, shouldVerifyChain bool) ([]*x509.Certificate, error) {
+func fetchPeerCertificatesViaTLS(ctx context.Context, targetURL *url.URL, shouldVerifyChain bool) ([]*x509.Certificate, error) {
+	tflog.Debug(ctx, "Fetching certificate via TLS client")
+
 	conn, err := tls.Dial("tcp", targetURL.Host, &tls.Config{
 		InsecureSkipVerify: !shouldVerifyChain,
 	})
@@ -289,17 +292,22 @@ func fetchPeerCertificatesViaTLS(targetURL *url.URL, shouldVerifyChain bool) ([]
 	return conn.ConnectionState().PeerCertificates, nil
 }
 
-func fetchPeerCertificatesViaHTTPS(targetURL *url.URL, shouldVerifyChain bool, p *provider) ([]*x509.Certificate, error) {
+func fetchPeerCertificatesViaHTTPS(ctx context.Context, targetURL *url.URL, shouldVerifyChain bool, p *provider) ([]*x509.Certificate, error) {
+	tflog.Debug(ctx, "Fetching certificate via HTTP(S) client")
+
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: !shouldVerifyChain,
 			},
-			Proxy: p.proxyForRequestFunc(),
+			Proxy: p.proxyForRequestFunc(ctx),
 		},
 	}
 
 	// First attempting an HTTP HEAD: if it fails, ignore errors and move on
+	tflog.Debug(ctx, "Attempting HTTP HEAD to fetch certificates", map[string]interface{}{
+		"targetURL": targetURL.String(),
+	})
 	resp, err := client.Head(targetURL.String())
 	if err == nil && resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
 		defer resp.Body.Close()
@@ -307,6 +315,9 @@ func fetchPeerCertificatesViaHTTPS(targetURL *url.URL, shouldVerifyChain bool, p
 	}
 
 	// Then attempting HTTP GET: if this fails we will than report the error
+	tflog.Debug(ctx, "Attempting HTTP GET to fetch certificates", map[string]interface{}{
+		"targetURL": targetURL.String(),
+	})
 	resp, err = client.Get(targetURL.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch certificates from URL '%s': %w", targetURL.Scheme, err)

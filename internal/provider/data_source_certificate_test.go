@@ -19,7 +19,7 @@ func TestDataSourceCertificate_CertificateContent(t *testing.T) {
 			{
 				Config: `
 					data "tls_certificate" "test" {
-					  content = file("fixtures/certificate.pem")
+						content = file("fixtures/certificate.pem")
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -50,7 +50,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 				ExternalProviders: providerVersion340(),
 				Config: `
 					data "tls_certificate" "test" {
-					  content = file("fixtures/certificate.pem")
+						content = file("fixtures/certificate.pem")
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -74,7 +74,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 				ProtoV6ProviderFactories: protoV6ProviderFactories(),
 				Config: `
 					data "tls_certificate" "test" {
-					  content = file("fixtures/certificate.pem")
+						content = file("fixtures/certificate.pem")
 					}
 				`,
 				PlanOnly: true,
@@ -83,7 +83,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 				ProtoV6ProviderFactories: protoV6ProviderFactories(),
 				Config: `
 					data "tls_certificate" "test" {
-					  content = file("fixtures/certificate.pem")
+						content = file("fixtures/certificate.pem")
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -118,7 +118,7 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 			{
 				Config: `
 					data "tls_certificate" "test" {
-					  url = "https://www.terraform.io/"
+						url = "https://www.terraform.io/"
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -166,7 +166,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 			{
 				Config: `
 					data "tls_certificate" "test" {
-					  url = "https://untrusted-root.badssl.com/"
+						url = "https://untrusted-root.badssl.com/"
 					}
 				`,
 				ExpectError: regexp.MustCompile(`certificate signed by unknown authority`),
@@ -174,8 +174,8 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 			{
 				Config: `
 					data "tls_certificate" "test" {
-					  url = "https://untrusted-root.badssl.com/"
-					  verify_chain = false
+						url = "https://untrusted-root.badssl.com/"
+						verify_chain = false
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -210,7 +210,7 @@ func TestDataSourceCertificate_CertificateContentNegativeTests(t *testing.T) {
 			{
 				Config: `
 					data "tls_certificate" "test" {
-					  content = "not a pem"
+						content = "not a pem"
 					}
 				`,
 				ExpectError: regexp.MustCompile("Failed to decoded PEM"),
@@ -218,7 +218,7 @@ func TestDataSourceCertificate_CertificateContentNegativeTests(t *testing.T) {
 			{
 				Config: `
 					data "tls_certificate" "test" {
-					  content = file("fixtures/private.pem")
+						content = file("fixtures/private.pem")
 					}
 				`,
 				ExpectError: regexp.MustCompile("Unexpected PEM preamble"),
@@ -226,8 +226,8 @@ func TestDataSourceCertificate_CertificateContentNegativeTests(t *testing.T) {
 			{
 				Config: `
 					data "tls_certificate" "test" {
-					  content = file("fixtures/private.pem")
-					  url     = "https://www.hashicorp.com"
+						content = file("fixtures/private.pem")
+						url     = "https://www.hashicorp.com"
 					}
 				`,
 				ExpectError: regexp.MustCompile(`More than one attribute out of "content,url" has been set`),
@@ -258,8 +258,8 @@ func TestDataSourceCertificate_HTTPSScheme(t *testing.T) {
 
 				Config: fmt.Sprintf(`
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, server.Address()),
 				Check: localTestCertificateChainCheckFunc(),
@@ -284,8 +284,8 @@ func TestDataSourceCertificate_TLSScheme(t *testing.T) {
 
 				Config: fmt.Sprintf(`
 					data "tls_certificate" "test" {
-					  url = "tls://%s"
-					  verify_chain = false
+						url = "tls://%s"
+						verify_chain = false
 					}
 				`, server.Address()),
 				Check: localTestCertificateChainCheckFunc(),
@@ -322,8 +322,8 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxy(t *testing.T) {
 						}
 					}
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, proxy.Address(), server.Address()),
 				Check: localTestCertificateChainCheckFunc(),
@@ -362,8 +362,8 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T)
 						}
 					}
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, proxy.Address(), proxyUsername, server.Address()),
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -381,8 +381,8 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T)
 						}
 					}
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, proxy.Address(), server.Address()),
 				ExpectError: regexp.MustCompile("Proxy Authentication Required"),
@@ -423,8 +423,8 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t 
 						}
 					}
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, proxy.Address(), proxyUsername, proxyPassword, server.Address()),
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -443,8 +443,8 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t 
 						}
 					}
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, proxy.Address(), proxyUsername, server.Address()),
 				ExpectError: regexp.MustCompile("Proxy Authentication Required"),
@@ -481,8 +481,8 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyFromEnv(t *testing.T) {
 						}
 					}
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, server.Address()),
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -493,8 +493,8 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyFromEnv(t *testing.T) {
 			{
 				Config: fmt.Sprintf(`
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, server.Address()),
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -528,8 +528,8 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyButNoProxyAvailable(t *testing
 					}
 
 					data "tls_certificate" "test" {
-					  url = "https://%s"
-					  verify_chain = false
+						url = "https://%s"
+						verify_chain = false
 					}
 				`, server.Address()),
 				ExpectError: regexp.MustCompile(`failed to fetch certificates from URL 'https': Get "https://\[::\]:\d+":(.|\s)*proxyconnect tcp: dial tcp \[::1\]:65535`),
