@@ -23,13 +23,15 @@ The remainder of this document will focus on the development aspects of the prov
 
 ## Compatibility
 
-Here is a compatibility table between this provider and Terraform:
+Compatibility table between this provider,
+the [Registry Protocol](https://www.terraform.io/internals/provider-registry-protocol)
+version it implements, and Terraform:
 
-| TLS Provider | Terraform |
-|:------------:|:---------:|
-|   `>= 4.x`   | `>= 1.x`  |
-|   `>= 3.x`   | `>= 0.12` |
-|   `<= 2.x`   | `<= 0.11` |
+| TLS Provider | Registry Protocol | Terraform |
+|:------------:|:-----------------:|:---------:|
+|   `>= 4.x`   |        `6`        | `>= 1.x`  |
+|   `>= 3.x`   |        `5`        | `>= 0.12` |
+|   `<= 2.x`   |        `4`        | `<= 0.11` |
 
 ## Requirements
 
