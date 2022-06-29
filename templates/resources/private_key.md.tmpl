@@ -25,12 +25,6 @@ state and does not create any external managed resources.
 
 {{ .SchemaMarkdown | trimspace }}
 
-{{ if .HasImport -}}
-## Import
-Import is supported using the following syntax:
-{{ printf "{{codefile \"shell\" %q}}" .ImportFile }}
-{{- end }}
-
 ## Generating a New Key
 
 Since a private key is a logical resource that lives only in the Terraform state,
