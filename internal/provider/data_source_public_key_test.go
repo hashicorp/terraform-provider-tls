@@ -197,6 +197,45 @@ func TestAccPublicKey_dataSource_OpenSSHPEM_UpgradeFromVersion3_4_0(t *testing.T
 	})
 }
 
+func TestPublicKey_dataSource_PKCS8PEM(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "rsaPrvKey" {
+						algorithm = "RSA"
+					}
+					data "tls_public_key" "rsaPubKey" {
+						private_key_openssh = tls_private_key.rsaPrvKey.private_key_pkcs8
+					}
+				`,
+				Check: r.TestCheckResourceAttrPair(
+					"data.tls_public_key.rsaPubKey", "public_key_openssh",
+					"tls_private_key.rsaPrvKey", "public_key_openssh",
+				),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "ed25519PrvKey" {
+						algorithm   = "ED25519"
+					}
+					data "tls_public_key" "ed25519PubKey" {
+						private_key_openssh = tls_private_key.ed25519PrvKey.private_key_pkcs8
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttrPair(
+						"data.tls_public_key.ed25519PubKey", "public_key_openssh",
+						"tls_private_key.ed25519PrvKey", "public_key_openssh",
+					),
+					r.TestCheckResourceAttr("data.tls_public_key.ed25519PubKey", "algorithm", "ED25519"),
+				),
+			},
+		},
+	})
+}
+
 func TestPublicKey_dataSource_errorCases(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),

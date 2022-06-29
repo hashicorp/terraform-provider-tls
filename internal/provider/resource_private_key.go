@@ -26,12 +26,18 @@ type (
 )
 
 var (
-	_ tfsdk.ResourceType = (*privateKeyResourceType)(nil)
-	_ tfsdk.Resource     = (*privateKeyResource)(nil)
+	_ tfsdk.ResourceType             = (*privateKeyResourceType)(nil)
+	_ tfsdk.Resource                 = (*privateKeyResource)(nil)
+	_ tfsdk.ResourceWithUpgradeState = (*privateKeyResource)(nil)
 )
 
 func (rt *privateKeyResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	return privateKeyResourceSchemaV1(), nil
+}
+
+func privateKeyResourceSchemaV1() tfsdk.Schema {
 	return tfsdk.Schema{
+		Version: 1,
 		Attributes: map[string]tfsdk.Attribute{
 			// Required attributes
 			"algorithm": {
@@ -87,6 +93,12 @@ func (rt *privateKeyResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.",
 			},
+			"private_key_pkcs8": {
+				Type:                types.StringType,
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
+			},
 			"public_key_pem": {
 				Type:     types.StringType,
 				Computed: true,
@@ -135,7 +147,7 @@ func (rt *privateKeyResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and " +
 			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +
 			"This resource is primarily intended for easily bootstrapping throwaway development environments.",
-	}, nil
+	}
 }
 
 func (rt *privateKeyResourceType) NewResource(_ context.Context, _ tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
@@ -178,7 +190,6 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	// Marshal the Key in PEM block
 	tflog.Debug(ctx, "Marshalling private key to PEM")
 	var prvKeyPemBlock *pem.Block
-	doMarshalOpenSSHKeyPemBlock := true
 	switch k := prvKey.(type) {
 	case *rsa.PrivateKey:
 		prvKeyPemBlock = &pem.Block{
@@ -196,11 +207,6 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 			Type:  PreamblePrivateKeyEC.String(),
 			Bytes: keyBytes,
 		}
-
-		// GOTCHA: `x/crypto/ssh` doesn't handle elliptic curve P-224
-		if k.Curve.Params().Name == "P-224" {
-			doMarshalOpenSSHKeyPemBlock = false
-		}
 	case ed25519.PrivateKey:
 		prvKeyBytes, err := x509.MarshalPKCS8PrivateKey(k)
 		if err != nil {
@@ -217,21 +223,29 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 		return
 	}
 
-	newState.PrivateKeyPem = types.String{Value: string(pem.EncodeToMemory(prvKeyPemBlock))}
+	// Marshal the Key in PKCS#8 PEM block
+	tflog.Debug(ctx, "Marshalling private key to PKCS#8 PEM")
+	prvKeyPKCS8PemBlock, err := prvKeyToPKCS8PEMBlock(prvKey)
+	if err != nil {
+		res.Diagnostics.AddError("Unable to encode private key to PKCS#8 PEM", err.Error())
+		return
+	}
 
-	// Marshal the Key in OpenSSH PEM block, if enabled
-	tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM")
-	prvKeyOpenSSH := ""
-	if doMarshalOpenSSHKeyPemBlock {
+	newState.PrivateKeyPem = types.String{Value: string(pem.EncodeToMemory(prvKeyPemBlock))}
+	newState.PrivateKeyPKCS8 = types.String{Value: string(pem.EncodeToMemory(prvKeyPKCS8PemBlock))}
+
+	// Marshal the Key in OpenSSH PEM block, if supported
+	tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
+	newState.PrivateKeyOpenSSH = types.String{Value: ""}
+	if prvKeySupportsOpenSSHMarshalling(prvKey) {
 		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
 		if err != nil {
 			res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
 			return
 		}
 
-		prvKeyOpenSSH = string(pem.EncodeToMemory(openSSHKeyPemBlock))
+		newState.PrivateKeyOpenSSH = types.String{Value: string(pem.EncodeToMemory(openSSHKeyPemBlock))}
 	}
-	newState.PrivateKeyOpenSSH = types.String{Value: prvKeyOpenSSH}
 
 	// Store the model populated so far, onto the State
 	tflog.Debug(ctx, "Storing private key info into the state")
@@ -257,4 +271,101 @@ func (r *privateKeyResource) Update(_ context.Context, _ tfsdk.UpdateResourceReq
 func (r *privateKeyResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {
 	// NO-OP: Returning no error is enough for the framework to remove the resource from state.
 	tflog.Debug(ctx, "Removing private key from state")
+}
+
+func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]tfsdk.ResourceStateUpgrader {
+	schemaV1 := privateKeyResourceSchemaV1()
+
+	return map[int64]tfsdk.ResourceStateUpgrader{
+		// Upgrading schema v0 -> v1 will add:
+		// * `private_key_openssh` (introduced in v3.2.0)
+		// * `public_key_fingerprint_sha256` (introduced in v3.2.0)
+		// * `private_key_pkcs8`   (introduced in v4.0.0)
+		0: {
+			// NOTE: why are we using a Schema v1 to unmarshal configuration with Schema v0?
+			// This is possible because the way the unmarshalling works, is that if a field
+			// is found in the RawSchema, is then set on the State by looking for a compatible
+			// field in the Schema.
+			//
+			// In other words, fields that are not present in the RawSchema, are simply ignored:
+			// the equivalency of RawSchema and Schema is not bidirectional.
+			//
+			// This works fine _as long as_ there are no renaming or retractions from the Schema.
+			// If/when that happens, and a new Schema version is released, then a dedicated
+			// schema will be necessary.
+			PriorSchema: &schemaV1,
+			StateUpgrader: func(ctx context.Context, req tfsdk.UpgradeResourceStateRequest, res *tfsdk.UpgradeResourceStateResponse) {
+				var upState privateKeyResourceModel
+				res.Diagnostics.Append(req.State.Get(ctx, &upState)...)
+				if res.Diagnostics.HasError() {
+					return
+				}
+
+				// Parse private key from PEM bytes:
+				// we do this to generate the missing state from the original private key
+				tflog.Debug(ctx, "Parsing private key from PEM")
+				prvKey, _, err := parsePrivateKeyPEM([]byte(upState.PrivateKeyPem.Value))
+				if err != nil {
+					res.Diagnostics.AddError("Unable to parse key from PEM", err.Error())
+				}
+
+				// Marshal the Key in OpenSSH PEM, if necessary and supported
+				tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
+				if (upState.PrivateKeyOpenSSH.IsNull() || upState.PrivateKeyOpenSSH.Value == "") && prvKeySupportsOpenSSHMarshalling(prvKey) {
+					openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
+					if err != nil {
+						res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
+						return
+					}
+
+					upState.PrivateKeyOpenSSH = types.String{Value: string(pem.EncodeToMemory(openSSHKeyPemBlock))}
+				}
+
+				// Marshal the Key in PKCS#8 PEM
+				tflog.Debug(ctx, "Marshalling private key to PKCS#8 PEM")
+				prvKeyPKCS8PemBlock, err := prvKeyToPKCS8PEMBlock(prvKey)
+				if err != nil {
+					res.Diagnostics.AddError("Unable to encode private key to PKCS#8 PEM", err.Error())
+					return
+				}
+				upState.PrivateKeyPKCS8 = types.String{Value: string(pem.EncodeToMemory(prvKeyPKCS8PemBlock))}
+
+				// Upgrading the state
+				tflog.Debug(ctx, "Upgrading state")
+				res.Diagnostics.Append(res.State.Set(ctx, upState)...)
+				if res.Diagnostics.HasError() {
+					return
+				}
+
+				// Store the rest of the "public key" attributes onto the State
+				tflog.Debug(ctx, "Storing private key's public key info into the state")
+				res.Diagnostics.Append(setPublicKeyAttributes(ctx, &res.State, prvKey)...)
+			},
+		},
+	}
+}
+
+func prvKeyToPKCS8PEMBlock(prvKey interface{}) (*pem.Block, error) {
+	keyPKCS8Bytes, err := x509.MarshalPKCS8PrivateKey(prvKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pem.Block{
+		Type:  PreamblePrivateKeyPKCS8.String(),
+		Bytes: keyPKCS8Bytes,
+	}, nil
+}
+
+func prvKeySupportsOpenSSHMarshalling(prvKey interface{}) bool {
+	switch k := prvKey.(type) {
+	case *ecdsa.PrivateKey:
+		// GOTCHA: `x/crypto/ssh` doesn't handle elliptic curve P-224
+		if k.Curve.Params().Name == "P-224" {
+			return false
+		}
+		return true
+	default:
+		return true
+	}
 }
