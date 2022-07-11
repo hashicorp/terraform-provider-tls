@@ -101,9 +101,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 		return
 	}
 	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() {
-		tflog.Debug(ctx, "No proxy configuration detected: using provider defaults", map[string]interface{}{
-			"provider": fmt.Sprintf("%+v", p),
-		})
+		tflog.Debug(ctx, "No proxy configuration detected: using provider defaults")
 		return
 	}
 
@@ -113,10 +111,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	if res.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "Loaded provider configuration", map[string]interface{}{
-		"conf":      fmt.Sprintf("%+v", conf),
-		"proxyConf": fmt.Sprintf("%+v", proxyConf),
-	})
+	tflog.Debug(ctx, "Loaded provider configuration")
 
 	// Parse the URL
 	if !proxyConf.URL.IsNull() && !proxyConf.URL.IsUnknown() {
