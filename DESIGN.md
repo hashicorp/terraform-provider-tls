@@ -20,7 +20,8 @@ the development of this provider. Some are in place, others are ongoing processe
   * [Privacy Enhancement for Internet Electronic Mail (PEM) (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421)
   * [Internet X.509 Public Key Infrastructure Certificate (RFC 5280)](https://datatracker.ietf.org/doc/html/rfc5280)
   * [Secure Shell (SSH) Public Key Format (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716),
-    as well as [SSH Private Key format](https://coolaj86.com/articles/the-openssh-private-key-format/) 
+    as well as [SSH Private Key format](https://coolaj86.com/articles/the-openssh-private-key-format/)
+  * [Public-Key Cryptography Standards (PKCS) #8 (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208)
   * [Distinguished Names representation (RFC 2253)](https://datatracker.ietf.org/doc/html/rfc2253)
   * [Timestamps (RFC 3339)](https://datatracker.ietf.org/doc/html/rfc3339)
 * Support specific cryptography key algorithms:

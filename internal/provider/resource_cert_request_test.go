@@ -372,7 +372,7 @@ func TestResourceCertRequest_PKCS8(t *testing.T) {
 							"spiffe://example-trust-domain/workload",
 							"spiffe://example-trust-domain/workload2",
 						]
-						private_key_pem = tls_private_key.test1.private_key_pkcs8
+						private_key_pem = tls_private_key.test1.private_key_pem_pkcs8
 					}
                 `,
 				Check: r.ComposeAggregateTestCheckFunc(

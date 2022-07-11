@@ -207,7 +207,7 @@ func TestPublicKey_dataSource_PKCS8PEM(t *testing.T) {
 						algorithm = "RSA"
 					}
 					data "tls_public_key" "rsaPubKey" {
-						private_key_openssh = tls_private_key.rsaPrvKey.private_key_pkcs8
+						private_key_pem = tls_private_key.rsaPrvKey.private_key_pem_pkcs8
 					}
 				`,
 				Check: r.TestCheckResourceAttrPair(
@@ -221,7 +221,7 @@ func TestPublicKey_dataSource_PKCS8PEM(t *testing.T) {
 						algorithm   = "ED25519"
 					}
 					data "tls_public_key" "ed25519PubKey" {
-						private_key_openssh = tls_private_key.ed25519PrvKey.private_key_pkcs8
+						private_key_pem = tls_private_key.ed25519PrvKey.private_key_pem_pkcs8
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(

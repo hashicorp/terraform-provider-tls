@@ -578,6 +578,38 @@ func TestResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	})
 }
 
+func TestResourceSelfSignedCert_FromECDSAPrivateKeyResource_PKCS8(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm   = "ECDSA"
+						ecdsa_curve = "P521"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem_pkcs8
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ECDSA"),
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+		},
+	})
+}
+
 func TestResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV6ProviderFactories: protoV6ProviderFactories(),

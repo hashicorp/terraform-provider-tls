@@ -77,7 +77,7 @@ resource "aws_iam_server_certificate" "example" {
 # from `example.com` using an HTTP Proxy.
 
 provider "tls" {
-  proxy {
+  proxy = {
     url = "https://corporate.proxy.service"
   }
 }
@@ -94,7 +94,7 @@ data "tls_certificate" "test" {
 # see https://pkg.go.dev/net/http#ProxyFromEnvironment for details.
 
 provider "tls" {
-  proxy {
+  proxy = {
     from_env = true
   }
 }
