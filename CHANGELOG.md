@@ -10,11 +10,11 @@ NOTES:
 
 * resource/tls_locally_signed_cert: `cert_request_pem`, `ca_private_key_pem` and `ca_cert_pem` attributes are now stored in the state _as-is_; first apply may result in an update-in-place ([#87](https://github.com/hashicorp/terraform-provider-tls/issues/87), [#215](https://github.com/hashicorp/terraform-provider-tls/pull/215)).
   
-* resource/tls_private_key: `private_key_pkcs8`, `private_key_openssh` and `public_key_fingerprint_sha256` attributes are now retro-fitted, depending on version being updated; first apply may result in an update-in-place ([#210](https://github.com/hashicorp/terraform-provider-tls/issues/210), [#225](https://github.com/hashicorp/terraform-provider-tls/pull/225))).
+* resource/tls_private_key: `private_key_pem_pkcs8`, `private_key_openssh` and `public_key_fingerprint_sha256` attributes are now retro-fitted, depending on version being updated; first apply may result in an update-in-place ([#210](https://github.com/hashicorp/terraform-provider-tls/issues/210), [#225](https://github.com/hashicorp/terraform-provider-tls/pull/225))).
 
 ENHANCEMENTS:
 
-* resource/tls_private_key: New attribute `private_key_pkcs8` ([PKCS#8](https://datatracker.ietf.org/doc/html/rfc5208)) ([#210](https://github.com/hashicorp/terraform-provider-tls/issues/210), [#225](https://github.com/hashicorp/terraform-provider-tls/pull/225))).
+* resource/tls_private_key: New attribute `private_key_pem_pkcs8` ([PKCS#8](https://datatracker.ietf.org/doc/html/rfc5208)) ([#210](https://github.com/hashicorp/terraform-provider-tls/issues/210), [#225](https://github.com/hashicorp/terraform-provider-tls/pull/225))).
 
 BREAKING CHANGES:
 

@@ -66,7 +66,7 @@ type privateKeyResourceModel struct {
 	ECDSACurve                 types.String `tfsdk:"ecdsa_curve"`
 	PrivateKeyPem              types.String `tfsdk:"private_key_pem"`
 	PrivateKeyOpenSSH          types.String `tfsdk:"private_key_openssh"`
-	PrivateKeyPKCS8            types.String `tfsdk:"private_key_pkcs8"`
+	PrivateKeyPKCS8            types.String `tfsdk:"private_key_pem_pkcs8"`
 	PublicKeyPem               types.String `tfsdk:"public_key_pem"`
 	PublicKeyOpenSSH           types.String `tfsdk:"public_key_openssh"`
 	PublicKeyFingerprintMD5    types.String `tfsdk:"public_key_fingerprint_md5"`

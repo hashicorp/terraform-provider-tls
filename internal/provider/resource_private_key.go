@@ -93,7 +93,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.",
 			},
-			"private_key_pkcs8": {
+			"private_key_pem_pkcs8": {
 				Type:                types.StringType,
 				Computed:            true,
 				Sensitive:           true,
@@ -280,7 +280,7 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]tfsdk.R
 		// Upgrading schema v0 -> v1 will add:
 		// * `private_key_openssh` (introduced in v3.2.0)
 		// * `public_key_fingerprint_sha256` (introduced in v3.2.0)
-		// * `private_key_pkcs8`   (introduced in v4.0.0)
+		// * `private_key_pem_pkcs8`   (introduced in v4.0.0)
 		0: {
 			// NOTE: why are we using a Schema v1 to unmarshal configuration with Schema v0?
 			// This is possible because the way the unmarshalling works, is that if a field
