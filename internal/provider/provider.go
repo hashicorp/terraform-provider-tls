@@ -36,10 +36,12 @@ func (p *provider) resetConfig() {
 
 func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
+		Blocks: map[string]tfsdk.Block{
 			"proxy": {
-				Optional: true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+				NestingMode: tfsdk.BlockNestingModeList,
+				MinItems:    0,
+				MaxItems:    1,
+				Attributes: map[string]tfsdk.Attribute{
 					"url": {
 						Type:     types.StringType,
 						Optional: true,
@@ -83,10 +85,11 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 							"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
 							"and it supports the same environment variables (default: `true`).",
 					},
-				}),
+				},
 				MarkdownDescription: "Proxy used by resources and data sources that connect to external endpoints.",
 			},
 		},
+		MarkdownDescription: "Provider configuration",
 	}, nil
 }
 
@@ -102,18 +105,21 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	if res.Diagnostics.HasError() {
 		return
 	}
-	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() {
+	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() || len(conf.Proxy.Elems) == 0 {
 		tflog.Debug(ctx, "No proxy configuration detected: using provider defaults")
 		return
 	}
 
 	// Load proxy configuration into model
-	var proxyConf providerProxyConfigModel
-	res.Diagnostics.Append(conf.Proxy.As(ctx, &proxyConf, types.ObjectAsOptions{})...)
+	proxyConfSlice := make([]providerProxyConfigModel, 1)
+	res.Diagnostics.Append(conf.Proxy.ElementsAs(ctx, &proxyConfSlice, true)...)
 	if res.Diagnostics.HasError() {
 		return
 	}
 	tflog.Debug(ctx, "Loaded provider configuration")
+
+	// By now, we know this single element in the slice exist
+	proxyConf := proxyConfSlice[0]
 
 	// Parse the URL
 	if !proxyConf.URL.IsNull() && !proxyConf.URL.IsUnknown() {

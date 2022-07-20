@@ -78,9 +78,17 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 			},
 
 			// Computed attributes
+			"id": {
+				Type:                types.StringType,
+				Computed:            true,
+				MarkdownDescription: "Unique identifier of this data source: hashing of the certificates in the chain.",
+			},
+		},
+		Blocks: map[string]tfsdk.Block{
 			"certificates": {
-				Computed: true,
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+				NestingMode: tfsdk.BlockNestingModeList,
+				MinItems:    0,
+				Attributes: map[string]tfsdk.Attribute{
 					"signature_algorithm": {
 						Type:                types.StringType,
 						Computed:            true,
@@ -147,13 +155,8 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 							"In case this disrupts your use case, we recommend using " +
 							"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 					},
-				}),
+				},
 				MarkdownDescription: "The certificates protecting the site, with the root of the chain first.",
-			},
-			"id": {
-				Type:                types.StringType,
-				Computed:            true,
-				MarkdownDescription: "Unique identifier of this data source: hashing of the certificates in the chain.",
 			},
 		},
 		MarkdownDescription: "Get information about the TLS certificates securing a host.\n\n" +
