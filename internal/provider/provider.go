@@ -7,12 +7,13 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 	"golang.org/x/net/http/httpproxy"
 )
 
@@ -43,8 +44,8 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						Type:     types.StringType,
 						Optional: true,
 						Validators: []tfsdk.AttributeValidator{
-							attribute_validation.UrlWithScheme(supportedProxySchemesStr()...),
-							attribute_validation.ConflictsWith(tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("from_env")),
+							attribute_validator.UrlWithScheme(supportedProxySchemesStr()...),
+							schemavalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("from_env")),
 						},
 						MarkdownDescription: "URL used to connect to the Proxy. " +
 							fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(supportedProxySchemesStr(), "`, `")),
@@ -53,7 +54,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						Type:     types.StringType,
 						Optional: true,
 						Validators: []tfsdk.AttributeValidator{
-							attribute_validation.RequiredWith(tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("url")),
+							schemavalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url")),
 						},
 						MarkdownDescription: "Username (or Token) used for Basic authentication against the Proxy.",
 					},
@@ -62,7 +63,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						Optional:  true,
 						Sensitive: true,
 						Validators: []tfsdk.AttributeValidator{
-							attribute_validation.RequiredWith(tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("username")),
+							schemavalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("username")),
 						},
 						MarkdownDescription: "Password used for Basic authentication against the Proxy.",
 					},
@@ -71,10 +72,11 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						Optional: true,
 						Computed: true,
 						Validators: []tfsdk.AttributeValidator{
-							attribute_validation.ConflictsWith(
-								tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("url"),
-								tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("username"),
-								tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("password"),
+							schemavalidator.ConflictsWith(
+								path.MatchRelative().AtParent().AtName("url"),
+								path.MatchRelative().AtParent().AtName("url"),
+								path.MatchRelative().AtParent().AtName("username"),
+								path.MatchRelative().AtParent().AtName("password"),
 							),
 						},
 						MarkdownDescription: "When `true` the provider will discover the proxy configuration from environment variables. " +

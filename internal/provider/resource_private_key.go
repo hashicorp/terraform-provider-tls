@@ -10,14 +10,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/openssh"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modification"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
 )
 
 type (
@@ -47,7 +47,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 					tfsdk.RequiresReplace(),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.OneOf(supportedAlgorithmsAttrValue()...),
+					stringvalidator.OneOf(supportedAlgorithmsStr()...),
 				},
 				Description: "Name of the algorithm to use when generating the private key. " +
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
@@ -60,7 +60,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					tfsdk.RequiresReplace(),
-					attribute_plan_modification.DefaultValue(types.Int64{Value: 2048}),
+					attribute_plan_modifier.DefaultValue(types.Int64{Value: 2048}),
 				},
 				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
 			},
@@ -70,10 +70,10 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					tfsdk.RequiresReplace(),
-					attribute_plan_modification.DefaultValue(types.String{Value: P224.String()}),
+					attribute_plan_modifier.DefaultValue(types.String{Value: P224.String()}),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.OneOf(supportedECDSACurvesAttrValue()...),
+					stringvalidator.OneOf(supportedECDSACurvesStr()...),
 				},
 				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedECDSACurvesStr(), "`, `")) +

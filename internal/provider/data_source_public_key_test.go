@@ -247,14 +247,14 @@ func TestPublicKey_dataSource_errorCases(t *testing.T) {
 						private_key_openssh = "does not matter"
 					}
 				`,
-				ExpectError: regexp.MustCompile("Invalid combination of arguments: more than one attribute set, when only one was expected"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
 			},
 			{
 				Config: `
 					data "tls_public_key" "test" {
 					}
 				`,
-				ExpectError: regexp.MustCompile("Invalid combination of arguments: no attribute set, when one and only one was expected"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
 			},
 		},
 	})

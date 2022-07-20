@@ -12,13 +12,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 )
 
 type (
@@ -41,10 +42,10 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Type:     types.StringType,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.UrlWithScheme(supportedURLSchemesStr()...),
-					attribute_validation.ExactlyOneOf(
-						tftypes.NewAttributePath().WithAttributeName("content"),
-						tftypes.NewAttributePath().WithAttributeName("url"),
+					attribute_validator.UrlWithScheme(supportedURLSchemesStr()...),
+					schemavalidator.ExactlyOneOf(
+						path.MatchRoot("content"),
+						path.MatchRoot("url"),
 					),
 				},
 				MarkdownDescription: "URL of the endpoint to get the certificates from. " +
@@ -56,9 +57,9 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Type:     types.StringType,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.ExactlyOneOf(
-						tftypes.NewAttributePath().WithAttributeName("content"),
-						tftypes.NewAttributePath().WithAttributeName("url"),
+					schemavalidator.ExactlyOneOf(
+						path.MatchRoot("content"),
+						path.MatchRoot("url"),
 					),
 				},
 				MarkdownDescription: "The content of the certificate in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
@@ -69,8 +70,8 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Type:     types.BoolType,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.ConflictsWith(
-						tftypes.NewAttributePath().WithAttributeName("content"),
+					schemavalidator.ConflictsWith(
+						path.MatchRoot("content"),
 					),
 				},
 				MarkdownDescription: "Whether to verify the certificate chain while parsing it or not (default: `true`).",
@@ -186,7 +187,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 		block, _ := pem.Decode([]byte(newState.Content.Value))
 		if block == nil {
 			res.Diagnostics.AddAttributeError(
-				tftypes.NewAttributePath().WithAttributeName("content"),
+				path.Root("content"),
 				"Failed to decoded PEM",
 				"Value is not a valid PEM encoding of a certificate",
 			)
@@ -218,7 +219,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 		targetURL, err := url.Parse(newState.URL.Value)
 		if err != nil {
 			res.Diagnostics.AddAttributeError(
-				tftypes.NewAttributePath().WithAttributeName("url"),
+				path.Root("url"),
 				"Failed to parse URL",
 				err.Error(),
 			)

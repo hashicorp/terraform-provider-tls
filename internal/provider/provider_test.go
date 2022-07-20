@@ -60,7 +60,7 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.url" cannot be specified when "proxy.from_env" is specified|"proxy.from_env" cannot be specified when "proxy.url" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
 				Config: `
@@ -73,7 +73,7 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.url" must be specified when "proxy.username" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
 				Config: `
@@ -86,7 +86,7 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.username" must be specified when "proxy.password" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
 				Config: `
@@ -100,7 +100,7 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.url" must be specified when "proxy.username" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
 				Config: `
@@ -114,7 +114,7 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.username" cannot be specified when "proxy.from_env" is specified|"proxy.url" must be specified when "proxy.username" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 		},
 	})

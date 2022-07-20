@@ -13,9 +13,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
-
 	"golang.org/x/crypto/ssh"
 )
 
@@ -181,12 +180,12 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 		Bytes: pubKeyBytes,
 	}
 
-	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), hashForState(string(pubKeyBytes)))...)
+	diags.Append(s.SetAttribute(ctx, path.Root("id"), hashForState(string(pubKeyBytes)))...)
 	if diags.HasError() {
 		return diags
 	}
 
-	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("public_key_pem"), string(pem.EncodeToMemory(pubKeyPemBlock)))...)
+	diags.Append(s.SetAttribute(ctx, path.Root("public_key_pem"), string(pem.EncodeToMemory(pubKeyPemBlock)))...)
 	if diags.HasError() {
 		return diags
 	}
@@ -203,17 +202,17 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
 	}
 
-	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("public_key_openssh"), pubKeySSH)...)
+	diags.Append(s.SetAttribute(ctx, path.Root("public_key_openssh"), pubKeySSH)...)
 	if diags.HasError() {
 		return diags
 	}
 
-	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("public_key_fingerprint_md5"), pubKeySSHFingerprintMD5)...)
+	diags.Append(s.SetAttribute(ctx, path.Root("public_key_fingerprint_md5"), pubKeySSHFingerprintMD5)...)
 	if diags.HasError() {
 		return diags
 	}
 
-	diags.Append(s.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("public_key_fingerprint_sha256"), pubKeySSHFingerprintSHA256)...)
+	diags.Append(s.SetAttribute(ctx, path.Root("public_key_fingerprint_sha256"), pubKeySSHFingerprintSHA256)...)
 	if diags.HasError() {
 		return diags
 	}

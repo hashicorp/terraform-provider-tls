@@ -19,11 +19,10 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -71,18 +70,6 @@ func supportedKeyUsagesStr() []string {
 	return res
 }
 
-// supportedKeyUsagesAttrValue returns a slice of attr.Value with all the keys in keyUsages and extendedKeyUsages.
-func supportedKeyUsagesAttrValue() []attr.Value {
-	keyUsagesStr := supportedKeyUsagesStr()
-	res := make([]attr.Value, 0, len(keyUsagesStr))
-
-	for _, ku := range keyUsagesStr {
-		res = append(res, types.String{Value: ku})
-	}
-
-	return res
-}
-
 // generateSubjectKeyID generates a SHA-1 hash of the subject public key.
 func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
 	var pubKeyBytes []byte
@@ -124,7 +111,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	var diags diag.Diagnostics
 
 	// Set not-before and not-after limits on the certificate template
-	validityPeriodHoursPath := tftypes.NewAttributePath().WithAttributeName("validity_period_hours")
+	validityPeriodHoursPath := path.Root("validity_period_hours")
 	var validityPeriodHours int64
 	diags.Append(plan.GetAttribute(ctx, validityPeriodHoursPath, &validityPeriodHours)...)
 	if diags.HasError() {
@@ -142,7 +129,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	}
 
 	// Set allowed-uses on the template
-	allowedUsesPath := tftypes.NewAttributePath().WithAttributeName("allowed_uses")
+	allowedUsesPath := path.Root("allowed_uses")
 	var allowedUses types.List
 	diags.Append(plan.GetAttribute(ctx, allowedUsesPath, &allowedUses)...)
 	if diags.HasError() {
@@ -160,7 +147,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	}
 
 	// Set is-CA on the template
-	isCACertificatePath := tftypes.NewAttributePath().WithAttributeName("is_ca_certificate")
+	isCACertificatePath := path.Root("is_ca_certificate")
 	var isCACertificate types.Bool
 	diags.Append(plan.GetAttribute(ctx, isCACertificatePath, &isCACertificate)...)
 	if diags.HasError() {
@@ -187,7 +174,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	}
 
 	// Set subject-id on the template
-	setSubjectKeyIDPath := tftypes.NewAttributePath().WithAttributeName("set_subject_key_id")
+	setSubjectKeyIDPath := path.Root("set_subject_key_id")
 	var setSubjectKeyID types.Bool
 	diags.Append(plan.GetAttribute(ctx, setSubjectKeyIDPath, &setSubjectKeyID)...)
 	if diags.HasError() {
@@ -204,7 +191,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	// Set authority-id on the template
 	_, ok := plan.Schema.Attributes["set_authority_key_id"]
 	if ok {
-		setAuthorityKeyIDPath := tftypes.NewAttributePath().WithAttributeName("set_authority_key_id")
+		setAuthorityKeyIDPath := path.Root("set_authority_key_id")
 		var setAuthorityKeyID types.Bool
 		diags.Append(plan.GetAttribute(ctx, setAuthorityKeyIDPath, &setAuthorityKeyID)...)
 		if diags.HasError() {
@@ -264,7 +251,7 @@ type commonCertificate struct {
 
 func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *tfsdk.ModifyResourcePlanRequest, res *tfsdk.ModifyResourcePlanResponse) {
 	// Retrieve `validity_end_time` and confirm is a known, non-null value
-	validityEndTimePath := tftypes.NewAttributePath().WithAttributeName("validity_end_time")
+	validityEndTimePath := path.Root("validity_end_time")
 	var validityEndTimeStr types.String
 	res.Diagnostics.Append(req.Plan.GetAttribute(ctx, validityEndTimePath, &validityEndTimeStr)...)
 	if res.Diagnostics.HasError() {
@@ -285,7 +272,7 @@ func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *tfsdk.Modi
 	}
 
 	// Retrieve `early_renewal_hours`
-	earlyRenewalHoursPath := tftypes.NewAttributePath().WithAttributeName("early_renewal_hours")
+	earlyRenewalHoursPath := path.Root("early_renewal_hours")
 	var earlyRenewalHours int64
 	res.Diagnostics.Append(req.Plan.GetAttribute(ctx, earlyRenewalHoursPath, &earlyRenewalHours)...)
 	if res.Diagnostics.HasError() {
@@ -302,7 +289,7 @@ func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *tfsdk.Modi
 	timeToEarlyRenewal := earlyRenewalTime.Sub(currentTime)
 	if timeToEarlyRenewal <= 0 {
 		tflog.Info(ctx, "Certificate is ready for early renewal")
-		readyForRenewalPath := tftypes.NewAttributePath().WithAttributeName("ready_for_renewal")
+		readyForRenewalPath := path.Root("ready_for_renewal")
 		res.Diagnostics.Append(res.Plan.SetAttribute(ctx, readyForRenewalPath, true)...)
 		res.RequiresReplace = append(res.RequiresReplace, readyForRenewalPath)
 	}

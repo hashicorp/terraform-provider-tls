@@ -3,9 +3,6 @@ package provider
 import (
 	"encoding/pem"
 	"fmt"
-
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Algorithm represents a type of private key algorithm.
@@ -40,16 +37,6 @@ func supportedAlgorithmsStr() []string {
 	return supportedStr
 }
 
-// supportedAlgorithmsAttrValue returns the same content of supportedAlgorithms but as a slice of attr.Value.
-func supportedAlgorithmsAttrValue() []attr.Value {
-	supported := supportedAlgorithms()
-	supportedStr := make([]attr.Value, len(supported))
-	for i := range supported {
-		supportedStr[i] = types.String{Value: supported[i].String()}
-	}
-	return supportedStr
-}
-
 // ECDSACurve represents a type of ECDSA elliptic curve.
 type ECDSACurve string
 
@@ -80,16 +67,6 @@ func supportedECDSACurvesStr() []string {
 	supportedStr := make([]string, len(supported))
 	for i := range supported {
 		supportedStr[i] = supported[i].String()
-	}
-	return supportedStr
-}
-
-// supportedECDSACurvesAttrValue returns the same content of supportedECDSACurves but as a slice of attr.Value.
-func supportedECDSACurvesAttrValue() []attr.Value {
-	supported := supportedECDSACurves()
-	supportedStr := make([]attr.Value, len(supported))
-	for i := range supported {
-		supportedStr[i] = types.String{Value: supported[i].String()}
 	}
 	return supportedStr
 }

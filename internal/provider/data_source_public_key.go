@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
 )
 
 type (
@@ -33,9 +33,9 @@ func (dst *publicKeyDataSourceType) GetSchema(ctx context.Context) (tfsdk.Schema
 				Optional:  true,
 				Sensitive: true,
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.ExactlyOneOf(
-						tftypes.NewAttributePath().WithAttributeName("private_key_pem"),
-						tftypes.NewAttributePath().WithAttributeName("private_key_openssh"),
+					schemavalidator.ExactlyOneOf(
+						path.MatchRoot("private_key_pem"),
+						path.MatchRoot("private_key_openssh"),
 					),
 				},
 				Description: "The private key (in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format) " +
@@ -48,9 +48,9 @@ func (dst *publicKeyDataSourceType) GetSchema(ctx context.Context) (tfsdk.Schema
 				Optional:  true,
 				Sensitive: true,
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.ExactlyOneOf(
-						tftypes.NewAttributePath().WithAttributeName("private_key_pem"),
-						tftypes.NewAttributePath().WithAttributeName("private_key_openssh"),
+					schemavalidator.ExactlyOneOf(
+						path.MatchRoot("private_key_pem"),
+						path.MatchRoot("private_key_openssh"),
 					),
 				},
 				Description: "The private key (in  [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format) " +
@@ -130,10 +130,10 @@ func (ds *publicKeyDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 	// Given the use of `ExactlyOneOf` in the Schema, we are guaranteed
 	// that either `private_key_pem` or `private_key_openssh` will be set.
 	var prvKeyArg types.String
-	if req.Config.GetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("private_key_pem"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
+	if req.Config.GetAttribute(ctx, path.Root("private_key_pem"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
 		tflog.Debug(ctx, "Parsing private key from PEM")
 		prvKey, algorithm, err = parsePrivateKeyPEM([]byte(prvKeyArg.Value))
-	} else if req.Config.GetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("private_key_openssh"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
+	} else if req.Config.GetAttribute(ctx, path.Root("private_key_openssh"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
 		tflog.Debug(ctx, "Parsing private key from OpenSSH PEM")
 		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.Value))
 	}
@@ -143,7 +143,7 @@ func (ds *publicKeyDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 	}
 
 	tflog.Debug(ctx, "Storing private key algorithm info into the state")
-	res.Diagnostics.Append(res.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("algorithm"), &algorithm)...)
+	res.Diagnostics.Append(res.State.SetAttribute(ctx, path.Root("algorithm"), &algorithm)...)
 	if res.Diagnostics.HasError() {
 		return
 	}

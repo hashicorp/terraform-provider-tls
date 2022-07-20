@@ -231,13 +231,13 @@ func TestDataSourceCertificate_CertificateContentNegativeTests(t *testing.T) {
 						url     = "https://www.hashicorp.com"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`More than one attribute out of "content,url" has been set`),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
 			},
 			{
 				Config: `
 					data "tls_certificate" "test" {}
 				`,
-				ExpectError: regexp.MustCompile("No attribute out of \"content,url\" has been set"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
 			},
 		},
 	})
