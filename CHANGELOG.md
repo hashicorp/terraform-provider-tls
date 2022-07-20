@@ -1,4 +1,4 @@
-## 4.0.0-rc.1 (UNRELEASED)
+## 4.0.0 (UNRELEASED)
 
 NOTES:
 
@@ -18,8 +18,6 @@ ENHANCEMENTS:
 
 BREAKING CHANGES:
 
-* [Terraform `>=1.0`](https://www.terraform.io/language/upgrade-guides/1-0) is now required to use this provider.
-
 * resource/tls_cert_request: Attribute `key_algorithm` is now read-only, as it's inferred from `private_key_pem` ([#174](https://github.com/hashicorp/terraform-provider-tls/issues/174), [#215](https://github.com/hashicorp/terraform-provider-tls/pull/215)).
 * resource/tls_self_signed_cert: Attribute `private_key_pem` is stored (and returned) _as-is_ (in accordance with [guidelines](https://www.terraform.io/plugin/sdkv2/best-practices/sensitive-state#don-t-encrypt-state)) ([#87](https://github.com/hashicorp/terraform-provider-tls/issues/87), [#215](https://github.com/hashicorp/terraform-provider-tls/pull/215)).
 
@@ -31,7 +29,6 @@ BREAKING CHANGES:
 * resource/tls_locally_signed_cert: Setting an unsupported value in `allowed_uses` attribute, will now return an error instead of just a warning ([#185](https://github.com/hashicorp/terraform-provider-tls/issues/185), [#215](https://github.com/hashicorp/terraform-provider-tls/pull/215)).
 * resource/tls_locally_signed_cert: Attributes `cert_request_pem`, `ca_private_key_pem`, `ca_cert_pem` are stored (and returned) _as-is_ (in accordance with [guidelines](https://www.terraform.io/plugin/sdkv2/best-practices/sensitive-state#don-t-encrypt-state)) ([#87](https://github.com/hashicorp/terraform-provider-tls/issues/87), [#215](https://github.com/hashicorp/terraform-provider-tls/pull/215)).
 
-* provider: HTTP `proxy` configuration is now a (nested) Attribute (`proxy = {...`), not a Block (`proxy { ...`) ([#215](https://github.com/hashicorp/terraform-provider-tls/pull/215)).
 * provider: Default value for `proxy.from_env` is now `true`, and relies upon [`httpproxy.FromEnvironment`](https://pkg.go.dev/golang.org/x/net/http/httpproxy#FromEnvironment) ([#224](https://github.com/hashicorp/terraform-provider-tls/pull/224)).
 
 ## 3.4.0 (May 16, 2022)
