@@ -17,7 +17,7 @@ import (
 
 func TestResourceLocallySignedCert(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertConfig(1, 0),
@@ -118,13 +118,13 @@ func TestAccResourceLocallySignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   locallySignedCertConfig(1, 0),
 				PlanOnly:                 true,
 				ExpectNonEmptyPlan:       true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   locallySignedCertConfig(1, 0),
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
@@ -176,7 +176,7 @@ func TestAccResourceLocallySignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 func TestResourceLocallySignedCert_DetectExpiringAndExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
@@ -203,7 +203,7 @@ func TestResourceLocallySignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
@@ -254,7 +254,7 @@ func TestResourceLocallySignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
@@ -326,7 +326,7 @@ EOT
 
 func TestResourceLocallySignedCert_KeyIDs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -412,7 +412,7 @@ EOT
 
 func TestResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -462,7 +462,7 @@ func TestResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 
 func TestResourceLocallySignedCert_FromED25519PrivateKeyResource_PKCS8(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -512,7 +512,7 @@ func TestResourceLocallySignedCert_FromED25519PrivateKeyResource_PKCS8(t *testin
 
 func TestResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -562,7 +562,7 @@ func TestResourceLocallySignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 
 func TestResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -612,7 +612,7 @@ func TestResourceLocallySignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 
 func TestResourceLocallySignedCert_InvalidConfigs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `

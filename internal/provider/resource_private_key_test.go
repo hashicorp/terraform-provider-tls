@@ -11,7 +11,7 @@ import (
 
 func TestPrivateKeyRSA(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -83,7 +83,7 @@ func TestAccPrivateKeyRSA_UpgradeFromVersion3_4_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "RSA"
@@ -92,7 +92,7 @@ func TestAccPrivateKeyRSA_UpgradeFromVersion3_4_0(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "RSA"
@@ -145,7 +145,7 @@ func TestAccPrivateKeyRSA_UpgradeFromVersion3_1_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "RSA"
@@ -154,7 +154,7 @@ func TestAccPrivateKeyRSA_UpgradeFromVersion3_1_0(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "RSA"
@@ -182,7 +182,7 @@ func TestAccPrivateKeyRSA_UpgradeFromVersion3_1_0(t *testing.T) {
 
 func TestPrivateKeyECDSA(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -242,7 +242,7 @@ func TestAccPrivateKeyECDSA_UpgradeFromVersion3_4_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "ECDSA"
@@ -251,7 +251,7 @@ func TestAccPrivateKeyECDSA_UpgradeFromVersion3_4_0(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "ECDSA"
@@ -293,7 +293,7 @@ func TestAccPrivateKeyECDSA_UpgradeFromVersion3_1_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "ECDSA"
@@ -303,7 +303,7 @@ func TestAccPrivateKeyECDSA_UpgradeFromVersion3_1_0(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "ECDSA"
@@ -326,7 +326,7 @@ func TestAccPrivateKeyECDSA_UpgradeFromVersion3_1_0(t *testing.T) {
 
 func TestPrivateKeyED25519(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -369,7 +369,7 @@ func TestAccPrivateKeyED25519_UpgradeFromVersion3_4_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "ED25519"
@@ -378,7 +378,7 @@ func TestAccPrivateKeyED25519_UpgradeFromVersion3_4_0(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					resource "tls_private_key" "test" {
 						algorithm = "ED25519"

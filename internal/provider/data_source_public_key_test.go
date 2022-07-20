@@ -29,7 +29,7 @@ data "tls_public_key" "test" {
 
 func TestPublicKey_dataSource_PEM(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
@@ -96,12 +96,12 @@ func TestPublicKey_dataSource_PEM_UpgradeFromVersion3_4_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
 				PlanOnly:                 true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
@@ -117,7 +117,7 @@ func TestPublicKey_dataSource_PEM_UpgradeFromVersion3_4_0(t *testing.T) {
 
 func TestPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, fixtures.TestPrivateKeyOpenSSHPEM),
@@ -183,7 +183,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM_UpgradeFromVersion3_4_0(t *testing.T
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, fixtures.TestPrivateKeyOpenSSHPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
@@ -199,7 +199,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM_UpgradeFromVersion3_4_0(t *testing.T
 
 func TestPublicKey_dataSource_PKCS8PEM(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -238,7 +238,7 @@ func TestPublicKey_dataSource_PKCS8PEM(t *testing.T) {
 
 func TestPublicKey_dataSource_errorCases(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
