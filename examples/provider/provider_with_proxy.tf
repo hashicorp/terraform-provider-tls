@@ -2,7 +2,7 @@
 # from `example.com` using an HTTP Proxy.
 
 provider "tls" {
-  proxy = {
+  proxy {
     url = "https://corporate.proxy.service"
   }
 }

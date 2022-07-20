@@ -77,7 +77,7 @@ resource "aws_iam_server_certificate" "example" {
 # from `example.com` using an HTTP Proxy.
 
 provider "tls" {
-  proxy = {
+  proxy {
     url = "https://corporate.proxy.service"
   }
 }
@@ -94,7 +94,7 @@ data "tls_certificate" "test" {
 # see https://pkg.go.dev/net/http#ProxyFromEnvironment for details.
 
 provider "tls" {
-  proxy = {
+  proxy {
     from_env = true
   }
 }
@@ -109,9 +109,9 @@ data "tls_certificate" "test" {
 
 ### Optional
 
-- `proxy` (Attributes) Proxy used by resources and data sources that connect to external endpoints. (see [below for nested schema](#nestedatt--proxy))
+- `proxy` (Block List, Max: 1) Proxy used by resources and data sources that connect to external endpoints. (see [below for nested schema](#nestedblock--proxy))
 
-<a id="nestedatt--proxy"></a>
+<a id="nestedblock--proxy"></a>
 ### Nested Schema for `proxy`
 
 Optional:
