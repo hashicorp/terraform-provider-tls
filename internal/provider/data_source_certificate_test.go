@@ -386,7 +386,7 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T)
 						verify_chain = false
 					}
 				`, proxy.Address(), server.Address()),
-				ExpectError: regexp.MustCompile("Proxy Authentication Required"),
+				ExpectError: regexp.MustCompile("Authentication Required"),
 			},
 		},
 	})
@@ -448,7 +448,7 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t 
 						verify_chain = false
 					}
 				`, proxy.Address(), proxyUsername, server.Address()),
-				ExpectError: regexp.MustCompile("Proxy Authentication Required"),
+				ExpectError: regexp.MustCompile("Authentication Required"),
 			},
 		},
 	})
