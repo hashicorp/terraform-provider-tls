@@ -29,7 +29,7 @@ version it implements, and Terraform:
 
 | TLS Provider | Registry Protocol | Terraform |
 |:------------:|:-----------------:|:---------:|
-|   `>= 4.x`   |        `6`        | `>= 1.x`  |
+|   `>= 4.x`   |        `5`        | `>= 0.12` |
 |   `>= 3.x`   |        `5`        | `>= 0.12` |
 |   `<= 2.x`   |        `4`        | `<= 0.11` |
 
