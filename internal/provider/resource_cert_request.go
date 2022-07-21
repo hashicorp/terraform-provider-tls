@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -107,6 +108,10 @@ func (rt *certRequestResourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 				NestingMode: tfsdk.BlockNestingModeList,
 				MinItems:    0,
 				MaxItems:    1,
+				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
+				Validators: []tfsdk.AttributeValidator{
+					listvalidator.SizeBetween(0, 1),
+				},
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					tfsdk.RequiresReplace(),
 				},

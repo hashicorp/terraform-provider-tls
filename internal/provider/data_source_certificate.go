@@ -12,13 +12,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 )
 
 type (
@@ -41,10 +43,10 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Type:     types.StringType,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.UrlWithScheme(supportedURLSchemesStr()...),
-					attribute_validation.ExactlyOneOf(
-						tftypes.NewAttributePath().WithAttributeName("content"),
-						tftypes.NewAttributePath().WithAttributeName("url"),
+					attribute_validator.UrlWithScheme(supportedURLSchemesStr()...),
+					schemavalidator.ExactlyOneOf(
+						path.MatchRoot("content"),
+						path.MatchRoot("url"),
 					),
 				},
 				MarkdownDescription: "URL of the endpoint to get the certificates from. " +
@@ -56,9 +58,9 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Type:     types.StringType,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.ExactlyOneOf(
-						tftypes.NewAttributePath().WithAttributeName("content"),
-						tftypes.NewAttributePath().WithAttributeName("url"),
+					schemavalidator.ExactlyOneOf(
+						path.MatchRoot("content"),
+						path.MatchRoot("url"),
 					),
 				},
 				MarkdownDescription: "The content of the certificate in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
@@ -69,17 +71,29 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Type:     types.BoolType,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.ConflictsWith(
-						tftypes.NewAttributePath().WithAttributeName("content"),
+					schemavalidator.ConflictsWith(
+						path.MatchRoot("content"),
 					),
 				},
 				MarkdownDescription: "Whether to verify the certificate chain while parsing it or not (default: `true`).",
 			},
 
 			// Computed attributes
+			"id": {
+				Type:                types.StringType,
+				Computed:            true,
+				MarkdownDescription: "Unique identifier of this data source: hashing of the certificates in the chain.",
+			},
+		},
+		Blocks: map[string]tfsdk.Block{
 			"certificates": {
-				Computed: true,
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+				NestingMode: tfsdk.BlockNestingModeList,
+				MinItems:    0,
+				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
+				Validators: []tfsdk.AttributeValidator{
+					listvalidator.SizeAtLeast(0),
+				},
+				Attributes: map[string]tfsdk.Attribute{
 					"signature_algorithm": {
 						Type:                types.StringType,
 						Computed:            true,
@@ -146,13 +160,8 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 							"In case this disrupts your use case, we recommend using " +
 							"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 					},
-				}),
+				},
 				MarkdownDescription: "The certificates protecting the site, with the root of the chain first.",
-			},
-			"id": {
-				Type:                types.StringType,
-				Computed:            true,
-				MarkdownDescription: "Unique identifier of this data source: hashing of the certificates in the chain.",
 			},
 		},
 		MarkdownDescription: "Get information about the TLS certificates securing a host.\n\n" +
@@ -186,7 +195,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 		block, _ := pem.Decode([]byte(newState.Content.Value))
 		if block == nil {
 			res.Diagnostics.AddAttributeError(
-				tftypes.NewAttributePath().WithAttributeName("content"),
+				path.Root("content"),
 				"Failed to decoded PEM",
 				"Value is not a valid PEM encoding of a certificate",
 			)
@@ -218,7 +227,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 		targetURL, err := url.Parse(newState.URL.Value)
 		if err != nil {
 			res.Diagnostics.AddAttributeError(
-				tftypes.NewAttributePath().WithAttributeName("url"),
+				path.Root("url"),
 				"Failed to parse URL",
 				err.Error(),
 			)

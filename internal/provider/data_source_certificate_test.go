@@ -13,7 +13,7 @@ import (
 
 func TestDataSourceCertificate_CertificateContent(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
@@ -71,7 +71,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					data "tls_certificate" "test" {
 						content = file("fixtures/certificate.pem")
@@ -80,7 +80,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 				PlanOnly: true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config: `
 					data "tls_certificate" "test" {
 						content = file("fixtures/certificate.pem")
@@ -112,7 +112,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 // data we check against up to date, when that happens.
 func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 	r.Test(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
@@ -161,7 +161,7 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 // data we check against up to date, when that happens.
 func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 	r.Test(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
@@ -206,7 +206,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 
 func TestDataSourceCertificate_CertificateContentNegativeTests(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -231,13 +231,13 @@ func TestDataSourceCertificate_CertificateContentNegativeTests(t *testing.T) {
 						url     = "https://www.hashicorp.com"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`More than one attribute out of "content,url" has been set`),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
 			},
 			{
 				Config: `
 					data "tls_certificate" "test" {}
 				`,
-				ExpectError: regexp.MustCompile("No attribute out of \"content,url\" has been set"),
+				ExpectError: regexp.MustCompile("Invalid Attribute Combination"),
 			},
 		},
 	})
@@ -252,7 +252,7 @@ func TestDataSourceCertificate_HTTPSScheme(t *testing.T) {
 	go server.ServeTLS()
 
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
@@ -278,7 +278,7 @@ func TestDataSourceCertificate_TLSScheme(t *testing.T) {
 	go server.ServeTLS()
 
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
@@ -311,14 +311,14 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxy(t *testing.T) {
 	go proxy.Serve()
 
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
 
 				Config: fmt.Sprintf(`
 					provider "tls" {
-						proxy = {
+						proxy {
 							url = "http://%s"
 						}
 					}
@@ -350,14 +350,14 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T)
 	go proxy.Serve()
 
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
 
 				Config: fmt.Sprintf(`
 					provider "tls" {
-						proxy = {
+						proxy {
 							url = "http://%s"
 							username = "%s"
 						}
@@ -376,7 +376,7 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T)
 
 				Config: fmt.Sprintf(`
 					provider "tls" {
-						proxy = {
+						proxy {
 							url = "http://%s"
 							username = "wrong-username"
 						}
@@ -386,7 +386,7 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAuth(t *testing.T)
 						verify_chain = false
 					}
 				`, proxy.Address(), server.Address()),
-				ExpectError: regexp.MustCompile("Proxy Authentication Required"),
+				ExpectError: regexp.MustCompile("Authentication Required"),
 			},
 		},
 	})
@@ -410,14 +410,14 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t 
 	go proxy.Serve()
 
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
 
 				Config: fmt.Sprintf(`
 					provider "tls" {
-						proxy = {
+						proxy {
 							url = "http://%s"
 							username = "%s"
 							password = "%s"
@@ -437,7 +437,7 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t 
 
 				Config: fmt.Sprintf(`
 					provider "tls" {
-						proxy = {
+						proxy {
 							url = "http://%s"
 							username = "%s"
 							password = "wrong-password"
@@ -448,7 +448,7 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyWithUsernameAndPasswordAuth(t 
 						verify_chain = false
 					}
 				`, proxy.Address(), proxyUsername, server.Address()),
-				ExpectError: regexp.MustCompile("Proxy Authentication Required"),
+				ExpectError: regexp.MustCompile("Authentication Required"),
 			},
 		},
 	})
@@ -472,12 +472,12 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyFromEnv(t *testing.T) {
 	t.Setenv("HTTPS_PROXY", fmt.Sprintf("http://%s", proxy.Address()))
 
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
 					provider "tls" {
-						proxy = {
+						proxy {
 							from_env = true
 						}
 					}
@@ -516,14 +516,14 @@ func TestDataSourceCertificate_HTTPSSchemeViaProxyButNoProxyAvailable(t *testing
 	go server.ServeTLS()
 
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
 
 				Config: fmt.Sprintf(`
 					provider "tls" {
-						proxy = {
+						proxy {
 							url = "http://localhost:65535"
 						}
 					}
@@ -573,7 +573,7 @@ func localTestCertificateChainCheckFunc() r.TestCheckFunc {
 
 func TestDataSourceCertificate_MalformedURL(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{

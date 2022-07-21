@@ -17,7 +17,7 @@ import (
 
 func TestResourceSelfSignedCert(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: selfSignedCertConfig(1, 0),
@@ -138,13 +138,13 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   selfSignedCertConfig(1, 0),
 				PlanOnly:                 true,
 				ExpectNonEmptyPlan:       true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   selfSignedCertConfig(1, 0),
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_self_signed_cert.test1", "cert_pem", PreambleCertificate.String()),
@@ -194,7 +194,7 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 func TestResourceSelfSignedCert_DetectExpiringAndExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
@@ -221,7 +221,7 @@ func TestResourceSelfSignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
@@ -275,7 +275,7 @@ func TestResourceSelfSignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *tes
 	oldNow := overridableTimeFunc
 	var previousCert string
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
@@ -327,7 +327,7 @@ func TestResourceSelfSignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *tes
 
 func TestResourceSelfSignedCert_KeyIDs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
 		Steps: []r.TestStep{
 			{
@@ -375,7 +375,7 @@ EOT
 
 func TestResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -427,7 +427,7 @@ func TestResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 						]
 					}
 				`,
-				ExpectError: regexp.MustCompile("Too many (list items|subject blocks)"),
+				ExpectError: regexp.MustCompile(`List must contain at least 0 elements and at most 1 elements, got: 2|No more than 1 "subject" blocks are allowed`),
 			},
 			{
 				Config: `
@@ -518,7 +518,7 @@ EOT
 
 func TestResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -548,7 +548,7 @@ func TestResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 
 func TestResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -580,7 +580,7 @@ func TestResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 
 func TestResourceSelfSignedCert_FromECDSAPrivateKeyResource_PKCS8(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -612,7 +612,7 @@ func TestResourceSelfSignedCert_FromECDSAPrivateKeyResource_PKCS8(t *testing.T) 
 
 func TestResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -644,7 +644,7 @@ func TestResourceSelfSignedCert_FromRSAPrivateKeyResource(t *testing.T) {
 
 func TestResourceSelfSignedCert_NoSubject(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `

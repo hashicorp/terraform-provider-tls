@@ -7,12 +7,14 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 	"golang.org/x/net/http/httpproxy"
 )
 
@@ -35,16 +37,22 @@ func (p *provider) resetConfig() {
 
 func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
+		Blocks: map[string]tfsdk.Block{
 			"proxy": {
-				Optional: true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+				NestingMode: tfsdk.BlockNestingModeList,
+				MinItems:    0,
+				MaxItems:    1,
+				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
+				Validators: []tfsdk.AttributeValidator{
+					listvalidator.SizeBetween(0, 1),
+				},
+				Attributes: map[string]tfsdk.Attribute{
 					"url": {
 						Type:     types.StringType,
 						Optional: true,
 						Validators: []tfsdk.AttributeValidator{
-							attribute_validation.UrlWithScheme(supportedProxySchemesStr()...),
-							attribute_validation.ConflictsWith(tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("from_env")),
+							attribute_validator.UrlWithScheme(supportedProxySchemesStr()...),
+							schemavalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("from_env")),
 						},
 						MarkdownDescription: "URL used to connect to the Proxy. " +
 							fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(supportedProxySchemesStr(), "`, `")),
@@ -53,7 +61,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						Type:     types.StringType,
 						Optional: true,
 						Validators: []tfsdk.AttributeValidator{
-							attribute_validation.RequiredWith(tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("url")),
+							schemavalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url")),
 						},
 						MarkdownDescription: "Username (or Token) used for Basic authentication against the Proxy.",
 					},
@@ -62,7 +70,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						Optional:  true,
 						Sensitive: true,
 						Validators: []tfsdk.AttributeValidator{
-							attribute_validation.RequiredWith(tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("username")),
+							schemavalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("username")),
 						},
 						MarkdownDescription: "Password used for Basic authentication against the Proxy.",
 					},
@@ -71,20 +79,21 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						Optional: true,
 						Computed: true,
 						Validators: []tfsdk.AttributeValidator{
-							attribute_validation.ConflictsWith(
-								tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("url"),
-								tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("username"),
-								tftypes.NewAttributePath().WithAttributeName("proxy").WithAttributeName("password"),
+							schemavalidator.ConflictsWith(
+								path.MatchRelative().AtParent().AtName("url"),
+								path.MatchRelative().AtParent().AtName("username"),
+								path.MatchRelative().AtParent().AtName("password"),
 							),
 						},
 						MarkdownDescription: "When `true` the provider will discover the proxy configuration from environment variables. " +
 							"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
 							"and it supports the same environment variables (default: `true`).",
 					},
-				}),
+				},
 				MarkdownDescription: "Proxy used by resources and data sources that connect to external endpoints.",
 			},
 		},
+		MarkdownDescription: "Provider configuration",
 	}, nil
 }
 
@@ -100,17 +109,27 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	if res.Diagnostics.HasError() {
 		return
 	}
-	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() {
+	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() || len(conf.Proxy.Elems) == 0 {
 		tflog.Debug(ctx, "No proxy configuration detected: using provider defaults")
 		return
 	}
 
 	// Load proxy configuration into model
-	var proxyConf providerProxyConfigModel
-	res.Diagnostics.Append(conf.Proxy.As(ctx, &proxyConf, types.ObjectAsOptions{})...)
+	proxyConfSlice := make([]providerProxyConfigModel, 1)
+	res.Diagnostics.Append(conf.Proxy.ElementsAs(ctx, &proxyConfSlice, true)...)
 	if res.Diagnostics.HasError() {
 		return
 	}
+	if len(proxyConfSlice) != 1 {
+		res.Diagnostics.AddAttributeError(
+			path.Root("proxy"),
+			"Provider Proxy Configuration Handling Error",
+			"The provider failed to fully load the expected proxy configuration, even if it appears to be present. "+
+				"This is always a bug in the Terraform Provider and should be reported to the provider developers.",
+		)
+		return
+	}
+	proxyConf := proxyConfSlice[0]
 	tflog.Debug(ctx, "Loaded provider configuration")
 
 	// Parse the URL

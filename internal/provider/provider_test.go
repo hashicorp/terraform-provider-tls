@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
-	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov5"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
@@ -19,9 +19,9 @@ func setTimeForTest(timeStr string) func() {
 	}
 }
 
-func protoV6ProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {
-	return map[string]func() (tfprotov6.ProviderServer, error){
-		"tls": providerserver.NewProtocol6WithError(New()),
+func protoV5ProviderFactories() map[string]func() (tfprotov5.ProviderServer, error) {
+	return map[string]func() (tfprotov5.ProviderServer, error){
+		"tls": providerserver.NewProtocol5WithError(New()),
 	}
 }
 
@@ -45,13 +45,13 @@ func providerVersion310() map[string]resource.ExternalProvider {
 
 func TestProvider_InvalidProxyConfig(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []resource.TestStep{
 			{
 				Config: `
 					provider "tls" {
-						proxy = {
+						proxy {
 							url = "https://proxy.host.com"
 							from_env = true
 						}
@@ -60,12 +60,12 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.url" cannot be specified when "proxy.from_env" is specified|"proxy.from_env" cannot be specified when "proxy.url" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
 				Config: `
 					provider "tls" {
-						proxy = {
+						proxy {
 							username = "user"
 						}
 					}
@@ -73,12 +73,12 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.url" must be specified when "proxy.username" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
 				Config: `
 					provider "tls" {
-						proxy = {
+						proxy {
 							password = "pwd"
 						}
 					}
@@ -86,12 +86,12 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.username" must be specified when "proxy.password" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
 				Config: `
 					provider "tls" {
-						proxy = {
+						proxy {
 							username = "user"
 							password = "pwd"
 						}
@@ -100,12 +100,12 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.url" must be specified when "proxy.username" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 			{
 				Config: `
 					provider "tls" {
-						proxy = {
+						proxy {
 							username = "user"
 							from_env = true
 						}
@@ -114,7 +114,7 @@ func TestProvider_InvalidProxyConfig(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`"proxy.username" cannot be specified when "proxy.from_env" is specified|"proxy.url" must be specified when "proxy.username" is specified`),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 		},
 	})

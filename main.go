@@ -20,8 +20,9 @@ func main() {
 	flag.Parse()
 
 	err := providerserver.Serve(context.Background(), provider.New, providerserver.ServeOpts{
-		Address: "registry.terraform.io/hashicorp/tls",
-		Debug:   debug,
+		Address:         "registry.terraform.io/hashicorp/tls",
+		Debug:           debug,
+		ProtocolVersion: 5,
 	})
 	if err != nil {
 		fmt.Printf("failed to initialize provider: %v\n", err)

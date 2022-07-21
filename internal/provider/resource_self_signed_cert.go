@@ -9,12 +9,13 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modification"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validation"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
 )
 
 type (
@@ -65,7 +66,9 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 					tfsdk.RequiresReplace(),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					attribute_validation.OneOf(supportedKeyUsagesAttrValue()...),
+					listvalidator.ValuesAre(
+						stringvalidator.OneOf(supportedKeyUsagesStr()...),
+					),
 				},
 				Description: "List of key usages allowed for the issued certificate. " +
 					"Values are defined in [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) " +
@@ -105,7 +108,7 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modification.DefaultValue(types.Int64{Value: 0}),
+					attribute_plan_modifier.DefaultValue(types.Int64{Value: 0}),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					int64validator.AtLeast(0),
@@ -123,7 +126,7 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modification.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
 					tfsdk.RequiresReplace(),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
@@ -133,7 +136,7 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modification.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
 					tfsdk.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include a " +
@@ -144,7 +147,7 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modification.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
 					tfsdk.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include an " +
@@ -171,7 +174,7 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Type:     types.BoolType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modification.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
 				},
 				Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
 					"or ready for an early renewal (i.e. within the `early_renewal_hours`)?",
@@ -216,6 +219,10 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				NestingMode: tfsdk.BlockNestingModeList,
 				MinItems:    0,
 				MaxItems:    1,
+				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
+				Validators: []tfsdk.AttributeValidator{
+					listvalidator.SizeBetween(0, 1),
+				},
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					tfsdk.RequiresReplace(),
 				},

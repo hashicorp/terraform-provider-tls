@@ -11,9 +11,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // hashForState computes the hexadecimal representation of the SHA1 checksum of a string.
@@ -53,7 +53,7 @@ func updatedUsingPlan(ctx context.Context, req *tfsdk.UpdateResourceRequest, res
 func requireReplaceIfStateContainsPEMString() tfsdk.AttributePlanModifier {
 	description := "Attribute requires replacement if it contains a PEM string"
 
-	return tfsdk.RequiresReplaceIf(func(ctx context.Context, state, _ attr.Value, path *tftypes.AttributePath) (bool, diag.Diagnostics) {
+	return tfsdk.RequiresReplaceIf(func(ctx context.Context, state, _ attr.Value, path path.Path) (bool, diag.Diagnostics) {
 		// NOTE: If we reach this point, we know a change has been detected and that is known AND not-null
 
 		// First, we verify the type is a String, as expected

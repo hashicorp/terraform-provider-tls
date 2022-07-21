@@ -13,7 +13,7 @@ import (
 
 func TestResourceCertRequest(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -181,13 +181,13 @@ func TestAccResourceCertRequest_UpgradeFromVersion3_4_0(t *testing.T) {
 				),
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   config,
 				PlanOnly:                 true,
 				ExpectNonEmptyPlan:       true,
 			},
 			{
-				ProtoV6ProviderFactories: protoV6ProviderFactories(),
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   config,
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_cert_request.test1", "cert_request_pem", PreambleCertificateRequest.String()),
@@ -230,7 +230,7 @@ func TestAccResourceCertRequest_UpgradeFromVersion3_4_0(t *testing.T) {
 
 func TestResourceCertRequest_NoSubject(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -311,7 +311,7 @@ func TestResourceCertRequest_NoSubject(t *testing.T) {
 
 func TestResourceCertRequest_InvalidConfigs(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -333,7 +333,7 @@ func TestResourceCertRequest_InvalidConfigs(t *testing.T) {
 						private_key_pem = tls_private_key.test.private_key_pem
                     }
                 `,
-				ExpectError: regexp.MustCompile("Too many (list items|subject blocks)"),
+				ExpectError: regexp.MustCompile(`List must contain at least 0 elements and at most 1 elements, got: 2|No more than 1 "subject" blocks are allowed`),
 			},
 		},
 	})
@@ -341,7 +341,7 @@ func TestResourceCertRequest_InvalidConfigs(t *testing.T) {
 
 func TestResourceCertRequest_PKCS8(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
-		ProtoV6ProviderFactories: protoV6ProviderFactories(),
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
 				Config: `

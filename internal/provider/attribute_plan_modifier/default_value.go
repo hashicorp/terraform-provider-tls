@@ -1,4 +1,4 @@
-package attribute_plan_modification
+package attribute_plan_modifier
 
 import (
 	"context"
@@ -28,7 +28,7 @@ func (apm *defaultValueAttributePlanModifier) MarkdownDescription(ctx context.Co
 	return fmt.Sprintf("Sets the default value %q (%s) if the attribute is not set", apm.DefaultValue, apm.DefaultValue.Type(ctx))
 }
 
-func (apm *defaultValueAttributePlanModifier) Modify(ctx context.Context, req tfsdk.ModifyAttributePlanRequest, res *tfsdk.ModifyAttributePlanResponse) {
+func (apm *defaultValueAttributePlanModifier) Modify(_ context.Context, req tfsdk.ModifyAttributePlanRequest, res *tfsdk.ModifyAttributePlanResponse) {
 	// If the attribute configuration is not null, we are done here
 	if !req.AttributeConfig.IsNull() {
 		return

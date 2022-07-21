@@ -5,7 +5,7 @@ import (
 )
 
 type providerConfigModel struct {
-	Proxy types.Object `tfsdk:"proxy"` //< providerProxyConfigModel
+	Proxy types.List `tfsdk:"proxy"` //< providerProxyConfigModel
 }
 
 type providerProxyConfigModel struct {
