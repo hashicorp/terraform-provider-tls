@@ -81,7 +81,6 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 						Validators: []tfsdk.AttributeValidator{
 							schemavalidator.ConflictsWith(
 								path.MatchRelative().AtParent().AtName("url"),
-								path.MatchRelative().AtParent().AtName("url"),
 								path.MatchRelative().AtParent().AtName("username"),
 								path.MatchRelative().AtParent().AtName("password"),
 							),
@@ -121,10 +120,17 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	if res.Diagnostics.HasError() {
 		return
 	}
-	tflog.Debug(ctx, "Loaded provider configuration")
-
-	// By now, we know this single element in the slice exist
+	if len(proxyConfSlice) != 1 {
+		res.Diagnostics.AddAttributeError(
+			path.Root("proxy"),
+			"Provider Proxy Configuration Handling Error",
+			"The provider failed to fully load the expected proxy configuration, even if it appears to be present. "+
+				"This is always a bug in the Terraform Provider and should be reported to the provider developers.",
+		)
+		return
+	}
 	proxyConf := proxyConfSlice[0]
+	tflog.Debug(ctx, "Loaded provider configuration")
 
 	// Parse the URL
 	if !proxyConf.URL.IsNull() && !proxyConf.URL.IsUnknown() {
