@@ -42,7 +42,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 				NestingMode: tfsdk.BlockNestingModeList,
 				MinItems:    0,
 				MaxItems:    1,
-				// TODO rely on block min/max items validation, when ready: https://github.com/hashicorp/terraform-plugin-framework/issues/421
+				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
 				Validators: []tfsdk.AttributeValidator{
 					listvalidator.SizeBetween(0, 1),
 				},
