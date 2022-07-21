@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/url"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -105,8 +106,12 @@ func (rt *certRequestResourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 		Blocks: map[string]tfsdk.Block{
 			"subject": {
 				NestingMode: tfsdk.BlockNestingModeList,
-				MinItems:    0,
-				MaxItems:    1,
+				// TODO rely on block min/max items validation, when ready: https://github.com/hashicorp/terraform-plugin-framework/issues/421
+				//MinItems:    0,
+				//MaxItems:    1,
+				Validators: []tfsdk.AttributeValidator{
+					listvalidator.SizeBetween(0, 1),
+				},
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					tfsdk.RequiresReplace(),
 				},

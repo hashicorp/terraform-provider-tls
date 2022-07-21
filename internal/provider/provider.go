@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -39,8 +40,12 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 		Blocks: map[string]tfsdk.Block{
 			"proxy": {
 				NestingMode: tfsdk.BlockNestingModeList,
-				MinItems:    0,
-				MaxItems:    1,
+				// TODO rely on block min/max items validation, when ready: https://github.com/hashicorp/terraform-plugin-framework/issues/421
+				//MinItems:    0,
+				//MaxItems:    1,
+				Validators: []tfsdk.AttributeValidator{
+					listvalidator.SizeBetween(0, 1),
+				},
 				Attributes: map[string]tfsdk.Attribute{
 					"url": {
 						Type:     types.StringType,

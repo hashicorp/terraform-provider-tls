@@ -333,7 +333,7 @@ func TestResourceCertRequest_InvalidConfigs(t *testing.T) {
 						private_key_pem = tls_private_key.test.private_key_pem
                     }
                 `,
-				ExpectError: regexp.MustCompile("Too many (list items|subject blocks)"),
+				ExpectError: regexp.MustCompile("List must contain at least 0 elements and at most 1 elements, got: 2"),
 			},
 		},
 	})
