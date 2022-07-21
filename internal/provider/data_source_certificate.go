@@ -88,8 +88,8 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 		Blocks: map[string]tfsdk.Block{
 			"certificates": {
 				NestingMode: tfsdk.BlockNestingModeList,
+				MinItems:    0,
 				// TODO rely on block min/max items validation, when ready: https://github.com/hashicorp/terraform-plugin-framework/issues/421
-				//MinItems:    0,
 				Validators: []tfsdk.AttributeValidator{
 					listvalidator.SizeAtLeast(0),
 				},
