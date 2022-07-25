@@ -653,10 +653,15 @@ func TestDataSourceCertificate_UnknownComputedCertificatesUntilApplied(t *testin
 					}
 
 					data "tls_certificate" "test" {
+						# This attribute value must be unknown to trigger
+						# the behavior, therefore this replaces the unknown
+						# value with a known value on apply, so the URL is valid.
 						url = replace(tls_private_key.test.id, "/^.*$/","https://terraform.io")
 					}
 
 					output "test" {
+						# This test must reference an underlying value of the
+						# certificates attribute to trigger the behavior.
 						value = data.tls_certificate.test.certificates[0].sha1_fingerprint
 					}
 				`,

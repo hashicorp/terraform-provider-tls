@@ -91,9 +91,6 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 					},
 				},
 				Computed: true,
-				Validators: []tfsdk.AttributeValidator{
-					listvalidator.SizeAtLeast(1),
-				},
 				MarkdownDescription: "The certificates protecting the site, with the root of the chain first.",
 			},
 		},

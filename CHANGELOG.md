@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* data-source/tls_certificate: Reworked internal schema allowing Terraform to detect that `certificates` is a _read-only_ (`Computed`) attribute, and as such it's unknown until the certificates are fetched ([#244](https://github.com/hashicorp/terraform-provider-tls/issues/244)). 
+* data-source/tls_certificate: Prevented `empty list of object` error with `certificates` attribute ([#244](https://github.com/hashicorp/terraform-provider-tls/issues/244)).
 
 ## 4.0.0 (July 21, 2022)
 
