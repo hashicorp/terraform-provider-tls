@@ -639,3 +639,45 @@ func TestDataSourceCertificate_MalformedURL(t *testing.T) {
 		},
 	})
 }
+
+func TestDataSourceCertificate_UnknownComputedCertificatesUntilApplied(t *testing.T) {
+	r.Test(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+
+		Steps: []r.TestStep{
+			{
+
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+
+					data "tls_certificate" "test" {
+						url = replace(tls_private_key.test.id, "/^.*$/","https://terraform.io")
+					}
+
+					output "test" {
+						value = data.tls_certificate.test.certificates[0].sha1_fingerprint
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "3"),
+
+					// ISRG Root X1
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=DST Root CA X3,O=Digital Signature Trust Co."),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
+
+					// R3
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
+					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=R3,O=Let's Encrypt,C=US"),
+
+					// terraform.io
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.issuer", "CN=R3,O=Let's Encrypt,C=US"),
+					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.2.issuer", "data.tls_certificate.test", "certificates.1.subject"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.subject", "CN=www.terraform.io"),
+				),
+			},
+		},
+	})
+}
