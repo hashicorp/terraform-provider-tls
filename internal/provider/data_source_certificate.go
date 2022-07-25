@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -84,83 +83,13 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 				Computed:            true,
 				MarkdownDescription: "Unique identifier of this data source: hashing of the certificates in the chain.",
 			},
-		},
-		Blocks: map[string]tfsdk.Block{
 			"certificates": {
-				NestingMode: tfsdk.BlockNestingModeList,
-				MinItems:    0,
-				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
-				Validators: []tfsdk.AttributeValidator{
-					listvalidator.SizeAtLeast(0),
-				},
-				Attributes: map[string]tfsdk.Attribute{
-					"signature_algorithm": {
-						Type:                types.StringType,
-						Computed:            true,
-						MarkdownDescription: "The algorithm used to sign the certificate.",
-					},
-					"public_key_algorithm": {
-						Type:                types.StringType,
-						Computed:            true,
-						MarkdownDescription: "The key algorithm used to create the certificate.",
-					},
-					"serial_number": {
-						Type:     types.StringType,
-						Computed: true,
-						MarkdownDescription: "Number that uniquely identifies the certificate with the CA's system. " +
-							"The `format` function can be used to convert this _base 10_ number " +
-							"into other bases, such as hex.",
-					},
-					"is_ca": {
-						Type:                types.BoolType,
-						Computed:            true,
-						MarkdownDescription: "`true` if the certificate is of a CA (Certificate Authority).",
-					},
-					"version": {
-						Type:                types.Int64Type,
-						Computed:            true,
-						MarkdownDescription: "The version the certificate is in.",
-					},
-					"issuer": {
-						Type:     types.StringType,
-						Computed: true,
-						MarkdownDescription: "Who verified and signed the certificate, roughly following " +
-							"[RFC2253](https://tools.ietf.org/html/rfc2253).",
-					},
-					"subject": {
-						Type:     types.StringType,
-						Computed: true,
-						MarkdownDescription: "The entity the certificate belongs to, roughly following " +
-							"[RFC2253](https://tools.ietf.org/html/rfc2253).",
-					},
-					"not_before": {
-						Type:     types.StringType,
-						Computed: true,
-						MarkdownDescription: "The time after which the certificate is valid, as an " +
-							"[RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
-					},
-					"not_after": {
-						Type:     types.StringType,
-						Computed: true,
-						MarkdownDescription: "The time until which the certificate is invalid, as an " +
-							"[RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
-					},
-					"sha1_fingerprint": {
-						Type:                types.StringType,
-						Computed:            true,
-						MarkdownDescription: "The SHA1 fingerprint of the public key of the certificate.",
-					},
-					"cert_pem": {
-						Type:     types.StringType,
-						Computed: true,
-						MarkdownDescription: "Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
-							"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
-							"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
-							"value append a `\\n` at the end of the PEM. " +
-							"In case this disrupts your use case, we recommend using " +
-							"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
+				Type: types.ListType{
+					ElemType: types.ObjectType{
+						AttrTypes: x509CertObjectAttrTypes(),
 					},
 				},
+				Computed:            true,
 				MarkdownDescription: "The certificates protecting the site, with the root of the chain first.",
 			},
 		},

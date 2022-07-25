@@ -1,3 +1,9 @@
+## 4.0.1 (July 25, 2022)
+
+BUG FIXES:
+
+* data-source/tls_certificate: Prevented `empty list of object` error with `certificates` attribute ([#244](https://github.com/hashicorp/terraform-provider-tls/issues/244)).
+
 ## 4.0.0 (July 21, 2022)
 
 NOTES:
