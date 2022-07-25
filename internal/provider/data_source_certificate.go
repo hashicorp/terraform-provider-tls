@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -90,7 +89,7 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 						AttrTypes: x509CertObjectAttrTypes(),
 					},
 				},
-				Computed: true,
+				Computed:            true,
 				MarkdownDescription: "The certificates protecting the site, with the root of the chain first.",
 			},
 		},
