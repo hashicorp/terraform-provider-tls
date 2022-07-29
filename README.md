@@ -23,15 +23,19 @@ The remainder of this document will focus on the development aspects of the prov
 
 ## Compatibility
 
-Compatibility table between this provider,
-the [Registry Protocol](https://www.terraform.io/internals/provider-registry-protocol)
+Compatibility table between this provider, the [Terraform Plugin Protocol](https://www.terraform.io/plugin/how-terraform-works#terraform-plugin-protocol)
 version it implements, and Terraform:
 
-| TLS Provider | Registry Protocol | Terraform |
-|:------------:|:-----------------:|:---------:|
-|   `>= 4.x`   |        `5`        | `>= 0.12` |
-|   `>= 3.x`   |        `5`        | `>= 0.12` |
-|   `<= 2.x`   |        `4`        | `<= 0.11` |
+| TLS Provider | Terraform Plugin Protocol | Terraform |
+|:------------:|:-------------------------:|:---------:|
+|   `>= 4.x`   |            `5`            | `>= 0.12` |
+|   `>= 3.x`   |            `5`            | `>= 0.12` |
+|   `>= 2.x`   |        `4` and `5`        | `<= 0.12` |
+|   `>= 0.x`   |            `4`            | `<= 0.11` |
+
+Details can be found querying the [Registry API](https://www.terraform.io/internals/provider-registry-protocol#list-available-versions)
+that return all the details about which version are currently available for a particular provider.
+[Here](https://registry.terraform.io/v1/providers/hashicorp/tls/versions) are the details for TLS (JSON response).
 
 ## Requirements
 
