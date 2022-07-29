@@ -23,7 +23,7 @@ The remainder of this document will focus on the development aspects of the prov
 
 ## Compatibility
 
-Compatibility table between this provider, the [Registry Protocol](https://www.terraform.io/internals/provider-registry-protocol)
+Compatibility table between this provider, the [Terraform Plugin Protocol](https://www.terraform.io/plugin/how-terraform-works#terraform-plugin-protocol)
 version it implements, and Terraform:
 
 | TLS Provider | Terraform Plugin Protocol | Terraform |
