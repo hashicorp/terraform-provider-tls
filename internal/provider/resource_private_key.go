@@ -12,6 +12,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -26,9 +28,9 @@ type (
 )
 
 var (
-	_ tfsdk.ResourceType             = (*privateKeyResourceType)(nil)
-	_ tfsdk.Resource                 = (*privateKeyResource)(nil)
-	_ tfsdk.ResourceWithUpgradeState = (*privateKeyResource)(nil)
+	_ provider.ResourceType             = (*privateKeyResourceType)(nil)
+	_ resource.Resource                 = (*privateKeyResource)(nil)
+	_ resource.ResourceWithUpgradeState = (*privateKeyResource)(nil)
 )
 
 func (rt *privateKeyResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -44,7 +46,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				Type:     types.StringType,
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					stringvalidator.OneOf(supportedAlgorithmsStr()...),
@@ -59,7 +61,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 					attribute_plan_modifier.DefaultValue(types.Int64{Value: 2048}),
 				},
 				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
@@ -69,7 +71,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 					attribute_plan_modifier.DefaultValue(types.String{Value: P224.String()}),
 				},
 				Validators: []tfsdk.AttributeValidator{
@@ -150,11 +152,11 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 	}
 }
 
-func (rt *privateKeyResourceType) NewResource(_ context.Context, _ tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+func (rt *privateKeyResourceType) NewResource(_ context.Context, _ provider.Provider) (resource.Resource, diag.Diagnostics) {
 	return &privateKeyResource{}, nil
 }
 
-func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, res *tfsdk.CreateResourceResponse) {
+func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {
 	tflog.Debug(ctx, "Creating private key resource")
 
 	// Load entire configuration into the model
@@ -259,24 +261,24 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	res.Diagnostics.Append(setPublicKeyAttributes(ctx, &res.State, prvKey)...)
 }
 
-func (r *privateKeyResource) Read(ctx context.Context, _ tfsdk.ReadResourceRequest, _ *tfsdk.ReadResourceResponse) {
+func (r *privateKeyResource) Read(ctx context.Context, _ resource.ReadRequest, _ *resource.ReadResponse) {
 	// NO-OP: all there is to read is in the State, and response is already populated with that.
 	tflog.Debug(ctx, "Reading private key from state")
 }
 
-func (r *privateKeyResource) Update(_ context.Context, _ tfsdk.UpdateResourceRequest, _ *tfsdk.UpdateResourceResponse) {
+func (r *privateKeyResource) Update(_ context.Context, _ resource.UpdateRequest, _ *resource.UpdateResponse) {
 	// NO-OP: changes to this resource will force a "re-create".
 }
 
-func (r *privateKeyResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {
+func (r *privateKeyResource) Delete(ctx context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
 	// NO-OP: Returning no error is enough for the framework to remove the resource from state.
 	tflog.Debug(ctx, "Removing private key from state")
 }
 
-func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]tfsdk.ResourceStateUpgrader {
+func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
 	schemaV1 := privateKeyResourceSchemaV1()
 
-	return map[int64]tfsdk.ResourceStateUpgrader{
+	return map[int64]resource.StateUpgrader{
 		// Upgrading schema v0 -> v1 will add:
 		// * `private_key_openssh` (introduced in v3.2.0)
 		// * `public_key_fingerprint_sha256` (introduced in v3.2.0)
@@ -294,7 +296,7 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]tfsdk.R
 			// If/when that happens, and a new Schema version is released, then a dedicated
 			// schema will be necessary.
 			PriorSchema: &schemaV1,
-			StateUpgrader: func(ctx context.Context, req tfsdk.UpgradeResourceStateRequest, res *tfsdk.UpgradeResourceStateResponse) {
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, res *resource.UpgradeStateResponse) {
 				var upState privateKeyResourceModel
 				res.Diagnostics.Append(req.State.Get(ctx, &upState)...)
 				if res.Diagnostics.HasError() {

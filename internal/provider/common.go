@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -32,11 +33,11 @@ var overridableTimeFunc = func() time.Time {
 	return time.Now()
 }
 
-// updatedUsingPlan is to be used as part of tfsdk.Resource `Update`.
-// It takes the tfsdk.UpdateResourceRequest `Plan` and sets it on tfsdk.UpdateResourceResponse State.
+// updatedUsingPlan is to be used as part of resource.Resource `Update`.
+// It takes the resource.UpdateRequest `Plan` and sets it on resource.UpdateResponse State.
 //
 // Use this if the planned values should just be copied over into the new state.
-func updatedUsingPlan(ctx context.Context, req *tfsdk.UpdateResourceRequest, res *tfsdk.UpdateResourceResponse, model interface{}) {
+func updatedUsingPlan(ctx context.Context, req *resource.UpdateRequest, res *resource.UpdateResponse, model interface{}) {
 	// Read the plan
 	res.Diagnostics.Append(req.Plan.Get(ctx, model)...)
 	if res.Diagnostics.HasError() {
@@ -48,12 +49,12 @@ func updatedUsingPlan(ctx context.Context, req *tfsdk.UpdateResourceRequest, res
 }
 
 // requireReplaceIfStateContainsPEMString returns a tfsdk.AttributePlanModifier that triggers a
-// replacement of the resource if (and only if) all the conditions of a tfsdk.RequiresReplace are met,
+// replacement of the resource if (and only if) all the conditions of a resource.RequiresReplace are met,
 // and the attribute value is a PEM string.
 func requireReplaceIfStateContainsPEMString() tfsdk.AttributePlanModifier {
 	description := "Attribute requires replacement if it contains a PEM string"
 
-	return tfsdk.RequiresReplaceIf(func(ctx context.Context, state, _ attr.Value, path path.Path) (bool, diag.Diagnostics) {
+	return resource.RequiresReplaceIf(func(ctx context.Context, state, _ attr.Value, path path.Path) (bool, diag.Diagnostics) {
 		// NOTE: If we reach this point, we know a change has been detected and that is known AND not-null
 
 		// First, we verify the type is a String, as expected

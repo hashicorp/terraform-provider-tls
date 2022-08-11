@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -18,24 +19,24 @@ import (
 	"golang.org/x/net/http/httpproxy"
 )
 
-type provider struct {
+type tlsProvider struct {
 	proxyURL     *url.URL
 	proxyFromEnv bool
 }
 
 // Enforce interfaces we want provider to implement.
-var _ tfsdk.Provider = (*provider)(nil)
+var _ provider.Provider = (*tlsProvider)(nil)
 
-func New() tfsdk.Provider {
-	return &provider{}
+func New() provider.Provider {
+	return &tlsProvider{}
 }
 
-func (p *provider) resetConfig() {
+func (p *tlsProvider) resetConfig() {
 	p.proxyURL = nil
 	p.proxyFromEnv = true
 }
 
-func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func (p *tlsProvider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Blocks: map[string]tfsdk.Block{
 			"proxy": {
@@ -97,7 +98,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 	}, nil
 }
 
-func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderRequest, res *tfsdk.ConfigureProviderResponse) {
+func (p *tlsProvider) Configure(ctx context.Context, req provider.ConfigureRequest, res *provider.ConfigureResponse) {
 	tflog.Debug(ctx, "Configuring provider")
 	p.resetConfig()
 
@@ -171,8 +172,8 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	})
 }
 
-func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
-	return map[string]tfsdk.ResourceType{
+func (p *tlsProvider) GetResources(_ context.Context) (map[string]provider.ResourceType, diag.Diagnostics) {
+	return map[string]provider.ResourceType{
 		"tls_private_key":         &privateKeyResourceType{},
 		"tls_cert_request":        &certRequestResourceType{},
 		"tls_self_signed_cert":    &selfSignedCertResourceType{},
@@ -180,8 +181,8 @@ func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceTyp
 	}, nil
 }
 
-func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
-	return map[string]tfsdk.DataSourceType{
+func (p *tlsProvider) GetDataSources(_ context.Context) (map[string]provider.DataSourceType, diag.Diagnostics) {
+	return map[string]provider.DataSourceType{
 		"tls_public_key":  &publicKeyDataSourceType{},
 		"tls_certificate": &certificateDataSourceType{},
 	}, nil
@@ -193,7 +194,7 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 // provides the http.Client with the *url.URL to the proxy.
 //
 // It will return nil if there is no proxy configured.
-func (p *provider) proxyForRequestFunc(ctx context.Context) func(_ *http.Request) (*url.URL, error) {
+func (p *tlsProvider) proxyForRequestFunc(ctx context.Context) func(_ *http.Request) (*url.URL, error) {
 	if !p.isProxyConfigured() {
 		tflog.Debug(ctx, "Proxy not configured")
 		return nil
@@ -231,16 +232,16 @@ func (p *provider) proxyForRequestFunc(ctx context.Context) func(_ *http.Request
 }
 
 // isProxyConfigured returns true if a proxy configuration was detected as part of provider.Configure.
-func (p *provider) isProxyConfigured() bool {
+func (p *tlsProvider) isProxyConfigured() bool {
 	return p.proxyURL != nil || p.proxyFromEnv
 }
 
-// toProvider can be used to cast a generic tfsdk.Provider reference to this specific provider.
+// toProvider can be used to cast a generic provider.Provider reference to this specific provider.
 // This is ideally used in DataSourceType.NewDataSource and ResourceType.NewResource calls.
-func toProvider(in tfsdk.Provider) (*provider, diag.Diagnostics) {
+func toProvider(in provider.Provider) (*tlsProvider, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	p, ok := in.(*provider)
+	p, ok := in.(*tlsProvider)
 
 	if !ok {
 		diags.AddError(

@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -23,9 +25,9 @@ type (
 )
 
 var (
-	_ tfsdk.ResourceType           = (*locallySignedCertResourceType)(nil)
-	_ tfsdk.Resource               = (*locallySignedCertResource)(nil)
-	_ tfsdk.ResourceWithModifyPlan = (*locallySignedCertResource)(nil)
+	_ provider.ResourceType           = (*locallySignedCertResourceType)(nil)
+	_ resource.Resource               = (*locallySignedCertResource)(nil)
+	_ resource.ResourceWithModifyPlan = (*locallySignedCertResource)(nil)
 )
 
 func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -64,7 +66,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.Int64Type,
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					int64validator.AtLeast(0),
@@ -77,7 +79,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				},
 				Required: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					listvalidator.ValuesAre(
@@ -98,7 +100,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
@@ -126,7 +128,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+					resource.RequiresReplace(),
 					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
 				},
 				Description: "Should the generated certificate include a " +
@@ -138,7 +140,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.StringType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+					resource.UseStateForUnknown(),
 				},
 				Description: "Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
@@ -160,7 +162,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.StringType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+					resource.UseStateForUnknown(),
 				},
 				Description: "The time after which the certificate is valid, " +
 					"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
@@ -169,7 +171,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.StringType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+					resource.UseStateForUnknown(),
 				},
 				Description: "The time until which the certificate is invalid, " +
 					"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
@@ -178,7 +180,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.StringType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+					resource.UseStateForUnknown(),
 				},
 				Description: "Name of the algorithm used when generating the private key provided in `ca_private_key_pem`. ",
 			},
@@ -186,7 +188,7 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 				Type:     types.StringType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+					resource.UseStateForUnknown(),
 				},
 				Description: "Unique identifier for this resource: the certificate serial number.",
 			},
@@ -197,11 +199,11 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 	}, nil
 }
 
-func (rt *locallySignedCertResourceType) NewResource(_ context.Context, _ tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+func (rt *locallySignedCertResourceType) NewResource(_ context.Context, _ provider.Provider) (resource.Resource, diag.Diagnostics) {
 	return &locallySignedCertResource{}, nil
 }
 
-func (r *locallySignedCertResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, res *tfsdk.CreateResourceResponse) {
+func (r *locallySignedCertResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {
 	tflog.Debug(ctx, "Creating locally signed certificate resource")
 
 	// Load entire configuration into the model
@@ -274,23 +276,23 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req tfsdk.Create
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 
-func (r *locallySignedCertResource) Read(ctx context.Context, _ tfsdk.ReadResourceRequest, _ *tfsdk.ReadResourceResponse) {
+func (r *locallySignedCertResource) Read(ctx context.Context, _ resource.ReadRequest, _ *resource.ReadResponse) {
 	// NO-OP: all there is to read is in the State, and response is already populated with that.
 	tflog.Debug(ctx, "Reading locally signed certificate from state")
 }
 
-func (r *locallySignedCertResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, res *tfsdk.UpdateResourceResponse) {
+func (r *locallySignedCertResource) Update(ctx context.Context, req resource.UpdateRequest, res *resource.UpdateResponse) {
 	tflog.Debug(ctx, "Updating locally signed certificate")
 
 	updatedUsingPlan(ctx, &req, res, &locallySignedCertResourceModel{})
 }
 
-func (r *locallySignedCertResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {
+func (r *locallySignedCertResource) Delete(ctx context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
 	// NO-OP: Returning no error is enough for the framework to remove the resource from state.
 	tflog.Debug(ctx, "Removing locally signed certificate from state")
 }
 
-func (r *locallySignedCertResource) ModifyPlan(ctx context.Context, req tfsdk.ModifyResourcePlanRequest, res *tfsdk.ModifyResourcePlanResponse) {
+func (r *locallySignedCertResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, res *resource.ModifyPlanResponse) {
 	modifyPlanIfCertificateReadyForRenewal(ctx, &req, res)
 }
 
