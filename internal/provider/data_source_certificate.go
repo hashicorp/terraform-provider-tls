@@ -14,8 +14,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -25,13 +27,13 @@ import (
 type (
 	certificateDataSourceType struct{}
 	certificateDataSource     struct {
-		provider *provider
+		provider *tlsProvider
 	}
 )
 
 var (
-	_ tfsdk.DataSourceType = (*certificateDataSourceType)(nil)
-	_ tfsdk.DataSource     = (*certificateDataSource)(nil)
+	_ provider.DataSourceType = (*certificateDataSourceType)(nil)
+	_ datasource.DataSource   = (*certificateDataSource)(nil)
 )
 
 func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -99,12 +101,12 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 	}, nil
 }
 
-func (dst *certificateDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
+func (dst *certificateDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
 	provider, diagnostics := toProvider(p)
 	return &certificateDataSource{provider}, diagnostics
 }
 
-func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, res *tfsdk.ReadDataSourceResponse) {
+func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRequest, res *datasource.ReadResponse) {
 	var newState certificateDataSourceModel
 	res.Diagnostics.Append(req.Config.Get(ctx, &newState)...)
 	if res.Diagnostics.HasError() {
@@ -230,7 +232,7 @@ func fetchPeerCertificatesViaTLS(ctx context.Context, targetURL *url.URL, should
 	return conn.ConnectionState().PeerCertificates, nil
 }
 
-func fetchPeerCertificatesViaHTTPS(ctx context.Context, targetURL *url.URL, shouldVerifyChain bool, p *provider) ([]*x509.Certificate, error) {
+func fetchPeerCertificatesViaHTTPS(ctx context.Context, targetURL *url.URL, shouldVerifyChain bool, p *tlsProvider) ([]*x509.Certificate, error) {
 	tflog.Debug(ctx, "Fetching certificate via HTTP(S) client")
 
 	client := &http.Client{

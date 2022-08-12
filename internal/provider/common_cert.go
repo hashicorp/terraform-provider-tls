@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -249,7 +250,7 @@ type commonCertificate struct {
 	validityEndTime   string
 }
 
-func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *tfsdk.ModifyResourcePlanRequest, res *tfsdk.ModifyResourcePlanResponse) {
+func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *resource.ModifyPlanRequest, res *resource.ModifyPlanResponse) {
 	// Retrieve `validity_end_time` and confirm is a known, non-null value
 	validityEndTimePath := path.Root("validity_end_time")
 	var validityEndTimeStr types.String

@@ -7,8 +7,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -20,8 +22,8 @@ type (
 )
 
 var (
-	_ tfsdk.DataSourceType = (*publicKeyDataSourceType)(nil)
-	_ tfsdk.DataSource     = (*publicKeyDataSource)(nil)
+	_ provider.DataSourceType = (*publicKeyDataSourceType)(nil)
+	_ datasource.DataSource   = (*publicKeyDataSource)(nil)
 )
 
 func (dst *publicKeyDataSourceType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -116,11 +118,11 @@ func (dst *publicKeyDataSourceType) GetSchema(ctx context.Context) (tfsdk.Schema
 	}, nil
 }
 
-func (dst *publicKeyDataSourceType) NewDataSource(_ context.Context, _ tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
+func (dst *publicKeyDataSourceType) NewDataSource(_ context.Context, _ provider.Provider) (datasource.DataSource, diag.Diagnostics) {
 	return &publicKeyDataSource{}, nil
 }
 
-func (ds *publicKeyDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, res *tfsdk.ReadDataSourceResponse) {
+func (ds *publicKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, res *datasource.ReadResponse) {
 	tflog.Debug(ctx, "Reading public key resource")
 
 	var prvKey crypto.PrivateKey
