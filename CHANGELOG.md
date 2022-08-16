@@ -1,9 +1,3 @@
-## 4.1.0 (unreleased)
-
-NOTES:
-
-* This Go module has been updated to Go 1.18 per the Go support policy. Any consumers building on earlier Go versions may experience errors ([#256](https://github.com/hashicorp/terraform-provider-tls/issues/256)).
-
 ## 4.0.1 (July 25, 2022)
 
 BUG FIXES:
