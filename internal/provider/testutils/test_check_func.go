@@ -5,7 +5,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -183,26 +182,10 @@ func TestCheckPEMCertificateNoAuthorityKeyID(name, key string) r.TestCheckFunc {
 
 func TestCheckPEMCertificateAgainstPEMRootCA(name, key string, rootCA []byte) r.TestCheckFunc {
 	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
-		// Certificate verification must fail if no CA Cert Pool is provided
-		_, err := crt.Verify(x509.VerifyOptions{})
-		if err == nil {
-			return fmt.Errorf("incorrectly verified certificate")
-		} else if !errors.Is(err, x509.UnknownAuthorityError{Cert: crt}) {
-			return fmt.Errorf("incorrect verify error: expected UnknownAuthorityError, got %v", err)
-		}
-
-		// Certificate verification must fail if an empty CA Cert Pool is provided
-		_, err = crt.Verify(x509.VerifyOptions{Roots: x509.NewCertPool()})
-		if err == nil {
-			return fmt.Errorf("incorrectly verified certificate")
-		} else if !errors.Is(err, x509.UnknownAuthorityError{Cert: crt}) {
-			return fmt.Errorf("incorrect verify error: expected UnknownAuthorityError, got %v", err)
-		}
-
 		// Certification verification must succeed now that we are providing the correct CA Cert Pool
 		certPool := x509.NewCertPool()
 		certPool.AppendCertsFromPEM(rootCA)
-		if _, err = crt.Verify(x509.VerifyOptions{Roots: certPool}); err != nil {
+		if _, err := crt.Verify(x509.VerifyOptions{Roots: certPool}); err != nil {
 			return fmt.Errorf("verify failed: %s", err)
 		}
 

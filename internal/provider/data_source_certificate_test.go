@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
@@ -170,7 +171,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 						url = "https://untrusted-root.badssl.com/"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`certificate signed by[\s]*unknown[\s]*authority`),
+				ExpectError: regexp.MustCompile(`(certificate is not trusted|certificate signed by[\s]*unknown[\s]*authority)`),
 			},
 			{
 				Config: `
@@ -197,7 +198,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "dfa540cf03c6b61a0d78e6c61dc6ea9823245d4f"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "03e9ff8bdfda8ee5ac1f97f9567ee49a464caa0c"),
 				),
 			},
 		},
