@@ -7,7 +7,7 @@ require (
 	github.com/elazarl/goproxy/ext v0.0.0-20220529153421-8ea89ba92021
 	github.com/google/go-cmp v0.5.8
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
-	github.com/hashicorp/terraform-plugin-framework v0.11.0
+	github.com/hashicorp/terraform-plugin-framework v0.11.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.4.0
 	github.com/hashicorp/terraform-plugin-go v0.14.0
 	github.com/hashicorp/terraform-plugin-log v0.7.0
