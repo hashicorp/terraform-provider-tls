@@ -2,12 +2,15 @@ package provider
 
 import (
 	"crypto/x509/pkix"
+	"fmt"
 	"net"
 	"net/url"
 	"regexp"
 	"testing"
 
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
 
@@ -412,4 +415,82 @@ func TestResourceCertRequest_PKCS8(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestResourceCertRequest_PrivateKeyPEM(t *testing.T) {
+	var pkp1, pkp2 string
+	resourceName := "tls_cert_request.client_csr"
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: tlsCertRequest,
+				Check: r.ComposeAggregateTestCheckFunc(
+					testExtractResourceAttr(resourceName, "private_key_pem", &pkp1),
+				),
+			},
+			{
+				Taint:  []string{"tls_private_key.this"},
+				Config: tlsCertRequest,
+				Check: r.ComposeAggregateTestCheckFunc(
+					testExtractResourceAttr(resourceName, "private_key_pem", &pkp2),
+					testCheckAttributeValuesDiffer(&pkp1, &pkp2),
+				),
+			},
+		},
+	})
+}
+
+const tlsCertRequest = `
+resource "tls_private_key" "this" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "tls_cert_request" "client_csr" {
+  private_key_pem = tls_private_key.this.private_key_pem
+
+  subject {
+    common_name = "this"
+  }
+}
+`
+
+func testExtractResourceAttr(resourceName string, attributeName string, attributeValue *string) r.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+
+		if !ok {
+			return fmt.Errorf("resource name %s not found in state", resourceName)
+		}
+
+		attrValue, ok := rs.Primary.Attributes[attributeName]
+
+		if !ok {
+			return fmt.Errorf("attribute %s not found in resource %s state", attributeName, resourceName)
+		}
+
+		*attributeValue = attrValue
+
+		return nil
+	}
+}
+
+func testCheckAttributeValuesDiffer(i *string, j *string) r.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if testStringValue(i) == testStringValue(j) {
+			return fmt.Errorf("attribute values are the same")
+		}
+
+		return nil
+	}
+}
+
+func testStringValue(sPtr *string) string {
+	if sPtr == nil {
+		return ""
+	}
+
+	return *sPtr
 }

@@ -1,3 +1,11 @@
+## 4.0.2 (unreleased)
+
+BUG FIXES:
+
+* resource/tls_cert_request: Fix regexp in attribute plan modifier to correctly match PEM ([#255](https://github.com/hashicorp/terraform-provider-tls/issues/255)).
+* resource/tls_locally_signed_cert: Fix regexp in attribute plan modifier to correctly match PEM ([#255](https://github.com/hashicorp/terraform-provider-tls/issues/255)).
+* resource/tls_self_signed_cert: Fix regexp in attribute plan modifier to correctly match PEM ([#255](https://github.com/hashicorp/terraform-provider-tls/issues/255)).
+
 ## 4.0.1 (July 25, 2022)
 
 BUG FIXES:
