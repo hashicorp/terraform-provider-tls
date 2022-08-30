@@ -1,4 +1,4 @@
-## 4.0.2 (unreleased)
+## 4.0.2 (August 30, 2022)
 
 BUG FIXES:
 
