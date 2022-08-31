@@ -428,7 +428,7 @@ func TestResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 						]
 					}
 				`,
-				ExpectError: regexp.MustCompile(`List must contain at least 0 elements and at most 1 elements, got: 2|No more than 1 "subject" blocks are allowed`),
+				ExpectError: regexp.MustCompile(`List must contain at least 0 elements and at most 1 elements, got: 2|No more than 1 "subject" blocks are allowed|Attribute subject list must contain at least 0 elements and at most 1\nelements, got: 2|The configuration should declare a maximum of 1 block, however 2 blocks were\nconfigured`),
 			},
 			{
 				Config: `
