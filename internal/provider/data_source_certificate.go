@@ -17,26 +17,27 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 )
 
-type (
-	certificateDataSourceType struct{}
-	certificateDataSource     struct {
-		provider *tlsProvider
-	}
-)
+type certificateDataSource struct {
+	provider *tlsProvider
+}
 
-var (
-	_ provider.DataSourceType = (*certificateDataSourceType)(nil)
-	_ datasource.DataSource   = (*certificateDataSource)(nil)
-)
+var _ datasource.DataSource = (*certificateDataSource)(nil)
 
-func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewCertificateDataSource() datasource.DataSource {
+	return &certificateDataSource{}
+}
+
+func (d *certificateDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_certificate"
+}
+
+func (d *certificateDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			// Required attributes
@@ -101,9 +102,8 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 	}, nil
 }
 
-func (dst *certificateDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	provider, diagnostics := toProvider(p)
-	return &certificateDataSource{provider}, diagnostics
+func (d *certificateDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	d.provider, resp.Diagnostics = toProvider(req.ProviderData)
 }
 
 func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRequest, res *datasource.ReadResponse) {

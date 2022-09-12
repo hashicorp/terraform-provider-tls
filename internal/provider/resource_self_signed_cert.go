@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -20,18 +19,22 @@ import (
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
 )
 
-type (
-	selfSignedCertResourceType struct{}
-	selfSignedCertResource     struct{}
-)
+type selfSignedCertResource struct{}
 
 var (
-	_ provider.ResourceType           = (*selfSignedCertResourceType)(nil)
 	_ resource.Resource               = (*selfSignedCertResource)(nil)
 	_ resource.ResourceWithModifyPlan = (*selfSignedCertResource)(nil)
 )
 
-func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewSelfSignedCertResource() resource.Resource {
+	return &selfSignedCertResource{}
+}
+
+func (r *selfSignedCertResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_self_signed_cert"
+}
+
+func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			// Required attributes
@@ -312,10 +315,6 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 		MarkdownDescription: "Creates a **self-signed** TLS certificate in " +
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 	}, nil
-}
-
-func (rt *selfSignedCertResourceType) NewResource(_ context.Context, _ provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return &selfSignedCertResource{}, nil
 }
 
 func (r *selfSignedCertResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {

@@ -10,23 +10,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type (
-	publicKeyDataSourceType struct{}
-	publicKeyDataSource     struct{}
-)
+type publicKeyDataSource struct{}
 
-var (
-	_ provider.DataSourceType = (*publicKeyDataSourceType)(nil)
-	_ datasource.DataSource   = (*publicKeyDataSource)(nil)
-)
+var _ datasource.DataSource = (*publicKeyDataSource)(nil)
 
-func (dst *publicKeyDataSourceType) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewPublicKeyDataSource() datasource.DataSource {
+	return &publicKeyDataSource{}
+}
+
+func (d *publicKeyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_public_key"
+}
+
+func (d *publicKeyDataSource) GetSchema(ctx context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			// Required attributes
@@ -116,10 +117,6 @@ func (dst *publicKeyDataSourceType) GetSchema(ctx context.Context) (tfsdk.Schema
 			"or [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formatted private key, " +
 			"for use in other resources.",
 	}, nil
-}
-
-func (dst *publicKeyDataSourceType) NewDataSource(_ context.Context, _ provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return &publicKeyDataSource{}, nil
 }
 
 func (ds *publicKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, res *datasource.ReadResponse) {

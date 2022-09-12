@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -22,18 +21,22 @@ import (
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
 )
 
-type (
-	privateKeyResourceType struct{}
-	privateKeyResource     struct{}
-)
+type privateKeyResource struct{}
 
 var (
-	_ provider.ResourceType             = (*privateKeyResourceType)(nil)
 	_ resource.Resource                 = (*privateKeyResource)(nil)
 	_ resource.ResourceWithUpgradeState = (*privateKeyResource)(nil)
 )
 
-func (rt *privateKeyResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewPrivateKeyResource() resource.Resource {
+	return &privateKeyResource{}
+}
+
+func (r *privateKeyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_private_key"
+}
+
+func (r *privateKeyResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return privateKeyResourceSchemaV1(), nil
 }
 
@@ -150,10 +153,6 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +
 			"This resource is primarily intended for easily bootstrapping throwaway development environments.",
 	}
-}
-
-func (rt *privateKeyResourceType) NewResource(_ context.Context, _ provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return &privateKeyResource{}, nil
 }
 
 func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {

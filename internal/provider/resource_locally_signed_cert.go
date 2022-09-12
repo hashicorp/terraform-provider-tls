@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -19,18 +18,22 @@ import (
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
 )
 
-type (
-	locallySignedCertResourceType struct{}
-	locallySignedCertResource     struct{}
-)
+type locallySignedCertResource struct{}
 
 var (
-	_ provider.ResourceType           = (*locallySignedCertResourceType)(nil)
 	_ resource.Resource               = (*locallySignedCertResource)(nil)
 	_ resource.ResourceWithModifyPlan = (*locallySignedCertResource)(nil)
 )
 
-func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewLocallySignedCertResource() resource.Resource {
+	return &locallySignedCertResource{}
+}
+
+func (r *locallySignedCertResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_locally_signed_cert"
+}
+
+func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			// Required attributes
@@ -197,10 +200,6 @@ func (rt *locallySignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 			"format using a Certificate Signing Request (CSR) and signs it with a provided " +
 			"(local) Certificate Authority (CA).",
 	}, nil
-}
-
-func (rt *locallySignedCertResourceType) NewResource(_ context.Context, _ provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return &locallySignedCertResource{}, nil
 }
 
 func (r *locallySignedCertResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {
