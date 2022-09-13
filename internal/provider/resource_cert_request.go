@@ -11,24 +11,25 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-type (
-	certRequestResourceType struct{}
-	certRequestResource     struct{}
-)
+type certRequestResource struct{}
 
-var (
-	_ provider.ResourceType = (*certRequestResourceType)(nil)
-	_ resource.Resource     = (*certRequestResource)(nil)
-)
+var _ resource.Resource = (*certRequestResource)(nil)
 
-func (rt *certRequestResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewCertRequestResource() resource.Resource {
+	return &certRequestResource{}
+}
+
+func (r *certRequestResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_cert_request"
+}
+
+func (r *certRequestResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			// Required attributes
@@ -204,10 +205,6 @@ func (rt *certRequestResourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 			"This resource is intended to be used in conjunction with a Terraform provider " +
 			"for a particular certificate authority in order to provision a new certificate.",
 	}, nil
-}
-
-func (rt *certRequestResourceType) NewResource(_ context.Context, _ provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return &certRequestResource{}, nil
 }
 
 func (r *certRequestResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {

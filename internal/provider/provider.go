@@ -9,9 +9,11 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -26,6 +28,7 @@ type tlsProvider struct {
 
 // Enforce interfaces we want provider to implement.
 var _ provider.Provider = (*tlsProvider)(nil)
+var _ provider.ProviderWithMetadata = (*tlsProvider)(nil)
 
 func New() provider.Provider {
 	return &tlsProvider{}
@@ -34,6 +37,10 @@ func New() provider.Provider {
 func (p *tlsProvider) resetConfig() {
 	p.proxyURL = nil
 	p.proxyFromEnv = true
+}
+
+func (p *tlsProvider) Metadata(_ context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "tls"
 }
 
 func (p *tlsProvider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -101,6 +108,11 @@ func (p *tlsProvider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnosti
 func (p *tlsProvider) Configure(ctx context.Context, req provider.ConfigureRequest, res *provider.ConfigureResponse) {
 	tflog.Debug(ctx, "Configuring provider")
 	p.resetConfig()
+
+	// Since the provider instance is being passed, ensure these response
+	// values are always set before early returns, etc.
+	res.DataSourceData = p
+	res.ResourceData = p
 
 	var err error
 
@@ -172,20 +184,20 @@ func (p *tlsProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	})
 }
 
-func (p *tlsProvider) GetResources(_ context.Context) (map[string]provider.ResourceType, diag.Diagnostics) {
-	return map[string]provider.ResourceType{
-		"tls_private_key":         &privateKeyResourceType{},
-		"tls_cert_request":        &certRequestResourceType{},
-		"tls_self_signed_cert":    &selfSignedCertResourceType{},
-		"tls_locally_signed_cert": &locallySignedCertResourceType{},
-	}, nil
+func (p *tlsProvider) Resources(_ context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+		NewCertRequestResource,
+		NewLocallySignedCertResource,
+		NewPrivateKeyResource,
+		NewSelfSignedCertResource,
+	}
 }
 
-func (p *tlsProvider) GetDataSources(_ context.Context) (map[string]provider.DataSourceType, diag.Diagnostics) {
-	return map[string]provider.DataSourceType{
-		"tls_public_key":  &publicKeyDataSourceType{},
-		"tls_certificate": &certificateDataSourceType{},
-	}, nil
+func (p *tlsProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		NewCertificateDataSource,
+		NewPublicKeyDataSource,
+	}
 }
 
 // proxyForRequestFunc is an adapter that returns the configured proxy.
@@ -238,7 +250,11 @@ func (p *tlsProvider) isProxyConfigured() bool {
 
 // toProvider can be used to cast a generic provider.Provider reference to this specific provider.
 // This is ideally used in DataSourceType.NewDataSource and ResourceType.NewResource calls.
-func toProvider(in provider.Provider) (*tlsProvider, diag.Diagnostics) {
+func toProvider(in any) (*tlsProvider, diag.Diagnostics) {
+	if in == nil {
+		return nil, nil
+	}
+
 	var diags diag.Diagnostics
 
 	p, ok := in.(*tlsProvider)
@@ -247,17 +263,8 @@ func toProvider(in provider.Provider) (*tlsProvider, diag.Diagnostics) {
 		diags.AddError(
 			"Unexpected Provider Instance Type",
 			fmt.Sprintf("While creating the data source or resource, an unexpected provider type (%T) was received. "+
-				"This is always a bug in the provider code and should be reported to the provider developers.", p,
+				"This is always a bug in the provider code and should be reported to the provider developers.", in,
 			),
-		)
-		return nil, diags
-	}
-
-	if p == nil {
-		diags.AddError(
-			"Unexpected Provider Instance Type",
-			"While creating the data source or resource, an unexpected empty (null) provider instance was received. "+
-				"This is always a bug in the provider code and should be reported to the provider developers.",
 		)
 		return nil, diags
 	}
