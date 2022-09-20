@@ -1,3 +1,10 @@
+## 4.0.3 (September 20, 2022)
+
+BUG FIXES:
+
+* resource/tls_locally_signed_cert: Prevented `Config Read Error` with Terraform version 1.3.0 and later
+* resource/tls_self_signed_cert: Prevented `Config Read Error` with Terraform version 1.3.0 and later
+
 ## 4.0.2 (August 30, 2022)
 
 BUG FIXES:
