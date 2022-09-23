@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
 )
 
@@ -275,9 +276,10 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 
-func (r *locallySignedCertResource) Read(ctx context.Context, _ resource.ReadRequest, _ *resource.ReadResponse) {
-	// NO-OP: all there is to read is in the State, and response is already populated with that.
+func (r *locallySignedCertResource) Read(ctx context.Context, req resource.ReadRequest, res *resource.ReadResponse) {
 	tflog.Debug(ctx, "Reading locally signed certificate from state")
+
+	modifyStateIfCertificateReadyForRenewal(ctx, req, res)
 }
 
 func (r *locallySignedCertResource) Update(ctx context.Context, req resource.UpdateRequest, res *resource.UpdateResponse) {
