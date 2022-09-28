@@ -291,7 +291,7 @@ func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *resource.M
 	if timeToEarlyRenewal <= 0 {
 		tflog.Info(ctx, "Certificate is ready for early renewal")
 		readyForRenewalPath := path.Root("ready_for_renewal")
-		res.Diagnostics.Append(res.Plan.SetAttribute(ctx, readyForRenewalPath, true)...)
+		res.Diagnostics.Append(res.Plan.SetAttribute(ctx, readyForRenewalPath, types.Bool{Unknown: true})...)
 		res.RequiresReplace = append(res.RequiresReplace, readyForRenewalPath)
 	}
 }
