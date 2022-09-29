@@ -1,3 +1,10 @@
+## 4.0.4 (unreleased)
+
+BUG FIXES:
+
+* resource/tls_locally_signed_cert: Ensure `terraform refresh` updates state when cert is ready for renewal ([#278](https://github.com/hashicorp/terraform-provider-tls/issues/278)).
+* resource/tls_self_signed_cert: Ensure `terraform refresh` updates state when cert is ready for renewal ([#278](https://github.com/hashicorp/terraform-provider-tls/issues/278)).
+
 ## 4.0.3 (September 20, 2022)
 
 BUG FIXES:
