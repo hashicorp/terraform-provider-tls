@@ -218,6 +218,60 @@ func TestResourceSelfSignedCert_DetectExpiringAndExpired(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
+func TestResourceSelfSignedCert_DetectExpiring_Refresh(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: selfSignedCertConfig(10, 2),
+				Check:  r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "false"),
+			},
+			{
+				PreConfig:    setTimeForTest("2019-06-14T21:30:00Z"),
+				Config:       selfSignedCertConfig(10, 2),
+				RefreshState: true,
+				Check:        r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+			{
+				PreConfig:          setTimeForTest("2019-06-14T21:30:00Z"),
+				Config:             selfSignedCertConfig(10, 2),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
+func TestResourceSelfSignedCert_DetectExpired_Refresh(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: selfSignedCertConfig(10, 2),
+				Check:  r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "false"),
+			},
+			{
+				PreConfig:    setTimeForTest("2019-06-14T23:30:00Z"),
+				Config:       selfSignedCertConfig(10, 2),
+				RefreshState: true,
+				Check:        r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+			{
+				PreConfig:          setTimeForTest("2019-06-14T23:30:00Z"),
+				Config:             selfSignedCertConfig(10, 2),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
 func TestResourceSelfSignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
