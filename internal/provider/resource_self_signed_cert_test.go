@@ -272,6 +272,54 @@ func TestResourceSelfSignedCert_DetectExpired_Refresh(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
+func TestResourceSelfSignedCert_ReadyForRenewal_ValidityPeriodZero(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config:             selfSignedCertConfig(0, 0),
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
+func TestResourceSelfSignedCert_ReadyForRenewal_EarlyRenewalGreaterThanValidityPeriod(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config:             selfSignedCertConfig(1, 2),
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
+func TestResourceSelfSignedCert_ReadyForRenewal_EarlyRenewalEqualsValidityPeriod(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config:             selfSignedCertConfig(1, 1),
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
 func TestResourceSelfSignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
