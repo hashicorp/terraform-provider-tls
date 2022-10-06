@@ -211,10 +211,10 @@ func TestResourceLocallySignedCert_DetectExpiring_Refresh(t *testing.T) {
 				Check:  r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ready_for_renewal", "false"),
 			},
 			{
-				PreConfig:    setTimeForTest("2019-06-14T21:30:00Z"),
-				Config:       locallySignedCertConfig(10, 2),
-				RefreshState: true,
-				Check:        r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ready_for_renewal", "true"),
+				PreConfig:          setTimeForTest("2019-06-14T21:30:00Z"),
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ready_for_renewal", "true"),
 			},
 			{
 				PreConfig:          setTimeForTest("2019-06-14T21:30:00Z"),
@@ -238,10 +238,10 @@ func TestResourceLocallySignedCert_DetectExpired_Refresh(t *testing.T) {
 				Check:  r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ready_for_renewal", "false"),
 			},
 			{
-				PreConfig:    setTimeForTest("2019-06-14T23:30:00Z"),
-				Config:       locallySignedCertConfig(10, 2),
-				RefreshState: true,
-				Check:        r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ready_for_renewal", "true"),
+				PreConfig:          setTimeForTest("2019-06-14T23:30:00Z"),
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ready_for_renewal", "true"),
 			},
 			{
 				PreConfig:          setTimeForTest("2019-06-14T23:30:00Z"),
