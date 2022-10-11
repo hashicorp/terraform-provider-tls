@@ -424,24 +424,6 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
-	// Check whether the certificate is ready for renewal at the time of creation
-	if newState.EarlyRenewalHours.Value >= newState.ValidityPeriodHours.Value && newState.ValidityPeriodHours.Value > 0 {
-		tflog.Warn(ctx, "Certificate is ready for renewal at time of creation")
-		res.Diagnostics.AddWarning(
-			"Certificate is ready for renewal at time of creation",
-			fmt.Sprintf("Early renewal hours (%d) is greater than or equal to validity period hours (%d)", newState.EarlyRenewalHours.Value, newState.ValidityPeriodHours.Value),
-		)
-	}
-
-	// Check whether the certificate is already expired at the time of creation
-	if newState.ValidityPeriodHours.Value == 0 {
-		tflog.Warn(ctx, "Certificate is already expired at time of creation")
-		res.Diagnostics.AddWarning(
-			"Certificate is already expired at time of creation",
-			"Validity period hours is zero",
-		)
-	}
-
 	// Store the certificate into the state
 	tflog.Debug(ctx, "Storing self signed certificate into the state")
 	newState.ID = types.String{Value: certificate.id}
