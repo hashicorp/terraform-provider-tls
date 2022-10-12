@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
 )
 
@@ -235,24 +236,27 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					"organization": {
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `O`",
 					},
 					"common_name": {
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `CN`",
 					},
 					"organizational_unit": {
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `OU`",
 					},
@@ -261,48 +265,54 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 							ElemType: types.StringType,
 						},
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `STREET`",
 					},
 					"locality": {
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `L`",
 					},
 					"province": {
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `ST`",
 					},
 					"country": {
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `C`",
 					},
 					"postal_code": {
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `PC`",
 					},
 					"serial_number": {
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+							attribute_plan_modifier.RequiresReplaceNullEmpty(),
 						},
 						Description: "Distinguished name: `SERIALNUMBER`",
 					},

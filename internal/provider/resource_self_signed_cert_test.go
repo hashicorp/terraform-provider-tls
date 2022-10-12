@@ -11,6 +11,7 @@ import (
 	"time"
 
 	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -186,6 +187,51 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 						x509.ExtKeyUsageClientAuth,
 					}),
 					tu.TestCheckPEMCertificateDuration("tls_self_signed_cert.test1", "cert_pem", time.Hour),
+				),
+			},
+		},
+	})
+}
+
+func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0_Preserve_Empty_Strings(t *testing.T) {
+	var id1, id2 string
+
+	config := `resource "tls_private_key" "example" {
+  algorithm = "ECDSA"
+}
+
+resource "tls_self_signed_cert" "example" {
+  private_key_pem   = tls_private_key.example.private_key_pem
+  is_ca_certificate = true
+
+  subject {
+    organization = "Example"
+  }
+
+  # 3 Years
+  validity_period_hours = 24 * 365 * 3
+
+  allowed_uses = [
+    "cert_signing",
+    "crl_signing",
+  ]
+}`
+
+	r.Test(t, r.TestCase{
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion340(),
+				Config:            config,
+				Check: r.ComposeTestCheckFunc(
+					testExtractResourceAttr("tls_self_signed_cert.example", "id", &id1),
+				),
+			},
+			{
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				Config:                   config,
+				Check: r.ComposeTestCheckFunc(
+					testExtractResourceAttr("tls_self_signed_cert.example", "id", &id2),
+					testCheckAttributeValuesEqual(&id1, &id2),
 				),
 			},
 		},
@@ -752,4 +798,14 @@ func TestResourceSelfSignedCert_NoSubject(t *testing.T) {
 			},
 		},
 	})
+}
+
+func testCheckAttributeValuesEqual(i *string, j *string) r.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if testStringValue(i) != testStringValue(j) {
+			return fmt.Errorf("attribute values are different, got %s and %s", testStringValue(i), testStringValue(j))
+		}
+
+		return nil
+	}
 }
