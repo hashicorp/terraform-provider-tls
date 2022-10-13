@@ -21,12 +21,20 @@ func (r requiresReplaceNullEmpty) Modify(ctx context.Context, req tfsdk.ModifyAt
 	}
 
 	emptyStateString := types.String{}
+	nullStateString := types.String{
+		Null: true,
+	}
 	emptyPlanString := types.String{
 		Unknown: true,
 	}
 
-	if req.AttributePlan.Equal(emptyPlanString) {
+	if req.AttributePlan.Equal(emptyPlanString) && req.AttributeState.Equal(emptyStateString) {
 		resp.AttributePlan = emptyStateString
+		return
+	}
+
+	if req.AttributePlan.Equal(emptyPlanString) && req.AttributeState.Equal(nullStateString) {
+		resp.AttributePlan = nullStateString
 		return
 	}
 
