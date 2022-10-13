@@ -20,45 +20,43 @@ func (r requiresReplaceNullEmpty) Modify(ctx context.Context, req tfsdk.ModifyAt
 		return
 	}
 
-	emptyStateString := types.String{}
-	nullStateString := types.String{
-		Null: true,
-	}
-	emptyPlanString := types.String{
-		Unknown: true,
-	}
+	if req.AttributePlan.IsUnknown() {
 
-	if req.AttributePlan.Equal(emptyPlanString) && req.AttributeState.Equal(emptyStateString) {
-		resp.AttributePlan = emptyStateString
-		return
-	}
+		emptyStateString := types.String{}
 
-	if req.AttributePlan.Equal(emptyPlanString) && req.AttributeState.Equal(nullStateString) {
-		resp.AttributePlan = nullStateString
-		return
-	}
+		if req.AttributeState.Equal(emptyStateString) {
+			resp.AttributePlan = emptyStateString
+			return
+		}
 
-	emptyStateList := types.List{
-		Null:     true,
-		ElemType: types.StringType,
-	}
-	emptyStateListEmptyElems := types.List{
-		ElemType: types.StringType,
-		Elems:    []attr.Value{},
-	}
-	emptyPlanList := types.List{
-		Unknown:  true,
-		ElemType: types.StringType,
-	}
+		nullStateString := types.String{
+			Null: true,
+		}
 
-	if req.AttributePlan.Equal(emptyPlanList) && req.AttributeState.Equal(emptyStateList) {
-		resp.AttributePlan = emptyStateList
-		return
-	}
+		if req.AttributeState.Equal(nullStateString) {
+			resp.AttributePlan = nullStateString
+			return
+		}
 
-	if req.AttributePlan.Equal(emptyPlanList) && req.AttributeState.Equal(emptyStateListEmptyElems) {
-		resp.AttributePlan = emptyStateListEmptyElems
-		return
+		emptyStateList := types.List{
+			ElemType: types.StringType,
+			Elems:    []attr.Value{},
+		}
+
+		if req.AttributeState.Equal(emptyStateList) {
+			resp.AttributePlan = emptyStateList
+			return
+		}
+
+		nullStateList := types.List{
+			Null:     true,
+			ElemType: types.StringType,
+		}
+
+		if req.AttributeState.Equal(nullStateList) {
+			resp.AttributePlan = nullStateList
+			return
+		}
 	}
 
 	if req.AttributePlan.Equal(req.AttributeState) {
