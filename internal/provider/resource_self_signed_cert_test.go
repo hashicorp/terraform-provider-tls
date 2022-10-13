@@ -235,10 +235,9 @@ func TestResourceSelfSignedCert_DetectExpiring_Refresh(t *testing.T) {
 				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
 			},
 			{
-				PreConfig:          setTimeForTest("2019-06-14T21:30:00Z"),
-				Config:             selfSignedCertConfig(10, 2),
-				PlanOnly:           true,
-				ExpectNonEmptyPlan: true,
+				PreConfig: setTimeForTest("2019-06-14T21:30:00Z"),
+				Config:    selfSignedCertConfig(10, 2),
+				Check:     r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "false"),
 			},
 		},
 	})
@@ -262,10 +261,9 @@ func TestResourceSelfSignedCert_DetectExpired_Refresh(t *testing.T) {
 				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
 			},
 			{
-				PreConfig:          setTimeForTest("2019-06-14T23:30:00Z"),
-				Config:             selfSignedCertConfig(10, 2),
-				PlanOnly:           true,
-				ExpectNonEmptyPlan: true,
+				PreConfig: setTimeForTest("2019-06-14T23:30:00Z"),
+				Config:    selfSignedCertConfig(10, 2),
+				Check:     r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "false"),
 			},
 		},
 	})
