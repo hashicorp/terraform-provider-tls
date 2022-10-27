@@ -1,5 +1,9 @@
 ## 4.0.4 (unreleased)
 
+NOTES:
+
+* all: This Go module has been updated for deprecations in terraform-plugin-framework version 0.15.0
+
 BUG FIXES:
 
 * resource/tls_locally_signed_cert: Ensure `terraform refresh` updates state when cert is ready for renewal ([#278](https://github.com/hashicorp/terraform-provider-tls/issues/278)).

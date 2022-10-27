@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 )
 
@@ -123,7 +124,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	var certs []CertificateModel
 	if !newState.Content.IsNull() && !newState.Content.IsUnknown() {
-		block, _ := pem.Decode([]byte(newState.Content.Value))
+		block, _ := pem.Decode([]byte(newState.Content.ValueString()))
 		if block == nil {
 			res.Diagnostics.AddAttributeError(
 				path.Root("content"),
@@ -155,7 +156,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 		certs = []CertificateModel{certificateToStruct(cert)}
 	} else {
-		targetURL, err := url.Parse(newState.URL.Value)
+		targetURL, err := url.Parse(newState.URL.ValueString())
 		if err != nil {
 			res.Diagnostics.AddAttributeError(
 				path.Root("url"),
@@ -166,7 +167,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRe
 		}
 
 		// Determine if we should verify the chain of certificates, or skip said verification
-		shouldVerifyChain := newState.VerifyChain.Value
+		shouldVerifyChain := newState.VerifyChain.ValueBool()
 
 		// Ensure a port is set on the URL, or return an error
 		var peerCerts []*x509.Certificate

@@ -219,7 +219,7 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 
 	// Parse the certificate request PEM
 	tflog.Debug(ctx, "Parsing certificate request PEM")
-	certReq, err := parseCertificateRequest([]byte(newState.CertRequestPEM.Value))
+	certReq, err := parseCertificateRequest([]byte(newState.CertRequestPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse certificate request PEM", err.Error())
 		return
@@ -227,7 +227,7 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 
 	// Parse the CA Private Key PEM
 	tflog.Debug(ctx, "Parsing CA private key PEM")
-	caPrvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.CAPrivateKeyPEM.Value))
+	caPrvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.CAPrivateKeyPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse CA private key PEM", err.Error())
 		return
@@ -241,7 +241,7 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 
 	// Parse the CA Certificate PEM
 	tflog.Debug(ctx, "Parsing CA certificate PEM")
-	caCert, err := parseCertificate([]byte(newState.CACertPEM.Value))
+	caCert, err := parseCertificate([]byte(newState.CACertPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse CA certificate PEM", err.Error())
 		return

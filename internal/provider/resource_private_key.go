@@ -168,7 +168,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 		"privateKeyConfig": fmt.Sprintf("%+v", newState),
 	})
 
-	keyAlgoName := Algorithm(newState.Algorithm.Value)
+	keyAlgoName := Algorithm(newState.Algorithm.ValueString())
 
 	// Identify the correct (Private) Key Generator
 	var keyGen keyGenerator
@@ -305,14 +305,14 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]resourc
 				// Parse private key from PEM bytes:
 				// we do this to generate the missing state from the original private key
 				tflog.Debug(ctx, "Parsing private key from PEM")
-				prvKey, _, err := parsePrivateKeyPEM([]byte(upState.PrivateKeyPem.Value))
+				prvKey, _, err := parsePrivateKeyPEM([]byte(upState.PrivateKeyPem.ValueString()))
 				if err != nil {
 					res.Diagnostics.AddError("Unable to parse key from PEM", err.Error())
 				}
 
 				// Marshal the Key in OpenSSH PEM, if necessary and supported
 				tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
-				if (upState.PrivateKeyOpenSSH.IsNull() || upState.PrivateKeyOpenSSH.Value == "") && prvKeySupportsOpenSSHMarshalling(prvKey) {
+				if (upState.PrivateKeyOpenSSH.IsNull() || upState.PrivateKeyOpenSSH.ValueString() == "") && prvKeySupportsOpenSSHMarshalling(prvKey) {
 					openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
 					if err != nil {
 						res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())

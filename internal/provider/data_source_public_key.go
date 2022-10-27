@@ -131,10 +131,10 @@ func (ds *publicKeyDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	var prvKeyArg types.String
 	if req.Config.GetAttribute(ctx, path.Root("private_key_pem"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
 		tflog.Debug(ctx, "Parsing private key from PEM")
-		prvKey, algorithm, err = parsePrivateKeyPEM([]byte(prvKeyArg.Value))
+		prvKey, algorithm, err = parsePrivateKeyPEM([]byte(prvKeyArg.ValueString()))
 	} else if req.Config.GetAttribute(ctx, path.Root("private_key_openssh"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
 		tflog.Debug(ctx, "Parsing private key from OpenSSH PEM")
-		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.Value))
+		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.ValueString()))
 	}
 	if err != nil {
 		res.Diagnostics.AddError("Unable to parse private key", err.Error())

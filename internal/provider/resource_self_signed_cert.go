@@ -334,7 +334,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 
 	// Parse the Private Key PEM
 	tflog.Debug(ctx, "Parsing private key PEM")
-	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.Value))
+	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
@@ -349,7 +349,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 	cert := x509.Certificate{BasicConstraintsValid: true}
 
 	// Add Subject if provided
-	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elems) > 0 {
+	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elements()) > 0 {
 		tflog.Debug(ctx, "Adding subject on certificate", map[string]interface{}{
 			"subject": newState.Subject,
 		})
@@ -378,8 +378,8 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			"ipAddresses": newState.IPAddresses,
 		})
 
-		for _, ipElem := range newState.IPAddresses.Elems {
-			ipStr := ipElem.(types.String).Value
+		for _, ipElem := range newState.IPAddresses.Elements() {
+			ipStr := ipElem.(types.String).ValueString()
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
 				res.Diagnostics.AddError(
@@ -398,8 +398,8 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			"URIs": newState.URIs,
 		})
 
-		for _, uriElem := range newState.URIs.Elems {
-			uriStr := uriElem.(types.String).Value
+		for _, uriElem := range newState.URIs.Elements() {
+			uriStr := uriElem.(types.String).ValueString()
 			uri, err := url.Parse(uriStr)
 			if err != nil {
 				res.Diagnostics.AddError(

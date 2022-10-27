@@ -136,12 +136,12 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	if diags.HasError() {
 		return nil, diags
 	}
-	if !allowedUses.IsNull() && !allowedUses.IsUnknown() && len(allowedUses.Elems) > 0 {
-		for _, keyUse := range allowedUses.Elems {
-			if usage, ok := keyUsages[keyUse.(types.String).Value]; ok {
+	if !allowedUses.IsNull() && !allowedUses.IsUnknown() && len(allowedUses.Elements()) > 0 {
+		for _, keyUse := range allowedUses.Elements() {
+			if usage, ok := keyUsages[keyUse.(types.String).ValueString()]; ok {
 				template.KeyUsage |= usage
 			}
-			if usage, ok := extendedKeyUsages[keyUse.(types.String).Value]; ok {
+			if usage, ok := extendedKeyUsages[keyUse.(types.String).ValueString()]; ok {
 				template.ExtKeyUsage = append(template.ExtKeyUsage, usage)
 			}
 		}
@@ -154,7 +154,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	if diags.HasError() {
 		return nil, diags
 	}
-	if !isCACertificate.IsNull() && !isCACertificate.IsUnknown() && isCACertificate.Value {
+	if !isCACertificate.IsNull() && !isCACertificate.IsUnknown() && isCACertificate.ValueBool() {
 		// NOTE: if the Certificate we are trying to create is a Certificate Authority,
 		// then https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.6 requires
 		// the `.Subject` to contain at least 1 Distinguished Name.
@@ -181,7 +181,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	if diags.HasError() {
 		return nil, diags
 	}
-	if !setSubjectKeyID.IsNull() && !setSubjectKeyID.IsUnknown() && setSubjectKeyID.Value {
+	if !setSubjectKeyID.IsNull() && !setSubjectKeyID.IsUnknown() && setSubjectKeyID.ValueBool() {
 		template.SubjectKeyId, err = generateSubjectKeyID(pubKey)
 		if err != nil {
 			diags.AddError("Failed to generate subject key identifier", err.Error())
@@ -198,7 +198,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 		if diags.HasError() {
 			return nil, diags
 		}
-		if !setAuthorityKeyID.IsNull() && !setAuthorityKeyID.IsUnknown() && setAuthorityKeyID.Value {
+		if !setAuthorityKeyID.IsNull() && !setAuthorityKeyID.IsUnknown() && setAuthorityKeyID.ValueBool() {
 			if len(parent.SubjectKeyId) == 0 {
 				diags.AddError(
 					"Invalid Certificate Authority",
@@ -263,10 +263,10 @@ func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *resource.M
 	}
 
 	// Parse `validity_end_time`
-	validityEndTime, err := time.Parse(time.RFC3339, validityEndTimeStr.Value)
+	validityEndTime, err := time.Parse(time.RFC3339, validityEndTimeStr.ValueString())
 	if err != nil {
 		res.Diagnostics.AddError(
-			fmt.Sprintf("Failed to parse data from string: %s", validityEndTimeStr.Value),
+			fmt.Sprintf("Failed to parse data from string: %s", validityEndTimeStr.ValueString()),
 			err.Error(),
 		)
 		return
@@ -309,10 +309,10 @@ func modifyStateIfCertificateReadyForRenewal(ctx context.Context, req resource.R
 	}
 
 	// Parse `validity_end_time`
-	validityEndTime, err := time.Parse(time.RFC3339, validityEndTimeStr.Value)
+	validityEndTime, err := time.Parse(time.RFC3339, validityEndTimeStr.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Failed to parse data from string: %s", validityEndTimeStr.Value),
+			fmt.Sprintf("Failed to parse data from string: %s", validityEndTimeStr.ValueString()),
 			err.Error(),
 		)
 		return
@@ -347,15 +347,15 @@ func createSubjectDistinguishedNames(ctx context.Context, subject certificateSub
 	result := pkix.Name{}
 
 	if !subject.CommonName.IsNull() && !subject.CommonName.IsUnknown() {
-		result.CommonName = subject.CommonName.Value
+		result.CommonName = subject.CommonName.ValueString()
 	}
 
 	if !subject.Organization.IsNull() && !subject.Organization.IsUnknown() {
-		result.Organization = []string{subject.Organization.Value}
+		result.Organization = []string{subject.Organization.ValueString()}
 	}
 
 	if !subject.OrganizationalUnit.IsNull() && !subject.OrganizationalUnit.IsUnknown() {
-		result.OrganizationalUnit = []string{subject.OrganizationalUnit.Value}
+		result.OrganizationalUnit = []string{subject.OrganizationalUnit.ValueString()}
 	}
 
 	if !subject.StreetAddress.IsNull() && !subject.StreetAddress.IsUnknown() {
@@ -363,23 +363,23 @@ func createSubjectDistinguishedNames(ctx context.Context, subject certificateSub
 	}
 
 	if !subject.Locality.IsNull() && !subject.Locality.IsUnknown() {
-		result.Locality = []string{subject.Locality.Value}
+		result.Locality = []string{subject.Locality.ValueString()}
 	}
 
 	if !subject.Province.IsNull() && !subject.Province.IsUnknown() {
-		result.Province = []string{subject.Province.Value}
+		result.Province = []string{subject.Province.ValueString()}
 	}
 
 	if !subject.Country.IsNull() && !subject.Country.IsUnknown() {
-		result.Country = []string{subject.Country.Value}
+		result.Country = []string{subject.Country.ValueString()}
 	}
 
 	if !subject.PostalCode.IsNull() && !subject.PostalCode.IsUnknown() {
-		result.PostalCode = []string{subject.PostalCode.Value}
+		result.PostalCode = []string{subject.PostalCode.ValueString()}
 	}
 
 	if !subject.SerialNumber.IsNull() && !subject.SerialNumber.IsUnknown() {
-		result.SerialNumber = subject.SerialNumber.Value
+		result.SerialNumber = subject.SerialNumber.ValueString()
 	}
 
 	return result
