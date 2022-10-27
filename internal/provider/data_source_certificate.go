@@ -119,7 +119,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRe
 	// NOTE: Currently it's not possible to specify `Default` values against
 	// attributes of Data Sources nor Providers.
 	if newState.VerifyChain.IsNull() {
-		newState.VerifyChain = types.Bool{Value: true}
+		newState.VerifyChain = types.BoolValue(true)
 	}
 
 	var certs []CertificateModel
@@ -213,7 +213,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRe
 	}
 
 	// Set ID as hashing of the certificates
-	newState.ID = types.String{Value: hashForState(fmt.Sprintf("%v", certs))}
+	newState.ID = types.StringValue(hashForState(fmt.Sprintf("%v", certs)))
 
 	// Finally, set the state
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
@@ -275,17 +275,17 @@ func certificateToStruct(cert *x509.Certificate) CertificateModel {
 	certPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificate.String(), Bytes: cert.Raw}))
 
 	return CertificateModel{
-		SignatureAlgorithm: types.String{Value: cert.SignatureAlgorithm.String()},
-		PublicKeyAlgorithm: types.String{Value: cert.PublicKeyAlgorithm.String()},
-		SerialNumber:       types.String{Value: cert.SerialNumber.String()},
-		IsCA:               types.Bool{Value: cert.IsCA},
-		Version:            types.Int64{Value: int64(cert.Version)},
-		Issuer:             types.String{Value: cert.Issuer.String()},
-		Subject:            types.String{Value: cert.Subject.String()},
-		NotBefore:          types.String{Value: cert.NotBefore.Format(time.RFC3339)},
-		NotAfter:           types.String{Value: cert.NotAfter.Format(time.RFC3339)},
-		SHA1Fingerprint:    types.String{Value: fmt.Sprintf("%x", sha1.Sum(cert.Raw))},
-		CertPEM:            types.String{Value: certPem},
+		SignatureAlgorithm: types.StringValue(cert.SignatureAlgorithm.String()),
+		PublicKeyAlgorithm: types.StringValue(cert.PublicKeyAlgorithm.String()),
+		SerialNumber:       types.StringValue(cert.SerialNumber.String()),
+		IsCA:               types.BoolValue(cert.IsCA),
+		Version:            types.Int64Value(int64(cert.Version)),
+		Issuer:             types.StringValue(cert.Issuer.String()),
+		Subject:            types.StringValue(cert.Subject.String()),
+		NotBefore:          types.StringValue(cert.NotBefore.Format(time.RFC3339)),
+		NotAfter:           types.StringValue(cert.NotAfter.Format(time.RFC3339)),
+		SHA1Fingerprint:    types.StringValue(fmt.Sprintf("%x", sha1.Sum(cert.Raw))),
+		CertPEM:            types.StringValue(certPem),
 	}
 }
 

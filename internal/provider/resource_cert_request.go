@@ -232,7 +232,7 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 	tflog.Debug(ctx, "Detected key algorithm of private key", map[string]interface{}{
 		"keyAlgorithm": algorithm,
 	})
-	newState.KeyAlgorithm = types.String{Value: algorithm.String()}
+	newState.KeyAlgorithm = types.StringValue(algorithm.String())
 
 	certReq := x509.CertificateRequest{}
 
@@ -305,8 +305,8 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Set `Certificate Request PEM` and `ID`
-	newState.CertRequestPEM = types.String{Value: string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes}))}
-	newState.ID = types.String{Value: hashForState(string(certReqBytes))}
+	newState.CertRequestPEM = types.StringValue(string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes})))
+	newState.ID = types.StringValue(hashForState(string(certReqBytes)))
 
 	// Finally, set the state
 	tflog.Debug(ctx, "Storing certificate request info into the state")

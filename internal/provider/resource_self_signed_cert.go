@@ -114,7 +114,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Int64{Value: 0}),
+					attribute_plan_modifier.DefaultValue(types.Int64Value(0)),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					int64validator.AtLeast(0),
@@ -132,7 +132,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					resource.RequiresReplace(),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
@@ -142,7 +142,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					resource.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include a " +
@@ -153,7 +153,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					resource.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include an " +
@@ -180,7 +180,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.BoolType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					attribute_plan_modifier.ReadyForRenewal(),
 				},
 				Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
@@ -344,7 +344,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 	tflog.Debug(ctx, "Detected key algorithm of private key", map[string]interface{}{
 		"keyAlgorithm": algorithm,
 	})
-	newState.KeyAlgorithm = types.String{Value: algorithm.String()}
+	newState.KeyAlgorithm = types.StringValue(algorithm.String())
 
 	cert := x509.Certificate{BasicConstraintsValid: true}
 
@@ -426,10 +426,10 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 
 	// Store the certificate into the state
 	tflog.Debug(ctx, "Storing self signed certificate into the state")
-	newState.ID = types.String{Value: certificate.id}
-	newState.CertPEM = types.String{Value: certificate.certPem}
-	newState.ValidityStartTime = types.String{Value: certificate.validityStartTime}
-	newState.ValidityEndTime = types.String{Value: certificate.validityEndTime}
+	newState.ID = types.StringValue(certificate.id)
+	newState.CertPEM = types.StringValue(certificate.certPem)
+	newState.ValidityStartTime = types.StringValue(certificate.validityStartTime)
+	newState.ValidityEndTime = types.StringValue(certificate.validityEndTime)
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 
