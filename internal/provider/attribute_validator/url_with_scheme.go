@@ -55,12 +55,12 @@ func (av *urlWithSchemeAttributeValidator) Validate(ctx context.Context, req tfs
 		return
 	}
 
-	u, err := url.Parse(v.Value)
+	u, err := url.Parse(v.ValueString())
 	if err != nil {
 		res.Diagnostics.AddAttributeError(
 			req.AttributePath,
 			"Invalid URL",
-			fmt.Sprintf("Parsing URL %q failed: %v", v.Value, err),
+			fmt.Sprintf("Parsing URL %q failed: %v", v.ValueString(), err),
 		)
 		return
 	}

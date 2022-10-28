@@ -114,7 +114,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Int64{Value: 0}),
+					attribute_plan_modifier.DefaultValue(types.Int64Value(0)),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					int64validator.AtLeast(0),
@@ -132,7 +132,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					resource.RequiresReplace(),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
@@ -142,7 +142,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					resource.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include a " +
@@ -153,7 +153,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					resource.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include an " +
@@ -180,7 +180,7 @@ func (r *selfSignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.BoolType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					attribute_plan_modifier.ReadyForRenewal(),
 				},
 				Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
@@ -334,7 +334,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 
 	// Parse the Private Key PEM
 	tflog.Debug(ctx, "Parsing private key PEM")
-	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.Value))
+	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
@@ -344,12 +344,12 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 	tflog.Debug(ctx, "Detected key algorithm of private key", map[string]interface{}{
 		"keyAlgorithm": algorithm,
 	})
-	newState.KeyAlgorithm = types.String{Value: algorithm.String()}
+	newState.KeyAlgorithm = types.StringValue(algorithm.String())
 
 	cert := x509.Certificate{BasicConstraintsValid: true}
 
 	// Add Subject if provided
-	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elems) > 0 {
+	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elements()) > 0 {
 		tflog.Debug(ctx, "Adding subject on certificate", map[string]interface{}{
 			"subject": newState.Subject,
 		})
@@ -378,8 +378,8 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			"ipAddresses": newState.IPAddresses,
 		})
 
-		for _, ipElem := range newState.IPAddresses.Elems {
-			ipStr := ipElem.(types.String).Value
+		for _, ipElem := range newState.IPAddresses.Elements() {
+			ipStr := ipElem.(types.String).ValueString()
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
 				res.Diagnostics.AddError(
@@ -398,8 +398,8 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			"URIs": newState.URIs,
 		})
 
-		for _, uriElem := range newState.URIs.Elems {
-			uriStr := uriElem.(types.String).Value
+		for _, uriElem := range newState.URIs.Elements() {
+			uriStr := uriElem.(types.String).ValueString()
 			uri, err := url.Parse(uriStr)
 			if err != nil {
 				res.Diagnostics.AddError(
@@ -426,10 +426,10 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 
 	// Store the certificate into the state
 	tflog.Debug(ctx, "Storing self signed certificate into the state")
-	newState.ID = types.String{Value: certificate.id}
-	newState.CertPEM = types.String{Value: certificate.certPem}
-	newState.ValidityStartTime = types.String{Value: certificate.validityStartTime}
-	newState.ValidityEndTime = types.String{Value: certificate.validityEndTime}
+	newState.ID = types.StringValue(certificate.id)
+	newState.CertPEM = types.StringValue(certificate.certPem)
+	newState.ValidityStartTime = types.StringValue(certificate.validityStartTime)
+	newState.ValidityEndTime = types.StringValue(certificate.validityEndTime)
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 

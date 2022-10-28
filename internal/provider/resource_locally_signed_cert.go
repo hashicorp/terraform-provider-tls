@@ -105,7 +105,7 @@ func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, 
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					resource.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
 			},
@@ -114,7 +114,7 @@ func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, 
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Int64{Value: 0}),
+					attribute_plan_modifier.DefaultValue(types.Int64Value(0)),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					int64validator.AtLeast(0),
@@ -133,7 +133,7 @@ func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, 
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					resource.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 				},
 				Description: "Should the generated certificate include a " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
@@ -157,7 +157,7 @@ func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, 
 				Type:     types.BoolType,
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
 					attribute_plan_modifier.ReadyForRenewal(),
 				},
 				Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
@@ -219,7 +219,7 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 
 	// Parse the certificate request PEM
 	tflog.Debug(ctx, "Parsing certificate request PEM")
-	certReq, err := parseCertificateRequest([]byte(newState.CertRequestPEM.Value))
+	certReq, err := parseCertificateRequest([]byte(newState.CertRequestPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse certificate request PEM", err.Error())
 		return
@@ -227,7 +227,7 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 
 	// Parse the CA Private Key PEM
 	tflog.Debug(ctx, "Parsing CA private key PEM")
-	caPrvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.CAPrivateKeyPEM.Value))
+	caPrvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.CAPrivateKeyPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse CA private key PEM", err.Error())
 		return
@@ -237,11 +237,11 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 	tflog.Debug(ctx, "Detected key algorithm of CA private key", map[string]interface{}{
 		"caKeyAlgorithm": algorithm,
 	})
-	newState.CAKeyAlgorithm = types.String{Value: algorithm.String()}
+	newState.CAKeyAlgorithm = types.StringValue(algorithm.String())
 
 	// Parse the CA Certificate PEM
 	tflog.Debug(ctx, "Parsing CA certificate PEM")
-	caCert, err := parseCertificate([]byte(newState.CACertPEM.Value))
+	caCert, err := parseCertificate([]byte(newState.CACertPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse CA certificate PEM", err.Error())
 		return
@@ -270,10 +270,10 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 
 	// Store the certificate into the state
 	tflog.Debug(ctx, "Storing locally signed certificate into the state")
-	newState.ID = types.String{Value: certificate.id}
-	newState.CertPEM = types.String{Value: certificate.certPem}
-	newState.ValidityStartTime = types.String{Value: certificate.validityStartTime}
-	newState.ValidityEndTime = types.String{Value: certificate.validityEndTime}
+	newState.ID = types.StringValue(certificate.id)
+	newState.CertPEM = types.StringValue(certificate.certPem)
+	newState.ValidityStartTime = types.StringValue(certificate.validityStartTime)
+	newState.ValidityEndTime = types.StringValue(certificate.validityEndTime)
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 

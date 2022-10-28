@@ -17,8 +17,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 	"golang.org/x/net/http/httpproxy"
+
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 )
 
 type tlsProvider struct {
@@ -122,7 +123,7 @@ func (p *tlsProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	if res.Diagnostics.HasError() {
 		return
 	}
-	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() || len(conf.Proxy.Elems) == 0 {
+	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() || len(conf.Proxy.Elements()) == 0 {
 		tflog.Debug(ctx, "No proxy configuration detected: using provider defaults")
 		return
 	}
@@ -148,35 +149,35 @@ func (p *tlsProvider) Configure(ctx context.Context, req provider.ConfigureReque
 	// Parse the URL
 	if !proxyConf.URL.IsNull() && !proxyConf.URL.IsUnknown() {
 		tflog.Debug(ctx, "Configuring Proxy via URL", map[string]interface{}{
-			"url": proxyConf.URL.Value,
+			"url": proxyConf.URL.ValueString(),
 		})
 
-		p.proxyURL, err = url.Parse(proxyConf.URL.Value)
+		p.proxyURL, err = url.Parse(proxyConf.URL.ValueString())
 		if err != nil {
-			res.Diagnostics.AddError(fmt.Sprintf("Unable to parse proxy URL %q", proxyConf.URL.Value), err.Error())
+			res.Diagnostics.AddError(fmt.Sprintf("Unable to parse proxy URL %q", proxyConf.URL.ValueString()), err.Error())
 		}
 	}
 
 	if !proxyConf.Username.IsNull() && !proxyConf.Username.IsUnknown() {
 		tflog.Debug(ctx, "Adding username to Proxy URL configuration", map[string]interface{}{
-			"username": proxyConf.Username.Value,
+			"username": proxyConf.Username.ValueString(),
 		})
 
 		// NOTE: we know that `.proxyURL` is set, as this is imposed by the provider schema
-		p.proxyURL.User = url.User(proxyConf.Username.Value)
+		p.proxyURL.User = url.User(proxyConf.Username.ValueString())
 	}
 
 	if !proxyConf.Password.IsNull() && !proxyConf.Password.IsUnknown() {
 		tflog.Debug(ctx, "Adding password to Proxy URL configuration")
 
 		// NOTE: we know that `.proxyURL.User.Username()` is set, as this is imposed by the provider schema
-		p.proxyURL.User = url.UserPassword(p.proxyURL.User.Username(), proxyConf.Password.Value)
+		p.proxyURL.User = url.UserPassword(p.proxyURL.User.Username(), proxyConf.Password.ValueString())
 	}
 
 	if !proxyConf.FromEnv.IsNull() && !proxyConf.FromEnv.IsUnknown() {
 		tflog.Debug(ctx, "Configuring Proxy via Environment Variables")
 
-		p.proxyFromEnv = proxyConf.FromEnv.Value
+		p.proxyFromEnv = proxyConf.FromEnv.ValueBool()
 	}
 
 	tflog.Debug(ctx, "Provider configuration", map[string]interface{}{

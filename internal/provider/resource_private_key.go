@@ -65,7 +65,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					resource.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.Int64{Value: 2048}),
+					attribute_plan_modifier.DefaultValue(types.Int64Value(2048)),
 				},
 				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
 			},
@@ -75,7 +75,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				Computed: true,
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					resource.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.String{Value: P224.String()}),
+					attribute_plan_modifier.DefaultValue(types.StringValue(P224.String())),
 				},
 				Validators: []tfsdk.AttributeValidator{
 					stringvalidator.OneOf(supportedECDSACurvesStr()...),
@@ -168,7 +168,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 		"privateKeyConfig": fmt.Sprintf("%+v", newState),
 	})
 
-	keyAlgoName := Algorithm(newState.Algorithm.Value)
+	keyAlgoName := Algorithm(newState.Algorithm.ValueString())
 
 	// Identify the correct (Private) Key Generator
 	var keyGen keyGenerator
@@ -232,12 +232,12 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	newState.PrivateKeyPem = types.String{Value: string(pem.EncodeToMemory(prvKeyPemBlock))}
-	newState.PrivateKeyPKCS8 = types.String{Value: string(pem.EncodeToMemory(prvKeyPKCS8PemBlock))}
+	newState.PrivateKeyPem = types.StringValue(string(pem.EncodeToMemory(prvKeyPemBlock)))
+	newState.PrivateKeyPKCS8 = types.StringValue(string(pem.EncodeToMemory(prvKeyPKCS8PemBlock)))
 
 	// Marshal the Key in OpenSSH PEM block, if supported
 	tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
-	newState.PrivateKeyOpenSSH = types.String{Value: ""}
+	newState.PrivateKeyOpenSSH = types.StringValue("")
 	if prvKeySupportsOpenSSHMarshalling(prvKey) {
 		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
 		if err != nil {
@@ -245,7 +245,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 			return
 		}
 
-		newState.PrivateKeyOpenSSH = types.String{Value: string(pem.EncodeToMemory(openSSHKeyPemBlock))}
+		newState.PrivateKeyOpenSSH = types.StringValue(string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 	}
 
 	// Store the model populated so far, onto the State
@@ -305,21 +305,21 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]resourc
 				// Parse private key from PEM bytes:
 				// we do this to generate the missing state from the original private key
 				tflog.Debug(ctx, "Parsing private key from PEM")
-				prvKey, _, err := parsePrivateKeyPEM([]byte(upState.PrivateKeyPem.Value))
+				prvKey, _, err := parsePrivateKeyPEM([]byte(upState.PrivateKeyPem.ValueString()))
 				if err != nil {
 					res.Diagnostics.AddError("Unable to parse key from PEM", err.Error())
 				}
 
 				// Marshal the Key in OpenSSH PEM, if necessary and supported
 				tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
-				if (upState.PrivateKeyOpenSSH.IsNull() || upState.PrivateKeyOpenSSH.Value == "") && prvKeySupportsOpenSSHMarshalling(prvKey) {
+				if (upState.PrivateKeyOpenSSH.IsNull() || upState.PrivateKeyOpenSSH.ValueString() == "") && prvKeySupportsOpenSSHMarshalling(prvKey) {
 					openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
 					if err != nil {
 						res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
 						return
 					}
 
-					upState.PrivateKeyOpenSSH = types.String{Value: string(pem.EncodeToMemory(openSSHKeyPemBlock))}
+					upState.PrivateKeyOpenSSH = types.StringValue(string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 				}
 
 				// Marshal the Key in PKCS#8 PEM
@@ -329,7 +329,7 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]resourc
 					res.Diagnostics.AddError("Unable to encode private key to PKCS#8 PEM", err.Error())
 					return
 				}
-				upState.PrivateKeyPKCS8 = types.String{Value: string(pem.EncodeToMemory(prvKeyPKCS8PemBlock))}
+				upState.PrivateKeyPKCS8 = types.StringValue(string(pem.EncodeToMemory(prvKeyPKCS8PemBlock)))
 
 				// Upgrading the state
 				tflog.Debug(ctx, "Upgrading state")

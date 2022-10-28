@@ -72,10 +72,8 @@ func (apm *readyForRenewalAttributePlanModifier) Modify(ctx context.Context, req
 		return
 	}
 
-	if validityPeriodHours.Value == 0 {
-		res.AttributePlan = types.Bool{
-			Value: true,
-		}
+	if validityPeriodHours.ValueInt64() == 0 {
+		res.AttributePlan = types.BoolValue(true)
 
 		return
 	}
@@ -91,10 +89,8 @@ func (apm *readyForRenewalAttributePlanModifier) Modify(ctx context.Context, req
 		return
 	}
 
-	if earlyRenewalHours.Value >= validityPeriodHours.Value {
-		res.AttributePlan = types.Bool{
-			Value: true,
-		}
+	if earlyRenewalHours.ValueInt64() >= validityPeriodHours.ValueInt64() {
+		res.AttributePlan = types.BoolValue(true)
 
 		return
 	}

@@ -69,7 +69,7 @@ func requireReplaceIfStateContainsPEMString() tfsdk.AttributePlanModifier {
 			}
 		}
 
-		stateValue := state.(types.String).Value
+		stateValue := state.(types.String).ValueString()
 
 		// If the value is indeed a PEM, and
 		if regexp.MustCompile(`^-----BEGIN [[:alpha:] ]+-----\n(.|\s)+\n-----END [[:alpha:] ]+-----\n?$`).MatchString(stateValue) {

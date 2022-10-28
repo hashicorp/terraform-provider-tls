@@ -222,7 +222,7 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Parse the Private Key PEM
 	tflog.Debug(ctx, "Parsing Private Key PEM")
-	key, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.Value))
+	key, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
@@ -232,12 +232,12 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 	tflog.Debug(ctx, "Detected key algorithm of private key", map[string]interface{}{
 		"keyAlgorithm": algorithm,
 	})
-	newState.KeyAlgorithm = types.String{Value: algorithm.String()}
+	newState.KeyAlgorithm = types.StringValue(algorithm.String())
 
 	certReq := x509.CertificateRequest{}
 
 	// Add a Subject if provided
-	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elems) > 0 {
+	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elements()) > 0 {
 		tflog.Debug(ctx, "Adding subject on certificate request", map[string]interface{}{
 			"subject": newState.Subject,
 		})
@@ -266,8 +266,8 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			"ipAddresses": newState.IPAddresses,
 		})
 
-		for _, ipElem := range newState.IPAddresses.Elems {
-			ipStr := ipElem.(types.String).Value
+		for _, ipElem := range newState.IPAddresses.Elements() {
+			ipStr := ipElem.(types.String).ValueString()
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
 				res.Diagnostics.AddError("Invalid IP address", fmt.Sprintf("Failed to parse %#v", ipStr))
@@ -283,8 +283,8 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			"URIs": newState.URIs,
 		})
 
-		for _, uriElem := range newState.URIs.Elems {
-			uriStr := uriElem.(types.String).Value
+		for _, uriElem := range newState.URIs.Elements() {
+			uriStr := uriElem.(types.String).ValueString()
 			uri, err := url.Parse(uriStr)
 			if err != nil {
 				res.Diagnostics.AddError("Invalid URI", fmt.Sprintf("Failed to parse %#v: %v", uriStr, err.Error()))
@@ -305,8 +305,8 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 	}
 
 	// Set `Certificate Request PEM` and `ID`
-	newState.CertRequestPEM = types.String{Value: string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes}))}
-	newState.ID = types.String{Value: hashForState(string(certReqBytes))}
+	newState.CertRequestPEM = types.StringValue(string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificateRequest.String(), Bytes: certReqBytes})))
+	newState.ID = types.StringValue(hashForState(string(certReqBytes)))
 
 	// Finally, set the state
 	tflog.Debug(ctx, "Storing certificate request info into the state")
