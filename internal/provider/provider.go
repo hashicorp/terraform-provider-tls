@@ -45,7 +45,7 @@ func (p *tlsProvider) Metadata(_ context.Context, req provider.MetadataRequest, 
 	resp.TypeName = "tls"
 }
 
-func (p *tlsProvider) Get(_ context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *tlsProvider) Schema(_ context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Blocks: map[string]schema.Block{
 			"proxy": schema.ListNestedBlock{
