@@ -68,6 +68,7 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 			},
 			"uris": schema.ListAttribute{
 				ElementType: types.StringType,
+				Optional:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
 				},
