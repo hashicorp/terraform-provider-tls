@@ -11,14 +11,20 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/openssh"
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_int64"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_string"
 )
 
 type privateKeyResource struct{}
@@ -36,10 +42,114 @@ func (r *privateKeyResource) Metadata(_ context.Context, req resource.MetadataRe
 	resp.TypeName = req.ProviderTypeName + "_private_key"
 }
 
-func (r *privateKeyResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return privateKeyResourceSchemaV1(), nil
+func (r *privateKeyResource) Get(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Version: 1,
+		Attributes: map[string]schema.Attribute{
+			// Required attributes
+			"algorithm": schema.StringAttribute{
+				Required: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf(supportedAlgorithmsStr()...),
+				},
+				Description: "Name of the algorithm to use when generating the private key. " +
+					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
+			},
+
+			// Optional attributes
+			"rsa_bits": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(2048)),
+				},
+				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
+			},
+			"ecdsa_curve": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					attribute_plan_modifier_string.DefaultValue(types.StringValue(P224.String())),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf(supportedECDSACurvesStr()...),
+				},
+				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
+					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedECDSACurvesStr(), "`, `")) +
+					fmt.Sprintf("(default: `%s`).", P224.String()),
+			},
+
+			// Computed attributes
+			"private_key_pem": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Private key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
+			},
+			"private_key_openssh": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.",
+			},
+			"private_key_pem_pkcs8": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
+			},
+			"public_key_pem": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
+					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
+					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
+					"value append a `\\n` at the end of the PEM. " +
+					"In case this disrupts your use case, we recommend using " +
+					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
+			},
+			"public_key_openssh": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: " The public key data in " +
+					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
+					"This is not populated for `ECDSA` with curve `P224`, as it is [not supported](../../docs#limitations). " +
+					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
+					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
+					"value append a `\\n` at the end of the PEM. " +
+					"In case this disrupts your use case, we recommend using " +
+					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
+			},
+			"public_key_fingerprint_md5": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
+					"Only available if the selected private key format is compatible, similarly to " +
+					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
+			},
+			"public_key_fingerprint_sha256": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
+					"Only available if the selected private key format is compatible, similarly to " +
+					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
+			},
+			"id": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: "Unique identifier for this resource: " +
+					"hexadecimal representation of the SHA1 checksum of the resource.",
+			},
+		},
+		MarkdownDescription: "Creates a PEM (and OpenSSH) formatted private key.\n\n" +
+			"Generates a secure private key and encodes it in " +
+			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and " +
+			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +
+			"This resource is primarily intended for easily bootstrapping throwaway development environments.",
+	}
 }
 
+// TODO: privateKeyResourceSchemaV1 needs to be updated to use schema.Schema once resource.StateUpgrader has been
+// updated to use schema.Schema for PriorSchema.
+//
+//nolint:staticcheck
 func privateKeyResourceSchemaV1() tfsdk.Schema {
 	return tfsdk.Schema{
 		Version: 1,
@@ -51,9 +161,10 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 				PlanModifiers: []tfsdk.AttributePlanModifier{
 					resource.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{
-					stringvalidator.OneOf(supportedAlgorithmsStr()...),
-				},
+				// TODO: Reinstate once privateKeyResourceSchemaV1 has been updated to use schema.Schema.
+				//Validators: []tfsdk.AttributeValidator{
+				//	stringvalidator.OneOf(supportedAlgorithmsStr()...),
+				//},
 				Description: "Name of the algorithm to use when generating the private key. " +
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
 			},
@@ -77,9 +188,10 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 					resource.RequiresReplace(),
 					attribute_plan_modifier.DefaultValue(types.StringValue(P224.String())),
 				},
-				Validators: []tfsdk.AttributeValidator{
-					stringvalidator.OneOf(supportedECDSACurvesStr()...),
-				},
+				// TODO: Reinstate once privateKeyResourceSchemaV1 has been updated to use schema.Schema.
+				//Validators: []tfsdk.AttributeValidator{
+				//	stringvalidator.OneOf(supportedECDSACurvesStr()...),
+				//},
 				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedECDSACurvesStr(), "`, `")) +
 					fmt.Sprintf("(default: `%s`).", P224.String()),

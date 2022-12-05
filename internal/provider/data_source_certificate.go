@@ -12,11 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -38,16 +40,15 @@ func (d *certificateDataSource) Metadata(_ context.Context, req datasource.Metad
 	resp.TypeName = req.ProviderTypeName + "_certificate"
 }
 
-func (d *certificateDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
+func (d *certificateDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
 			// Required attributes
-			"url": {
-				Type:     types.StringType,
+			"url": schema.StringAttribute{
 				Optional: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					attribute_validator.UrlWithScheme(supportedURLSchemesStr()...),
-					schemavalidator.ExactlyOneOf(
+					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("content"),
 						path.MatchRoot("url"),
 					),
@@ -57,11 +58,10 @@ func (d *certificateDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag
 					"For scheme `https://` it will use the HTTP protocol and apply the `proxy` configuration " +
 					"of the provider, if set. For scheme `tls://` it will instead use a secure TCP socket.",
 			},
-			"content": {
-				Type:     types.StringType,
+			"content": schema.StringAttribute{
 				Optional: true,
-				Validators: []tfsdk.AttributeValidator{
-					schemavalidator.ExactlyOneOf(
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("content"),
 						path.MatchRoot("url"),
 					),
@@ -70,11 +70,10 @@ func (d *certificateDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag
 			},
 
 			// Optional attributes
-			"verify_chain": {
-				Type:     types.BoolType,
+			"verify_chain": schema.BoolAttribute{
 				Optional: true,
-				Validators: []tfsdk.AttributeValidator{
-					schemavalidator.ConflictsWith(
+				Validators: []validator.Bool{
+					boolvalidator.ConflictsWith(
 						path.MatchRoot("content"),
 					),
 				},
@@ -82,16 +81,13 @@ func (d *certificateDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag
 			},
 
 			// Computed attributes
-			"id": {
-				Type:                types.StringType,
+			"id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Unique identifier of this data source: hashing of the certificates in the chain.",
 			},
-			"certificates": {
-				Type: types.ListType{
-					ElemType: types.ObjectType{
-						AttrTypes: x509CertObjectAttrTypes(),
-					},
+			"certificates": schema.ListAttribute{
+				ElementType: types.ObjectType{
+					AttrTypes: x509CertObjectAttrTypes(),
 				},
 				Computed:            true,
 				MarkdownDescription: "The certificates protecting the site, with the root of the chain first.",
@@ -100,7 +96,7 @@ func (d *certificateDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag
 		MarkdownDescription: "Get information about the TLS certificates securing a host.\n\n" +
 			"Use this data source to get information, such as SHA1 fingerprint or serial number, " +
 			"about the TLS certificates that protects a URL.",
-	}, nil
+	}
 }
 
 func (d *certificateDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {

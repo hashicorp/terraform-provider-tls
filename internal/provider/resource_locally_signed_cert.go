@@ -10,13 +10,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_bool"
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_int64"
 )
 
 type locallySignedCertResource struct{}
@@ -34,59 +40,53 @@ func (r *locallySignedCertResource) Metadata(_ context.Context, req resource.Met
 	resp.TypeName = req.ProviderTypeName + "_locally_signed_cert"
 }
 
-func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
+func (r *locallySignedCertResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
 			// Required attributes
-			"ca_cert_pem": {
-				Type:     types.StringType,
+			"ca_cert_pem": schema.StringAttribute{
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
 				Description: "Certificate data of the Certificate Authority (CA) " +
 					"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 			},
-			"ca_private_key_pem": {
-				Type:     types.StringType,
+			"ca_private_key_pem": schema.StringAttribute{
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
 				Sensitive: true,
 				Description: "Private key of the Certificate Authority (CA) used to sign the certificate, " +
 					"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 			},
-			"cert_request_pem": {
-				Type:     types.StringType,
+			"cert_request_pem": schema.StringAttribute{
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
 				Description: "Certificate request data in " +
 					"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 			},
-			"validity_period_hours": {
-				Type:     types.Int64Type,
+			"validity_period_hours": schema.Int64Attribute{
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.Int64{
 					int64validator.AtLeast(0),
 				},
 				Description: "Number of hours, after initial issuing, that the certificate will remain valid for.",
 			},
-			"allowed_uses": {
-				Type: types.ListType{
-					ElemType: types.StringType,
+			"allowed_uses": schema.ListAttribute{
+				ElementType: types.StringType,
+				Required:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 				},
-				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					listvalidator.ValuesAre(
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
 						stringvalidator.OneOf(supportedKeyUsagesStr()...),
 					),
 				},
@@ -99,24 +99,22 @@ func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, 
 			},
 
 			// Optional attributes
-			"is_ca_certificate": {
-				Type:     types.BoolType,
+			"is_ca_certificate": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
 			},
-			"early_renewal_hours": {
-				Type:     types.Int64Type,
+			"early_renewal_hours": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Int64Value(0)),
+				PlanModifiers: []planmodifier.Int64{
+					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(0)),
 				},
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.Int64{
 					int64validator.AtLeast(0),
 				},
 				Description: "The resource will consider the certificate to have expired the given number of hours " +
@@ -127,24 +125,22 @@ func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, 
 					"Also, this advance update can only be performed should the Terraform configuration be applied " +
 					"during the early renewal period. (default: `0`)",
 			},
-			"set_subject_key_id": {
-				Type:     types.BoolType,
+			"set_subject_key_id": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 				},
 				Description: "Should the generated certificate include a " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
 			},
 
 			// Computed attributes
-			"cert_pem": {
-				Type:     types.StringType,
+			"cert_pem": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
@@ -153,47 +149,42 @@ func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, 
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-			"ready_for_renewal": {
-				Type:     types.BoolType,
+			"ready_for_renewal": schema.BoolAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.BoolValue(false)),
-					attribute_plan_modifier.ReadyForRenewal(),
+				PlanModifiers: []planmodifier.Bool{
+					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
+					attribute_plan_modifier_bool.ReadyForRenewal(),
 				},
 				Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
 					"or ready for an early renewal (i.e. within the `early_renewal_hours`)?",
 			},
-			"validity_start_time": {
-				Type:     types.StringType,
+			"validity_start_time": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "The time after which the certificate is valid, " +
 					"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
 			},
-			"validity_end_time": {
-				Type:     types.StringType,
+			"validity_end_time": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "The time until which the certificate is invalid, " +
 					"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
 			},
-			"ca_key_algorithm": {
-				Type:     types.StringType,
+			"ca_key_algorithm": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Name of the algorithm used when generating the private key provided in `ca_private_key_pem`. ",
 			},
-			"id": {
-				Type:     types.StringType,
+			"id": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Unique identifier for this resource: the certificate serial number.",
 			},
@@ -201,7 +192,7 @@ func (r *locallySignedCertResource) GetSchema(_ context.Context) (tfsdk.Schema, 
 		MarkdownDescription: "Creates a TLS certificate in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
 			"format using a Certificate Signing Request (CSR) and signs it with a provided " +
 			"(local) Certificate Authority (CA).",
-	}, nil
+	}
 }
 
 func (r *locallySignedCertResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {

@@ -10,9 +10,12 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -29,14 +32,13 @@ func (r *certRequestResource) Metadata(_ context.Context, req resource.MetadataR
 	resp.TypeName = req.ProviderTypeName + "_cert_request"
 }
 
-func (r *certRequestResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
+func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
 			// Required attributes
-			"private_key_pem": {
-				Type:     types.StringType,
+			"private_key_pem": schema.StringAttribute{
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
 				Sensitive: true,
@@ -48,45 +50,42 @@ func (r *certRequestResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 			},
 
 			// Optional attributes
-			"dns_names": {
-				Type:     types.ListType{ElemType: types.StringType},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
+			"dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 				},
 				Description: "List of DNS names for which a certificate is being requested (i.e. certificate subjects).",
 			},
-			"ip_addresses": {
-				Type:     types.ListType{ElemType: types.StringType},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
+			"ip_addresses": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 				},
 				Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
 			},
-			"uris": {
-				Type:     types.ListType{ElemType: types.StringType},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
+			"uris": schema.ListAttribute{
+				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
 			},
 
 			// Computed attributes
-			"key_algorithm": {
-				Type:     types.StringType,
+			"key_algorithm": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Name of the algorithm used when generating the private key provided in `private_key_pem`. ",
 			},
-			"cert_request_pem": {
-				Type:     types.StringType,
+			"cert_request_pem": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "The certificate request data in " +
 					"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
@@ -96,102 +95,90 @@ func (r *certRequestResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-			"id": {
-				Type:     types.StringType,
+			"id": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Unique identifier for this resource: " +
 					"hexadecimal representation of the SHA1 checksum of the resource.",
 			},
 		},
-		Blocks: map[string]tfsdk.Block{
-			"subject": {
-				NestingMode: tfsdk.BlockNestingModeList,
-				MinItems:    0,
-				MaxItems:    1,
+		Blocks: map[string]schema.Block{
+			"subject": schema.ListNestedBlock{
 				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.List{
 					listvalidator.SizeBetween(0, 1),
 				},
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 				},
-				Attributes: map[string]tfsdk.Attribute{
-					"organization": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"organization": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `O`",
 						},
-						Description: "Distinguished name: `O`",
-					},
-					"common_name": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+						"common_name": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `CN`",
 						},
-						Description: "Distinguished name: `CN`",
-					},
-					"organizational_unit": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+						"organizational_unit": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `OU`",
 						},
-						Description: "Distinguished name: `OU`",
-					},
-					"street_address": {
-						Type: types.ListType{
-							ElemType: types.StringType,
+						"street_address": schema.ListAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+							PlanModifiers: []planmodifier.List{
+								listplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `STREET`",
 						},
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+						"locality": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `L`",
 						},
-						Description: "Distinguished name: `STREET`",
-					},
-					"locality": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+						"province": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `ST`",
 						},
-						Description: "Distinguished name: `L`",
-					},
-					"province": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+						"country": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `C`",
 						},
-						Description: "Distinguished name: `ST`",
-					},
-					"country": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+						"postal_code": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `PC`",
 						},
-						Description: "Distinguished name: `C`",
-					},
-					"postal_code": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
+						"serial_number": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `SERIALNUMBER`",
 						},
-						Description: "Distinguished name: `PC`",
-					},
-					"serial_number": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							resource.RequiresReplace(),
-						},
-						Description: "Distinguished name: `SERIALNUMBER`",
 					},
 				},
 				MarkdownDescription: "The subject for which a certificate is being requested. " +
@@ -204,7 +191,7 @@ func (r *certRequestResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 			"PEM is the typical format used to request a certificate from a Certificate Authority (CA).\n\n" +
 			"This resource is intended to be used in conjunction with a Terraform provider " +
 			"for a particular certificate authority in order to provision a new certificate.",
-	}, nil
+	}
 }
 
 func (r *certRequestResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {
