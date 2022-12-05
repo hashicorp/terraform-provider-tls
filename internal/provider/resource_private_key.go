@@ -42,7 +42,7 @@ func (r *privateKeyResource) Metadata(_ context.Context, req resource.MetadataRe
 	resp.TypeName = req.ProviderTypeName + "_private_key"
 }
 
-func (r *privateKeyResource) Get(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
