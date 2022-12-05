@@ -109,7 +109,7 @@ data "tls_certificate" "test" {
 
 ### Optional
 
-- `proxy` (Block List, Max: 1) Proxy used by resources and data sources that connect to external endpoints. (see [below for nested schema](#nestedblock--proxy))
+- `proxy` (Block List) Proxy used by resources and data sources that connect to external endpoints. (see [below for nested schema](#nestedblock--proxy))
 
 <a id="nestedblock--proxy"></a>
 ### Nested Schema for `proxy`
