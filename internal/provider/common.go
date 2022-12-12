@@ -44,7 +44,7 @@ func updatedUsingPlan(ctx context.Context, req *resource.UpdateRequest, res *res
 	res.Diagnostics.Append(res.State.Set(ctx, model)...)
 }
 
-// requireReplaceIfStateContainsPEMString returns a tfsdk.AttributePlanModifier that triggers a
+// requireReplaceIfStateContainsPEMString returns a planmodifier.String that triggers a
 // replacement of the resource if (and only if) all the conditions of a resource.RequiresReplace are met,
 // and the attribute value is a PEM string.
 func requireReplaceIfStateContainsPEMString() planmodifier.String {
