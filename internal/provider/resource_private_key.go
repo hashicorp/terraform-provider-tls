@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/openssh"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_int64"
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_string"
 )
@@ -158,40 +157,21 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 			"algorithm": {
 				Type:     types.StringType,
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
-				},
-				// TODO: Reinstate once privateKeyResourceSchemaV1 has been updated to use schema.Schema.
-				//Validators: []tfsdk.AttributeValidator{
-				//	stringvalidator.OneOf(supportedAlgorithmsStr()...),
-				//},
 				Description: "Name of the algorithm to use when generating the private key. " +
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
 			},
 
 			// Optional attributes
 			"rsa_bits": {
-				Type:     types.Int64Type,
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.Int64Value(2048)),
-				},
+				Type:                types.Int64Type,
+				Optional:            true,
+				Computed:            true,
 				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
 			},
 			"ecdsa_curve": {
 				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					resource.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.StringValue(P224.String())),
-				},
-				// TODO: Reinstate once privateKeyResourceSchemaV1 has been updated to use schema.Schema.
-				//Validators: []tfsdk.AttributeValidator{
-				//	stringvalidator.OneOf(supportedECDSACurvesStr()...),
-				//},
 				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedECDSACurvesStr(), "`, `")) +
 					fmt.Sprintf("(default: `%s`).", P224.String()),
