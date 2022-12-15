@@ -1,26 +1,25 @@
-package attribute_plan_modifier
+package attribute_plan_modifier_bool
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// defaultValueAttributePlanModifier specifies a default value (attr.Value) for an attribute.
+// defaultValueAttributePlanModifier specifies a default value (types.Bool) for an attribute.
 type defaultValueAttributePlanModifier struct {
-	DefaultValue attr.Value
+	DefaultValue types.Bool
 }
 
-// DefaultValue is an helper to instantiate a defaultValueAttributePlanModifier.
-func DefaultValue(v attr.Value) tfsdk.AttributePlanModifier {
+// DefaultValue is a helper to instantiate a defaultValueAttributePlanModifier.
+func DefaultValue(v types.Bool) planmodifier.Bool {
 	return &defaultValueAttributePlanModifier{v}
 }
 
-var _ tfsdk.AttributePlanModifier = (*defaultValueAttributePlanModifier)(nil)
+var _ planmodifier.Bool = (*defaultValueAttributePlanModifier)(nil)
 
 func (apm *defaultValueAttributePlanModifier) Description(ctx context.Context) string {
 	return apm.MarkdownDescription(ctx)
@@ -30,19 +29,19 @@ func (apm *defaultValueAttributePlanModifier) MarkdownDescription(ctx context.Co
 	return fmt.Sprintf("Sets the default value %q (%s) if the attribute is not set", apm.DefaultValue, apm.DefaultValue.Type(ctx))
 }
 
-func (apm *defaultValueAttributePlanModifier) Modify(_ context.Context, req tfsdk.ModifyAttributePlanRequest, res *tfsdk.ModifyAttributePlanResponse) {
+func (apm *defaultValueAttributePlanModifier) PlanModifyBool(_ context.Context, req planmodifier.BoolRequest, res *planmodifier.BoolResponse) {
 	// If the attribute configuration is not null, we are done here
-	if !req.AttributeConfig.IsNull() {
+	if !req.ConfigValue.IsNull() {
 		return
 	}
 
 	// If the attribute plan is "known" and "not null", then a previous plan modifier in the sequence
 	// has already been applied, and we don't want to interfere.
-	if !req.AttributePlan.IsUnknown() && !req.AttributePlan.IsNull() {
+	if !req.PlanValue.IsUnknown() && !req.PlanValue.IsNull() {
 		return
 	}
 
-	res.AttributePlan = apm.DefaultValue
+	res.PlanValue = apm.DefaultValue
 }
 
 // readyForRenewalAttributePlanModifier determines whether the certificate is ready for renewal.
@@ -50,11 +49,11 @@ type readyForRenewalAttributePlanModifier struct {
 }
 
 // ReadyForRenewal is an helper to instantiate a defaultValueAttributePlanModifier.
-func ReadyForRenewal() tfsdk.AttributePlanModifier {
+func ReadyForRenewal() planmodifier.Bool {
 	return &readyForRenewalAttributePlanModifier{}
 }
 
-var _ tfsdk.AttributePlanModifier = (*readyForRenewalAttributePlanModifier)(nil)
+var _ planmodifier.Bool = (*readyForRenewalAttributePlanModifier)(nil)
 
 func (apm *readyForRenewalAttributePlanModifier) Description(ctx context.Context) string {
 	return apm.MarkdownDescription(ctx)
@@ -64,7 +63,7 @@ func (apm *readyForRenewalAttributePlanModifier) MarkdownDescription(ctx context
 	return "Sets the value of ready_for_renewal depending on value of validity_period_hours and early_renewal_hours"
 }
 
-func (apm *readyForRenewalAttributePlanModifier) Modify(ctx context.Context, req tfsdk.ModifyAttributePlanRequest, res *tfsdk.ModifyAttributePlanResponse) {
+func (apm *readyForRenewalAttributePlanModifier) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, res *planmodifier.BoolResponse) {
 	var validityPeriodHours types.Int64
 
 	res.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("validity_period_hours"), &validityPeriodHours)...)
@@ -73,7 +72,7 @@ func (apm *readyForRenewalAttributePlanModifier) Modify(ctx context.Context, req
 	}
 
 	if validityPeriodHours.ValueInt64() == 0 {
-		res.AttributePlan = types.BoolValue(true)
+		res.PlanValue = types.BoolValue(true)
 
 		return
 	}
@@ -90,7 +89,7 @@ func (apm *readyForRenewalAttributePlanModifier) Modify(ctx context.Context, req
 	}
 
 	if earlyRenewalHours.ValueInt64() >= validityPeriodHours.ValueInt64() {
-		res.AttributePlan = types.BoolValue(true)
+		res.PlanValue = types.BoolValue(true)
 
 		return
 	}

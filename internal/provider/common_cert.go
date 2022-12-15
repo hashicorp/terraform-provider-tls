@@ -190,7 +190,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	}
 
 	// Set authority-id on the template
-	_, ok := plan.Schema.Attributes["set_authority_key_id"]
+	_, ok := plan.Schema.GetAttributes()["set_authority_key_id"]
 	if ok {
 		setAuthorityKeyIDPath := path.Root("set_authority_key_id")
 		var setAuthorityKeyID types.Bool

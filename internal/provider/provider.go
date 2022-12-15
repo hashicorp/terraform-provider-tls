@@ -7,15 +7,16 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"golang.org/x/net/http/httpproxy"
 
@@ -44,66 +45,60 @@ func (p *tlsProvider) Metadata(_ context.Context, req provider.MetadataRequest, 
 	resp.TypeName = "tls"
 }
 
-func (p *tlsProvider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Blocks: map[string]tfsdk.Block{
-			"proxy": {
-				NestingMode: tfsdk.BlockNestingModeList,
-				MinItems:    0,
-				MaxItems:    1,
+func (p *tlsProvider) Schema(_ context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Blocks: map[string]schema.Block{
+			"proxy": schema.ListNestedBlock{
 				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.List{
 					listvalidator.SizeBetween(0, 1),
 				},
-				Attributes: map[string]tfsdk.Attribute{
-					"url": {
-						Type:     types.StringType,
-						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
-							attribute_validator.UrlWithScheme(supportedProxySchemesStr()...),
-							schemavalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("from_env")),
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"url": schema.StringAttribute{
+							Optional: true,
+							Validators: []validator.String{
+								attribute_validator.UrlWithScheme(supportedProxySchemesStr()...),
+								stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("from_env")),
+							},
+							MarkdownDescription: "URL used to connect to the Proxy. " +
+								fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(supportedProxySchemesStr(), "`, `")),
 						},
-						MarkdownDescription: "URL used to connect to the Proxy. " +
-							fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(supportedProxySchemesStr(), "`, `")),
-					},
-					"username": {
-						Type:     types.StringType,
-						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
-							schemavalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url")),
+						"username": schema.StringAttribute{
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url")),
+							},
+							MarkdownDescription: "Username (or Token) used for Basic authentication against the Proxy.",
 						},
-						MarkdownDescription: "Username (or Token) used for Basic authentication against the Proxy.",
-					},
-					"password": {
-						Type:      types.StringType,
-						Optional:  true,
-						Sensitive: true,
-						Validators: []tfsdk.AttributeValidator{
-							schemavalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("username")),
+						"password": schema.StringAttribute{
+							Optional:  true,
+							Sensitive: true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("username")),
+							},
+							MarkdownDescription: "Password used for Basic authentication against the Proxy.",
 						},
-						MarkdownDescription: "Password used for Basic authentication against the Proxy.",
-					},
-					"from_env": {
-						Type:     types.BoolType,
-						Optional: true,
-						Computed: true,
-						Validators: []tfsdk.AttributeValidator{
-							schemavalidator.ConflictsWith(
-								path.MatchRelative().AtParent().AtName("url"),
-								path.MatchRelative().AtParent().AtName("username"),
-								path.MatchRelative().AtParent().AtName("password"),
-							),
+						"from_env": schema.BoolAttribute{
+							Optional: true,
+							Validators: []validator.Bool{
+								boolvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("url"),
+									path.MatchRelative().AtParent().AtName("username"),
+									path.MatchRelative().AtParent().AtName("password"),
+								),
+							},
+							MarkdownDescription: "When `true` the provider will discover the proxy configuration from environment variables. " +
+								"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
+								"and it supports the same environment variables (default: `true`).",
 						},
-						MarkdownDescription: "When `true` the provider will discover the proxy configuration from environment variables. " +
-							"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
-							"and it supports the same environment variables (default: `true`).",
 					},
 				},
 				MarkdownDescription: "Proxy used by resources and data sources that connect to external endpoints.",
 			},
 		},
 		MarkdownDescription: "Provider configuration",
-	}, nil
+	}
 }
 
 func (p *tlsProvider) Configure(ctx context.Context, req provider.ConfigureRequest, res *provider.ConfigureResponse) {

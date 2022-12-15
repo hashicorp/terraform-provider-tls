@@ -4,17 +4,13 @@ import (
 	"context"
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 )
 
 // hashForState computes the hexadecimal representation of the SHA1 checksum of a string.
@@ -48,34 +44,19 @@ func updatedUsingPlan(ctx context.Context, req *resource.UpdateRequest, res *res
 	res.Diagnostics.Append(res.State.Set(ctx, model)...)
 }
 
-// requireReplaceIfStateContainsPEMString returns a tfsdk.AttributePlanModifier that triggers a
+// requireReplaceIfStateContainsPEMString returns a planmodifier.String that triggers a
 // replacement of the resource if (and only if) all the conditions of a resource.RequiresReplace are met,
 // and the attribute value is a PEM string.
-func requireReplaceIfStateContainsPEMString() tfsdk.AttributePlanModifier {
+func requireReplaceIfStateContainsPEMString() planmodifier.String {
 	description := "Attribute requires replacement if it contains a PEM string"
 
-	return resource.RequiresReplaceIf(func(ctx context.Context, state, _ attr.Value, path path.Path) (bool, diag.Diagnostics) {
+	return stringplanmodifier.RequiresReplaceIf(func(ctx context.Context, req planmodifier.StringRequest, resp *stringplanmodifier.RequiresReplaceIfFuncResponse) {
 		// NOTE: If we reach this point, we know a change has been detected and that is known AND not-null
 
-		// First, we verify the type is a String, as expected
-		stateType := state.Type(ctx)
-		if stateType != types.StringType {
-			return false, diag.Diagnostics{
-				diag.NewAttributeErrorDiagnostic(
-					path,
-					fmt.Sprintf("Failed to determine if resource requires replacement: expected %q, got %q", types.StringType, stateType),
-					"This is a bug with the provider, and should be reported to their issue tracker.",
-				),
-			}
-		}
-
-		stateValue := state.(types.String).ValueString()
-
 		// If the value is indeed a PEM, and
-		if regexp.MustCompile(`^-----BEGIN [[:alpha:] ]+-----\n(.|\s)+\n-----END [[:alpha:] ]+-----\n?$`).MatchString(stateValue) {
-			return true, nil
+		if regexp.MustCompile(`^-----BEGIN [[:alpha:] ]+-----\n(.|\s)+\n-----END [[:alpha:] ]+-----\n?$`).MatchString(req.StateValue.ValueString()) {
+			resp.RequiresReplace = true
+			return
 		}
-
-		return false, nil
 	}, description, description)
 }
