@@ -30,7 +30,6 @@ type tlsProvider struct {
 
 // Enforce interfaces we want provider to implement.
 var _ provider.Provider = (*tlsProvider)(nil)
-var _ provider.ProviderWithMetadata = (*tlsProvider)(nil)
 
 func New() provider.Provider {
 	return &tlsProvider{}

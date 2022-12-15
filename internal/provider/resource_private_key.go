@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
@@ -145,31 +144,24 @@ func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaReques
 	}
 }
 
-// TODO: privateKeyResourceSchemaV1 needs to be updated to use schema.Schema once resource.StateUpgrader has been
-// updated to use schema.Schema for PriorSchema.
-//
-//nolint:staticcheck
-func privateKeyResourceSchemaV1() tfsdk.Schema {
-	return tfsdk.Schema{
+func privateKeyResourceSchemaV1() schema.Schema {
+	return schema.Schema{
 		Version: 1,
-		Attributes: map[string]tfsdk.Attribute{
+		Attributes: map[string]schema.Attribute{
 			// Required attributes
-			"algorithm": {
-				Type:     types.StringType,
+			"algorithm": schema.StringAttribute{
 				Required: true,
 				Description: "Name of the algorithm to use when generating the private key. " +
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
 			},
 
 			// Optional attributes
-			"rsa_bits": {
-				Type:                types.Int64Type,
+			"rsa_bits": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
 				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
 			},
-			"ecdsa_curve": {
-				Type:     types.StringType,
+			"ecdsa_curve": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
@@ -178,26 +170,22 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 			},
 
 			// Computed attributes
-			"private_key_pem": {
-				Type:                types.StringType,
+			"private_key_pem": schema.StringAttribute{
 				Computed:            true,
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 			},
-			"private_key_openssh": {
-				Type:                types.StringType,
+			"private_key_openssh": schema.StringAttribute{
 				Computed:            true,
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.",
 			},
-			"private_key_pem_pkcs8": {
-				Type:                types.StringType,
+			"private_key_pem_pkcs8": schema.StringAttribute{
 				Computed:            true,
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
 			},
-			"public_key_pem": {
-				Type:     types.StringType,
+			"public_key_pem": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
@@ -206,8 +194,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-			"public_key_openssh": {
-				Type:     types.StringType,
+			"public_key_openssh": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: " The public key data in " +
 					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
@@ -218,22 +205,19 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-			"public_key_fingerprint_md5": {
-				Type:     types.StringType,
+			"public_key_fingerprint_md5": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
 					"Only available if the selected private key format is compatible, similarly to " +
 					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
 			},
-			"public_key_fingerprint_sha256": {
-				Type:     types.StringType,
+			"public_key_fingerprint_sha256": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
 					"Only available if the selected private key format is compatible, similarly to " +
 					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
 			},
-			"id": {
-				Type:     types.StringType,
+			"id": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "Unique identifier for this resource: " +
 					"hexadecimal representation of the SHA1 checksum of the resource.",
