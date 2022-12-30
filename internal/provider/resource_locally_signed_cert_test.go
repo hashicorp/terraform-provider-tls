@@ -750,3 +750,107 @@ func TestResourceLocallySignedCert_InvalidConfigs(t *testing.T) {
 		},
 	})
 }
+
+func TestResourceLocallySignedCert_WithoutMaxPathLen(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							common_name  = "test.com"
+						}
+					}
+					resource "tls_locally_signed_cert" "test" {
+						is_ca_certificate     = true
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = [
+							"server_auth",
+							"client_auth",
+						]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "max_path_length", "-1"),
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_WithMaxPathLen(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						max_path_length       = 2
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							common_name  = "test.com"
+						}
+					}
+					resource "tls_locally_signed_cert" "test" {
+						is_ca_certificate     = true
+						max_path_length       = 1
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = [
+							"server_auth",
+							"client_auth",
+						]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "max_path_length", "1"),
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+		},
+	})
+}

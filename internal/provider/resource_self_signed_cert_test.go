@@ -853,3 +853,66 @@ func TestResourceSelfSignedCert_NoSubject(t *testing.T) {
 		},
 	})
 }
+
+func TestResourceSelfSignedCert_WithoutMaxPathLen(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+							"crl_signing",
+						]
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "max_path_length", "-1"),
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_WithMaxPathLen(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						max_path_length       = 2
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+							"crl_signing",
+						]
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "max_path_length", "2"),
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+		},
+	})
+}
