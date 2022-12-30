@@ -31,6 +31,7 @@ type CertificateModel struct {
 	PublicKeyAlgorithm types.String `tfsdk:"public_key_algorithm"`
 	SerialNumber       types.String `tfsdk:"serial_number"`
 	IsCA               types.Bool   `tfsdk:"is_ca"`
+	MaxPathLen         types.Int64  `tfsdk:"max_path_length"`
 	Version            types.Int64  `tfsdk:"version"`
 	Issuer             types.String `tfsdk:"issuer"`
 	Subject            types.String `tfsdk:"subject"`
@@ -87,6 +88,7 @@ type selfSignedCertResourceModel struct {
 	AllowedUses         types.List   `tfsdk:"allowed_uses"`
 	EarlyRenewalHours   types.Int64  `tfsdk:"early_renewal_hours"`
 	IsCACertificate     types.Bool   `tfsdk:"is_ca_certificate"`
+	MaxPathLen          types.Int64  `tfsdk:"max_path_length"`
 	SetSubjectKeyID     types.Bool   `tfsdk:"set_subject_key_id"`
 	SetAuthorityKeyID   types.Bool   `tfsdk:"set_authority_key_id"`
 	CertPEM             types.String `tfsdk:"cert_pem"`
@@ -105,6 +107,7 @@ type locallySignedCertResourceModel struct {
 	AllowedUses         types.List   `tfsdk:"allowed_uses"`
 	EarlyRenewalHours   types.Int64  `tfsdk:"early_renewal_hours"`
 	IsCACertificate     types.Bool   `tfsdk:"is_ca_certificate"`
+	MaxPathLen          types.Int64  `tfsdk:"max_path_length"`
 	SetSubjectKeyID     types.Bool   `tfsdk:"set_subject_key_id"`
 	CertPEM             types.String `tfsdk:"cert_pem"`
 	ReadyForRenewal     types.Bool   `tfsdk:"ready_for_renewal"`
