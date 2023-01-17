@@ -108,6 +108,18 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
 			},
+			"max_path_length": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(-1)),
+				},
+				Validators: []validator.Int64{
+					int64validator.AtLeast(-1),
+				},
+				Description: "Maximum number of intermediate certificates that may follow this certificate in a " +
+					"valid certification path. If `is_ca_certificate` is `false`, this value is ignored. (default: `-1`)",
+			},
 			"early_renewal_hours": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
