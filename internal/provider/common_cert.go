@@ -189,6 +189,42 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 		template.MaxPathLen = int(maxPathLen.ValueInt64())
 	}
 
+	// Set name constraints in the template
+	permittedDNSDomainsCriticalPath := path.Root("name_constraint_permitted_dns_names_critical")
+	var permittedDNSDomainsCritical types.Bool
+	diags.Append(plan.GetAttribute(ctx, permittedDNSDomainsCriticalPath, &permittedDNSDomainsCritical)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !permittedDNSDomainsCritical.IsNull() && !permittedDNSDomainsCritical.IsUnknown() && permittedDNSDomainsCritical.ValueBool() {
+		template.PermittedDNSDomainsCritical = permittedDNSDomainsCritical.ValueBool()
+	}
+
+	permittedDNSDomainsPath := path.Root("name_constraint_permitted_dns_names")
+	var permittedDNSDomains types.List
+	diags.Append(plan.GetAttribute(ctx, permittedDNSDomainsPath, &permittedDNSDomains)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !permittedDNSDomains.IsNull() && !permittedDNSDomains.IsUnknown() && len(permittedDNSDomains.Elements()) > 0 {
+		template.PermittedDNSDomains = []string{}
+
+		for _, permittedDNSDomain := range permittedDNSDomains.Elements() {
+			template.PermittedDNSDomains = append(template.PermittedDNSDomains, permittedDNSDomain.(types.String).ValueString())
+		}
+	}
+
+	/*
+		// TODO: add the other constraints to include
+		template.ExcludedDNSDomains          []string
+		template.PermittedIPRanges           []*net.IPNet
+		template.ExcludedIPRanges            []*net.IPNet
+		template.PermittedEmailAddresses     []string
+		template.ExcludedEmailAddresses      []string
+		template.PermittedURIDomains         []string
+		template.ExcludedURIDomains          []string
+	*/
+
 	// Set subject-id on the template
 	setSubjectKeyIDPath := path.Root("set_subject_key_id")
 	var setSubjectKeyID types.Bool
