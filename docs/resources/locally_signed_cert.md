@@ -47,6 +47,9 @@ resource "tls_locally_signed_cert" "example" {
 - `early_renewal_hours` (Number) The resource will consider the certificate to have expired the given number of hours before its actual expiry time. This can be useful to deploy an updated certificate in advance of the expiration of the current certificate. However, the old certificate remains valid until its true expiration time, since this resource does not (and cannot) support certificate revocation. Also, this advance update can only be performed should the Terraform configuration be applied during the early renewal period. (default: `0`)
 - `is_ca_certificate` (Boolean) Is the generated certificate representing a Certificate Authority (CA) (default: `false`).
 - `max_path_length` (Number) Maximum number of intermediate certificates that may follow this certificate in a valid certification path. If `is_ca_certificate` is `false`, this value is ignored. (default: `-1`)
+- `name_constraint_permitted_dns_names` (List of String) List of DNS names for which a certificate name constraints is being requested (i.e. permitted DNS domains).
+- `name_constraint_permitted_dns_names_critical` (Boolean) Should name constraints permitted dns domains attribute be marked critical.
+- `set_authority_key_id` (Boolean) Should the generated certificate include an [authority key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.1): for self-signed certificates this is the same value as the [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).
 - `set_subject_key_id` (Boolean) Should the generated certificate include a [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).
 
 ### Read-Only
