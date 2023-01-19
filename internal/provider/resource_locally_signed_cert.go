@@ -147,6 +147,18 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 				Description: "Should the generated certificate include a " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
 			},
+			"set_authority_key_id": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
+					boolplanmodifier.RequiresReplace(),
+				},
+				Description: "Should the generated certificate include an " +
+					"[authority key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.1): " +
+					"for self-signed certificates this is the same value as the " +
+					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
+			},
 
 			// Computed attributes
 			"cert_pem": schema.StringAttribute{
