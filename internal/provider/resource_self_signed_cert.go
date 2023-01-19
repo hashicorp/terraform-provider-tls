@@ -86,6 +86,25 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedKeyUsagesStr(), "`, `")),
 			},
 
+			// Name constraints
+			"name_constraint_permitted_dns_names_critical": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
+					boolplanmodifier.RequiresReplace(),
+				},
+				Description: "Should name constraints permitted dns domains attribute be marked critical.",
+			},
+			"name_constraint_permitted_dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Description: "List of DNS names for which a certificate name constraints is being requested (i.e. permitted DNS domains).",
+			},
+
 			// Optional attributes
 			"dns_names": schema.ListAttribute{
 				ElementType: types.StringType,
