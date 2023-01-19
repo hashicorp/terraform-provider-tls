@@ -79,40 +79,45 @@ type privateKeyResourceModel struct {
 }
 
 type selfSignedCertResourceModel struct {
-	PrivateKeyPEM       types.String `tfsdk:"private_key_pem"`
-	DNSNames            types.List   `tfsdk:"dns_names"`
-	IPAddresses         types.List   `tfsdk:"ip_addresses"`
-	URIs                types.List   `tfsdk:"uris"`
-	Subject             types.List   `tfsdk:"subject"` //< certificateSubjectModel
-	ValidityPeriodHours types.Int64  `tfsdk:"validity_period_hours"`
-	AllowedUses         types.List   `tfsdk:"allowed_uses"`
-	EarlyRenewalHours   types.Int64  `tfsdk:"early_renewal_hours"`
-	IsCACertificate     types.Bool   `tfsdk:"is_ca_certificate"`
-	MaxPathLen          types.Int64  `tfsdk:"max_path_length"`
-	SetSubjectKeyID     types.Bool   `tfsdk:"set_subject_key_id"`
-	SetAuthorityKeyID   types.Bool   `tfsdk:"set_authority_key_id"`
-	CertPEM             types.String `tfsdk:"cert_pem"`
-	ReadyForRenewal     types.Bool   `tfsdk:"ready_for_renewal"`
-	ValidityStartTime   types.String `tfsdk:"validity_start_time"`
-	ValidityEndTime     types.String `tfsdk:"validity_end_time"`
-	KeyAlgorithm        types.String `tfsdk:"key_algorithm"`
-	ID                  types.String `tfsdk:"id"`
+	PrivateKeyPEM                               types.String `tfsdk:"private_key_pem"`
+	DNSNames                                    types.List   `tfsdk:"dns_names"`
+	IPAddresses                                 types.List   `tfsdk:"ip_addresses"`
+	URIs                                        types.List   `tfsdk:"uris"`
+	Subject                                     types.List   `tfsdk:"subject"` //< certificateSubjectModel
+	ValidityPeriodHours                         types.Int64  `tfsdk:"validity_period_hours"`
+	AllowedUses                                 types.List   `tfsdk:"allowed_uses"`
+	EarlyRenewalHours                           types.Int64  `tfsdk:"early_renewal_hours"`
+	IsCACertificate                             types.Bool   `tfsdk:"is_ca_certificate"`
+	NamedKeyConstraintPermittedDnsNamesCritical types.Bool   `tfsdk:"name_constraint_permitted_dns_names_critical"`
+	NamedKeyConstraintPermittedDnsNames         types.List   `tfsdk:"name_constraint_permitted_dns_names"`
+	MaxPathLen                                  types.Int64  `tfsdk:"max_path_length"`
+	SetSubjectKeyID                             types.Bool   `tfsdk:"set_subject_key_id"`
+	SetAuthorityKeyID                           types.Bool   `tfsdk:"set_authority_key_id"`
+	CertPEM                                     types.String `tfsdk:"cert_pem"`
+	ReadyForRenewal                             types.Bool   `tfsdk:"ready_for_renewal"`
+	ValidityStartTime                           types.String `tfsdk:"validity_start_time"`
+	ValidityEndTime                             types.String `tfsdk:"validity_end_time"`
+	KeyAlgorithm                                types.String `tfsdk:"key_algorithm"`
+	ID                                          types.String `tfsdk:"id"`
 }
 
 type locallySignedCertResourceModel struct {
-	CACertPEM           types.String `tfsdk:"ca_cert_pem"`
-	CAPrivateKeyPEM     types.String `tfsdk:"ca_private_key_pem"`
-	CertRequestPEM      types.String `tfsdk:"cert_request_pem"`
-	ValidityPeriodHours types.Int64  `tfsdk:"validity_period_hours"`
-	AllowedUses         types.List   `tfsdk:"allowed_uses"`
-	EarlyRenewalHours   types.Int64  `tfsdk:"early_renewal_hours"`
-	IsCACertificate     types.Bool   `tfsdk:"is_ca_certificate"`
-	MaxPathLen          types.Int64  `tfsdk:"max_path_length"`
-	SetSubjectKeyID     types.Bool   `tfsdk:"set_subject_key_id"`
-	CertPEM             types.String `tfsdk:"cert_pem"`
-	ReadyForRenewal     types.Bool   `tfsdk:"ready_for_renewal"`
-	ValidityStartTime   types.String `tfsdk:"validity_start_time"`
-	ValidityEndTime     types.String `tfsdk:"validity_end_time"`
-	CAKeyAlgorithm      types.String `tfsdk:"ca_key_algorithm"`
-	ID                  types.String `tfsdk:"id"`
+	CACertPEM                                   types.String `tfsdk:"ca_cert_pem"`
+	CAPrivateKeyPEM                             types.String `tfsdk:"ca_private_key_pem"`
+	CertRequestPEM                              types.String `tfsdk:"cert_request_pem"`
+	ValidityPeriodHours                         types.Int64  `tfsdk:"validity_period_hours"`
+	AllowedUses                                 types.List   `tfsdk:"allowed_uses"`
+	EarlyRenewalHours                           types.Int64  `tfsdk:"early_renewal_hours"`
+	IsCACertificate                             types.Bool   `tfsdk:"is_ca_certificate"`
+	NamedKeyConstraintPermittedDnsNamesCritical types.Bool   `tfsdk:"name_constraint_permitted_dns_names_critical"`
+	NamedKeyConstraintPermittedDnsNames         types.List   `tfsdk:"name_constraint_permitted_dns_names"`
+	MaxPathLen                                  types.Int64  `tfsdk:"max_path_length"`
+	SetSubjectKeyID                             types.Bool   `tfsdk:"set_subject_key_id"`
+	SetAuthorityKeyID                           types.Bool   `tfsdk:"set_authority_key_id"`
+	CertPEM                                     types.String `tfsdk:"cert_pem"`
+	ReadyForRenewal                             types.Bool   `tfsdk:"ready_for_renewal"`
+	ValidityStartTime                           types.String `tfsdk:"validity_start_time"`
+	ValidityEndTime                             types.String `tfsdk:"validity_end_time"`
+	CAKeyAlgorithm                              types.String `tfsdk:"ca_key_algorithm"`
+	ID                                          types.String `tfsdk:"id"`
 }
