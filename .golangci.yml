@@ -23,3 +23,7 @@ linters:
     - unparam
     - unused
     - vet
+    - forcetypeassert
+
+run:
+  allow-parallel-runners: true

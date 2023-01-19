@@ -87,6 +87,7 @@ type selfSignedCertResourceModel struct {
 	IsCACertificate                             types.Bool   `tfsdk:"is_ca_certificate"`
 	NamedKeyConstraintPermittedDnsNamesCritical types.Bool   `tfsdk:"name_constraint_permitted_dns_names_critical"`
 	NamedKeyConstraintPermittedDnsNames         types.List   `tfsdk:"name_constraint_permitted_dns_names"`
+	NamedKeyConstraintExcludedDnsNames          types.List   `tfsdk:"name_constraint_excluded_dns_names"`
 	MaxPathLen                                  types.Int64  `tfsdk:"max_path_length"`
 	SetSubjectKeyID                             types.Bool   `tfsdk:"set_subject_key_id"`
 	SetAuthorityKeyID                           types.Bool   `tfsdk:"set_authority_key_id"`
@@ -108,6 +109,7 @@ type locallySignedCertResourceModel struct {
 	IsCACertificate                             types.Bool   `tfsdk:"is_ca_certificate"`
 	NamedKeyConstraintPermittedDnsNamesCritical types.Bool   `tfsdk:"name_constraint_permitted_dns_names_critical"`
 	NamedKeyConstraintPermittedDnsNames         types.List   `tfsdk:"name_constraint_permitted_dns_names"`
+	NamedKeyConstraintExcludedDnsNames          types.List   `tfsdk:"name_constraint_excluded_dns_names"`
 	MaxPathLen                                  types.Int64  `tfsdk:"max_path_length"`
 	SetSubjectKeyID                             types.Bool   `tfsdk:"set_subject_key_id"`
 	SetAuthorityKeyID                           types.Bool   `tfsdk:"set_authority_key_id"`
