@@ -89,6 +89,33 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedKeyUsagesStr(), "`, `")),
 			},
 
+			// Name constraints
+			"name_constraint_permitted_dns_names_critical": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+				Description: "Should name constraints permitted dns domains attribute be marked critical.",
+			},
+			"name_constraint_permitted_dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Description: "List of DNS names for which a certificate name constraints is being requested (i.e. permitted DNS domains).",
+			},
+			"name_constraint_excluded_dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Description: "List of excluded DNS names for which a certificate name constraints is being requested (i.e. excluded DNS domains).",
+			},
+
 			// Optional attributes
 			"dns_names": schema.ListAttribute{
 				ElementType: types.StringType,
@@ -151,9 +178,7 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 			"max_path_length": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []planmodifier.Int64{
-					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(-1)),
-				},
+				Default:  int64default.StaticInt64(-1),
 				Validators: []validator.Int64{
 					int64validator.AtLeast(-1),
 				},
