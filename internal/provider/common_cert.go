@@ -210,20 +210,33 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 		template.PermittedDNSDomains = []string{}
 
 		for _, permittedDNSDomain := range permittedDNSDomains.Elements() {
-			template.PermittedDNSDomains = append(template.PermittedDNSDomains, permittedDNSDomain.(types.String).ValueString())
+			permittedDNSDomainString, ok := permittedDNSDomain.(types.String)
+			if !ok {
+				diags.AddError("Failed to convert permittedDNSDomain to string", "expected permittedDNSDomain to be of type types.String")
+				return nil, diags
+			}
+			template.PermittedDNSDomains = append(template.PermittedDNSDomains, permittedDNSDomainString.ValueString())
 		}
 	}
 
-	/*
-		// TODO: add the other constraints to include
-		template.ExcludedDNSDomains          []string
-		template.PermittedIPRanges           []*net.IPNet
-		template.ExcludedIPRanges            []*net.IPNet
-		template.PermittedEmailAddresses     []string
-		template.ExcludedEmailAddresses      []string
-		template.PermittedURIDomains         []string
-		template.ExcludedURIDomains          []string
-	*/
+	excludedDNSDomainsPath := path.Root("name_constraint_excluded_dns_names")
+	var excludedDNSDomains types.List
+	diags.Append(plan.GetAttribute(ctx, excludedDNSDomainsPath, &excludedDNSDomains)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !excludedDNSDomains.IsNull() && !excludedDNSDomains.IsUnknown() && len(excludedDNSDomains.Elements()) > 0 {
+		template.ExcludedDNSDomains = []string{}
+
+		for _, excludedDNSDomain := range excludedDNSDomains.Elements() {
+			excludedDNSDomainString, ok := excludedDNSDomain.(types.String)
+			if !ok {
+				diags.AddError("Failed to convert excludedDNSDomain to string", "expected excludedDNSDomain to be of type types.String")
+				return nil, diags
+			}
+			template.ExcludedDNSDomains = append(template.ExcludedDNSDomains, excludedDNSDomainString.ValueString())
+		}
+	}
 
 	// Set subject-id on the template
 	setSubjectKeyIDPath := path.Root("set_subject_key_id")

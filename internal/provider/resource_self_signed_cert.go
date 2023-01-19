@@ -107,6 +107,14 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 				},
 				Description: "List of DNS names for which a certificate name constraints is being requested (i.e. permitted DNS domains).",
 			},
+			"name_constraint_excluded_dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Description: "List of excluded DNS names for which a certificate name constraints is being requested (i.e. excluded DNS domains).",
+			},
 
 			// Optional attributes
 			"dns_names": schema.ListAttribute{
@@ -412,7 +420,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			if ip == nil {
 				res.Diagnostics.AddError(
 					"Invalid IP address",
-					fmt.Sprintf("Failed to parse %#v", ipStr),
+					fmt.Sprintf("Failed to parse %#v", ipString.ValueString()),
 				)
 				return
 			}
@@ -437,7 +445,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			if err != nil {
 				res.Diagnostics.AddError(
 					"Invalid URI",
-					fmt.Sprintf("Failed to parse %#v: %v", uriStr, err.Error()),
+					fmt.Sprintf("Failed to parse %#v: %v", uriString.ValueString(), err.Error()),
 				)
 				return
 			}
