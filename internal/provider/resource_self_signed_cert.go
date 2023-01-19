@@ -104,6 +104,14 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 				},
 				Description: "List of DNS names for which a certificate name constraints is being requested (i.e. permitted DNS domains).",
 			},
+			"name_constraint_excluded_dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Description: "List of excluded DNS names for which a certificate name constraints is being requested (i.e. excluded DNS domains).",
+			},
 
 			// Optional attributes
 			"dns_names": schema.ListAttribute{
