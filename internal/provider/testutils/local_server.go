@@ -68,8 +68,13 @@ func NewHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) 
 		return nil, err
 	}
 
+	proxyHttpServer, ok := proxy.server.Handler.(*goproxy.ProxyHttpServer)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type for %T proxy.Server.Handler", proxy.server.Handler)
+	}
+
 	// Add "HTTP Connect auth handler" to proxy server
-	proxy.server.Handler.(*goproxy.ProxyHttpServer).OnRequest().HandleConnect(auth.BasicConnect("restricted", func(username, password string) bool {
+	proxyHttpServer.OnRequest().HandleConnect(auth.BasicConnect("restricted", func(username, password string) bool {
 		return username == expectedUsername && (expectedPassword == "" || password == expectedPassword)
 	}))
 

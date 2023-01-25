@@ -254,8 +254,13 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			"ipAddresses": newState.IPAddresses,
 		})
 
-		for _, ipElem := range newState.IPAddresses.Elements() {
-			ipStr := ipElem.(types.String).ValueString()
+		ipAddresses := make([]string, 0)
+		res.Diagnostics.Append(newState.IPAddresses.ElementsAs(ctx, &ipAddresses, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		for _, ipStr := range ipAddresses {
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
 				res.Diagnostics.AddError("Invalid IP address", fmt.Sprintf("Failed to parse %#v", ipStr))
@@ -271,8 +276,13 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			"URIs": newState.URIs,
 		})
 
-		for _, uriElem := range newState.URIs.Elements() {
-			uriStr := uriElem.(types.String).ValueString()
+		uris := make([]string, 0)
+		res.Diagnostics.Append(newState.URIs.ElementsAs(ctx, &uris, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		for _, uriStr := range uris {
 			uri, err := url.Parse(uriStr)
 			if err != nil {
 				res.Diagnostics.AddError("Invalid URI", fmt.Sprintf("Failed to parse %#v: %v", uriStr, err.Error()))
