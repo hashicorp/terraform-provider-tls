@@ -101,6 +101,11 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+					),
+				},
 				Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
 			},
 			"uris": schema.ListAttribute{
@@ -108,6 +113,11 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+					),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
 			},
@@ -359,8 +369,13 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			"ipAddresses": newState.IPAddresses,
 		})
 
-		for _, ipElem := range newState.IPAddresses.Elements() {
-			ipStr := ipElem.(types.String).ValueString()
+		var ipAddresses []string
+		res.Diagnostics.Append(newState.IPAddresses.ElementsAs(ctx, &ipAddresses, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		for _, ipStr := range ipAddresses {
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
 				res.Diagnostics.AddError(
@@ -379,8 +394,13 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			"URIs": newState.URIs,
 		})
 
-		for _, uriElem := range newState.URIs.Elements() {
-			uriStr := uriElem.(types.String).ValueString()
+		var uris []string
+		res.Diagnostics.Append(newState.URIs.ElementsAs(ctx, &uris, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		for _, uriStr := range uris {
 			uri, err := url.Parse(uriStr)
 			if err != nil {
 				res.Diagnostics.AddError(
