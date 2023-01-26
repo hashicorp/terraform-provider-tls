@@ -254,7 +254,7 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			"ipAddresses": newState.IPAddresses,
 		})
 
-		ipAddresses := make([]string, 0)
+		var ipAddresses []string
 		res.Diagnostics.Append(newState.IPAddresses.ElementsAs(ctx, &ipAddresses, false)...)
 		if res.Diagnostics.HasError() {
 			return
@@ -276,7 +276,7 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			"URIs": newState.URIs,
 		})
 
-		uris := make([]string, 0)
+		var uris []string
 		res.Diagnostics.Append(newState.URIs.ElementsAs(ctx, &uris, false)...)
 		if res.Diagnostics.HasError() {
 			return

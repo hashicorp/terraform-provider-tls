@@ -359,7 +359,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			"ipAddresses": newState.IPAddresses,
 		})
 
-		ipAddresses := make([]string, 0)
+		var ipAddresses []string
 		res.Diagnostics.Append(newState.IPAddresses.ElementsAs(ctx, &ipAddresses, false)...)
 		if res.Diagnostics.HasError() {
 			return
@@ -384,7 +384,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			"URIs": newState.URIs,
 		})
 
-		uris := make([]string, 0)
+		var uris []string
 		res.Diagnostics.Append(newState.URIs.ElementsAs(ctx, &uris, false)...)
 		if res.Diagnostics.HasError() {
 			return
