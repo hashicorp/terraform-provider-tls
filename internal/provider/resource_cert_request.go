@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
@@ -64,6 +65,11 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+					),
+				},
 				Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
 			},
 			"uris": schema.ListAttribute{
@@ -71,6 +77,11 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+					),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
 			},

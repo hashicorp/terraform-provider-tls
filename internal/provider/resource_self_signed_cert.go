@@ -101,6 +101,11 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
 				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+					),
+				},
 				Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
 			},
 			"uris": schema.ListAttribute{
@@ -108,6 +113,11 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+					),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
 			},
