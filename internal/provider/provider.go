@@ -185,6 +185,7 @@ func (p *tlsProvider) Resources(_ context.Context) []func() resource.Resource {
 		NewLocallySignedCertResource,
 		NewPrivateKeyResource,
 		NewSelfSignedCertResource,
+		NewEncryptedPEMResource,
 	}
 }
 

@@ -1,6 +1,8 @@
 package fixtures
 
 const (
+	TestEncryptedPEMPassword = "r9CazyVGUko8u0IfqECJoHyIC9KPyPhgdE5mCWmB"
+
 	TestPrivateKeyPEM = `
 -----BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgQDPLaq43D9C596ko9yQipWUf2FbRhFs18D3wBDBqXLIoP7W3rm5

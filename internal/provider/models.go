@@ -110,3 +110,11 @@ type locallySignedCertResourceModel struct {
 	CAKeyAlgorithm      types.String `tfsdk:"ca_key_algorithm"`
 	ID                  types.String `tfsdk:"id"`
 }
+
+type encryptedPemResourceModel struct {
+	PEM          types.String `tfsdk:"pem"`
+	Password     types.String `tfsdk:"password"`
+	Cipher       types.String `tfsdk:"cipher"`
+	EncryptedPEM types.String `tfsdk:"encrypted_pem"`
+	ID           types.String `tfsdk:"id"`
+}
