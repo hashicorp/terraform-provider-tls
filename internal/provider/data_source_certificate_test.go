@@ -44,6 +44,51 @@ func TestDataSourceCertificate_CertificateContent(t *testing.T) {
 	})
 }
 
+func TestDataSourceCertificate_CertificateContentChain(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+
+		Steps: []r.TestStep{
+			{
+				Config: `
+					data "tls_certificate" "test" {
+						content = file("fixtures/public.pem")
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
+
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.serial_number", "266244246501122064554217434340898012243"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "false"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.version", "3"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=Root CA,O=Test Org,L=Here"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=Child Cert,O=Child Co.,L=Everywhere"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_before", "2019-11-08T09:01:36Z"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.not_after", "2019-11-08T19:01:36Z"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "61b65624427d75b61169100836904e44364df817"),
+					tu.TestCheckPEMFormat("data.tls_certificate.test", "certificates.0.cert_pem", PreambleCertificate.String()),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.cert_pem", strings.TrimSpace(fixtures.TestTlsDataSourceCertFromURL01)+"\n"),
+
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.serial_number", "60512478256160404377639062250777657301"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "true"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.version", "3"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=Root CA,O=Test Org,L=Here"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=Root CA,O=Test Org,L=Here"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_before", "2019-11-07T15:47:48Z"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.not_after", "2019-12-17T15:47:48Z"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "5829a9bcc57f317719c5c98d1f48d6c9957cb44e"),
+					tu.TestCheckPEMFormat("data.tls_certificate.test", "certificates.1.cert_pem", PreambleCertificate.String()),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.cert_pem", strings.TrimSpace(fixtures.TestTlsDataSourceCertFromURL00)+"\n"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 	r.Test(t, r.TestCase{
 		Steps: []r.TestStep{
