@@ -419,7 +419,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			if ip == nil {
 				res.Diagnostics.AddError(
 					"Invalid IP address",
-					fmt.Sprintf("Failed to parse %#v", ipString.ValueString()),
+					fmt.Sprintf("Failed to parse %#v", ipStr),
 				)
 				return
 			}
@@ -444,7 +444,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 			if err != nil {
 				res.Diagnostics.AddError(
 					"Invalid URI",
-					fmt.Sprintf("Failed to parse %#v: %v", uriString.ValueString(), err.Error()),
+					fmt.Sprintf("Failed to parse %#v: %v", uriStr, err.Error()),
 				)
 				return
 			}
