@@ -13,16 +13,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/openssh"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_int64"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_string"
 )
 
 type privateKeyResource struct{}
@@ -61,18 +61,18 @@ func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaReques
 			"rsa_bits": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
+				Default:  int64default.StaticInt64(2048),
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplace(),
-					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(2048)),
 				},
 				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
 			},
 			"ecdsa_curve": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  stringdefault.StaticString(P224.String()),
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
-					attribute_plan_modifier_string.DefaultValue(types.StringValue(P224.String())),
 				},
 				Validators: []validator.String{
 					stringvalidator.OneOf(supportedECDSACurvesStr()...),

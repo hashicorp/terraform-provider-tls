@@ -12,7 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -22,7 +24,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_bool"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_int64"
 )
 
 type locallySignedCertResource struct{}
@@ -102,8 +103,8 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"name_constraint_permitted_dns_names_critical": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
-					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Should name constraints permitted dns domains attribute be marked critical.",
@@ -129,18 +130,17 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"is_ca_certificate": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.RequiresReplace(),
-					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
 			},
 			"max_path_length": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.Int64{
-					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(-1)),
-				},
+				Optional:      true,
+				Computed:      true,
+				Default:       int64default.StaticInt64(-1),
+				PlanModifiers: []planmodifier.Int64{},
 				Validators: []validator.Int64{
 					int64validator.AtLeast(-1),
 				},
@@ -150,9 +150,7 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"early_renewal_hours": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []planmodifier.Int64{
-					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(0)),
-				},
+				Default:  int64default.StaticInt64(0),
 				Validators: []validator.Int64{
 					int64validator.AtLeast(0),
 				},
@@ -167,9 +165,9 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"set_subject_key_id": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.RequiresReplace(),
-					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 				},
 				Description: "Should the generated certificate include a " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
@@ -177,8 +175,8 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"set_authority_key_id": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
-					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include an " +
@@ -202,8 +200,8 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			},
 			"ready_for_renewal": schema.BoolAttribute{
 				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
-					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 					attribute_plan_modifier_bool.ReadyForRenewal(),
 				},
 				Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
