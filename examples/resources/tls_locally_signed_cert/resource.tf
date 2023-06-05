@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 resource "tls_locally_signed_cert" "example" {
   cert_request_pem   = file("cert_request.pem")
   ca_private_key_pem = file("ca_private_key.pem")

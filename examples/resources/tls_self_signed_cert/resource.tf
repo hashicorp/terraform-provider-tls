@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 resource "tls_self_signed_cert" "example" {
   private_key_pem = file("private_key.pem")
 

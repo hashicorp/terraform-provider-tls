@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # ECDSA key with P384 elliptic curve
 resource "tls_private_key" "ecdsa-p384-example" {
   algorithm   = "ECDSA"

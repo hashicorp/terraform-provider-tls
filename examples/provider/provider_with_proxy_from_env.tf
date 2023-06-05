@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # This example fetches the TLS certificate chain
 # from `example.com` using an HTTP Proxy.
 # The Proxy is discovered via environment variables:

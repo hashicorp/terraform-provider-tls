@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 # This example creates a self-signed certificate,
 # and uses it to create an AWS IAM Server certificate.
 #
