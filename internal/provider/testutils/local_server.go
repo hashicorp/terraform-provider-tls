@@ -70,6 +70,10 @@ func NewHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) 
 	if err != nil {
 		return nil, err
 	}
+	proxyHttpServer, ok := proxy.server.Handler.(*goproxy.ProxyHttpServer)
+	if !ok {
+		return nil, fmt.Errorf("expected proxy.server.Handler to be of type *goproxy.ProxyHttpServer")
+	}
 
 	proxyHttpServer, ok := proxy.server.Handler.(*goproxy.ProxyHttpServer)
 	if !ok {
