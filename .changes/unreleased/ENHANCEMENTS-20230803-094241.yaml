@@ -1,0 +1,6 @@
+kind: ENHANCEMENTS
+body: 'resource/tls_private_key: add openssh_comment attribute
+  data-source/tls_public_key: add openssh_comment attribute'
+time: 2023-08-03T09:42:41.390232535Z
+custom:
+  Issue: "395"
