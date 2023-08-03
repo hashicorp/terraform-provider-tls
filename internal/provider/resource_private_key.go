@@ -60,6 +60,13 @@ func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaReques
 			},
 
 			// Optional attributes
+			"openssh_comment": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				MarkdownDescription: "Comment to add to the OpenSSH key (default: `\"\"`).",
+			},
 			"rsa_bits": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
@@ -162,6 +169,10 @@ func privateKeyResourceSchemaV1() schema.Schema {
 			},
 
 			// Optional attributes
+			"openssh_comment": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Comment to add to the OpenSSH key (default: `\"\"`).",
+			},
 			"rsa_bits": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
@@ -321,12 +332,11 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
 	newState.PrivateKeyOpenSSH = types.StringValue("")
 	if prvKeySupportsOpenSSHMarshalling(prvKey) {
-		openSSHKeyPemBlock, err := ssh.MarshalPrivateKey(prvKey, "")
+		openSSHKeyPemBlock, err := ssh.MarshalPrivateKey(prvKey, newState.OpenSSHComment.ValueString())
 		if err != nil {
 			res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
 			return
 		}
-
 		newState.PrivateKeyOpenSSH = types.StringValue(string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 	}
 
