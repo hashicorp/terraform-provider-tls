@@ -28,13 +28,17 @@ import { Fn, Token, TerraformStack } from "cdktf";
 import { EksCluster } from "./.gen/providers/aws/eks-cluster";
 import { IamOpenidConnectProvider } from "./.gen/providers/aws/iam-openid-connect-provider";
 import { DataTlsCertificate } from "./.gen/providers/tls/data-tls-certificate";
+interface MyConfig {
+  roleArn: any;
+  vpcConfig: any;
+}
 class MyConvertedCode extends TerraformStack {
-  constructor(scope: Construct, name: string) {
+  constructor(scope: Construct, name: string, config: MyConfig) {
     super(scope, name);
-    /*The following providers are missing schema information and might need manual adjustments to synthesize correctly: aws.
-    For a more precise conversion please use the --provider flag in convert.*/
     const example = new EksCluster(this, "example", {
       name: "example",
+      roleArn: config.roleArn,
+      vpcConfig: config.vpcConfig,
     });
     const dataTlsCertificateExample = new DataTlsCertificate(
       this,
@@ -51,14 +55,18 @@ class MyConvertedCode extends TerraformStack {
       this,
       "example_2",
       {
-        client_id_list: ["sts.amazonaws.com"],
-        thumbprint_list: [
-          Fn.lookupNested(dataTlsCertificateExample.certificates, [
-            "0",
-            "sha1_fingerprint",
-          ]),
+        clientIdList: ["sts.amazonaws.com"],
+        thumbprintList: [
+          Token.asString(
+            Fn.lookupNested(dataTlsCertificateExample.certificates, [
+              "0",
+              "sha1_fingerprint",
+            ])
+          ),
         ],
-        url: Fn.lookupNested(example.identity, ["0", "oidc", "0", "issuer"]),
+        url: Token.asString(
+          Fn.lookupNested(example.identity, ["0", "oidc", "0", "issuer"])
+        ),
       }
     );
     /*This allows the Terraform resource name to match the original name. You can remove the call if you don't need them to match.*/
@@ -126,4 +134,4 @@ Read-Only:
 - `version` (Number) The version the certificate is in.
 - `certPem` (String) Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 
-<!-- cache-key: cdktf-0.18.0 input-aa0448a429be224544a948790292f3b630d2ecf0739247bd90334feadefa8419 -->
+<!-- cache-key: cdktf-0.18.0 input-aa0448a429be224544a948790292f3b630d2ecf0739247bd90334feadefa8419 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
