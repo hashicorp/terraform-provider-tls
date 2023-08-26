@@ -163,7 +163,7 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.RequiresReplace(),
 							},
-							Description: "Email Address: `email_address`",
+							Description: "Email Address: `1.2.840.113549.1.9.1`",
 						},
 						"locality": schema.StringAttribute{
 							Optional: true,
