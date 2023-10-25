@@ -201,7 +201,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "8eab9294263239177f7bb1ced4a246965dc8afa0"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "1921d610847a5654a3489160dd5b1086213aaeab"),
 				),
 			},
 		},
