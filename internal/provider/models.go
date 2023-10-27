@@ -44,6 +44,7 @@ type certRequestResourceModel struct {
 	DNSNames       types.List   `tfsdk:"dns_names"`
 	IPAddresses    types.List   `tfsdk:"ip_addresses"`
 	URIs           types.List   `tfsdk:"uris"`
+	AllowedUses    types.List   `tfsdk:"allowed_uses"`
 	PrivateKeyPEM  types.String `tfsdk:"private_key_pem"`
 	KeyAlgorithm   types.String `tfsdk:"key_algorithm"`
 	CertRequestPEM types.String `tfsdk:"cert_request_pem"`
