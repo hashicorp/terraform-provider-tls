@@ -158,6 +158,13 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 							},
 							Description: "Distinguished name: `STREET`",
 						},
+						"email_address": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Email Address: `1.2.840.113549.1.9.1`",
+						},
 						"locality": schema.StringAttribute{
 							Optional: true,
 							PlanModifiers: []planmodifier.String{
