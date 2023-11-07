@@ -59,12 +59,12 @@ class MyConvertedCode extends TerraformStack {
 
 ### Required
 
-- `algorithm` (String) Name of the algorithm to use when generating the private key. Currently-supported values are: `rsa`, `ecdsa`, `ed25519`.
+- `algorithm` (String) Name of the algorithm to use when generating the private key. Currently-supported values are: `RSA`, `ECDSA`, `ED25519`.
 
 ### Optional
 
-- `ecdsaCurve` (String) When `algorithm` is `ecdsa`, the name of the elliptic curve to use. Currently-supported values are: `p224`, `p256`, `p384`, `p521`. (default: `p224`).
-- `rsaBits` (Number) When `algorithm` is `rsa`, the size of the generated RSA key, in bits (default: `2048`).
+- `ecdsaCurve` (String) When `algorithm` is `ECDSA`, the name of the elliptic curve to use. Currently-supported values are: `P224`, `P256`, `P384`, `P521`. (default: `P224`).
+- `rsaBits` (Number) When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).
 
 ### Read-Only
 
@@ -72,9 +72,9 @@ class MyConvertedCode extends TerraformStack {
 - `privateKeyOpenssh` (String, Sensitive) Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.
 - `privateKeyPem` (String, Sensitive) Private key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.
 - `privateKeyPemPkcs8` (String, Sensitive) Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.
-- `publicKeyFingerprintMd5` (String) The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:`. Only available if the selected private key format is compatible, similarly to `publicKeyOpenssh` and the [ECDSA P224 limitations](../../docs#limitations).
-- `publicKeyFingerprintSha256` (String) The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `sha256:`. Only available if the selected private key format is compatible, similarly to `publicKeyOpenssh` and the [ECDSA P224 limitations](../../docs#limitations).
-- `publicKeyOpenssh` (String) The public key data in ["Authorized Keys"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. This is not populated for `ecdsa` with curve `p224`, as it is [not supported](../../docs#limitations). **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
+- `publicKeyFingerprintMd5` (String) The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. Only available if the selected private key format is compatible, similarly to `public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).
+- `publicKeyFingerprintSha256` (String) The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. Only available if the selected private key format is compatible, similarly to `public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).
+- `publicKeyOpenssh` (String) The public key data in ["Authorized Keys"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. This is not populated for `ECDSA` with curve `P224`, as it is [not supported](../../docs#limitations). **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 - `publicKeyPem` (String) Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 
 ## Generating a New Key
@@ -91,4 +91,4 @@ terraform taint tls_private_key.example
 
 A new key will then be generated on the next `terraform apply`.
 
-<!-- cache-key: cdktf-0.18.0 input-d883372f4f6fca4ca740c03d31a34cdd6a12ec7204e44e20824b895a27ded4a4 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.19.0 input-d883372f4f6fca4ca740c03d31a34cdd6a12ec7204e44e20824b895a27ded4a4 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->

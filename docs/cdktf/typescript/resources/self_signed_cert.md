@@ -50,7 +50,7 @@ class MyConvertedCode extends TerraformStack {
 
 ### Required
 
-- `allowedUses` (List of String) List of key usages allowed for the issued certificate. Values are defined in [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) and combine flags defined by both [Key Usages](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.3) and [Extended Key Usages](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.12). Accepted values: `anyExtended`, `certSigning`, `clientAuth`, `codeSigning`, `contentCommitment`, `crlSigning`, `dataEncipherment`, `decipherOnly`, `digitalSignature`, `emailProtection`, `encipherOnly`, `ipsecEndSystem`, `ipsecTunnel`, `ipsecUser`, `keyAgreement`, `keyEncipherment`, `microsoftCommercialCodeSigning`, `microsoftKernelCodeSigning`, `microsoftServerGatedCrypto`, `netscapeServerGatedCrypto`, `ocspSigning`, `serverAuth`, `timestamping`.
+- `allowedUses` (List of String) List of key usages allowed for the issued certificate. Values are defined in [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) and combine flags defined by both [Key Usages](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.3) and [Extended Key Usages](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.12). Accepted values: `any_extended`, `cert_signing`, `client_auth`, `code_signing`, `content_commitment`, `crl_signing`, `data_encipherment`, `decipher_only`, `digital_signature`, `email_protection`, `encipher_only`, `ipsec_end_system`, `ipsec_tunnel`, `ipsec_user`, `key_agreement`, `key_encipherment`, `microsoft_commercial_code_signing`, `microsoft_kernel_code_signing`, `microsoft_server_gated_crypto`, `netscape_server_gated_crypto`, `ocsp_signing`, `server_auth`, `timestamping`.
 - `privateKeyPem` (String, Sensitive) Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, that the certificate will belong to. This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) interpolation function.
 - `validityPeriodHours` (Number) Number of hours, after initial issuing, that the certificate will remain valid for.
 
@@ -69,8 +69,8 @@ class MyConvertedCode extends TerraformStack {
 
 - `certPem` (String) Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 - `id` (String) Unique identifier for this resource: the certificate serial number.
-- `keyAlgorithm` (String) Name of the algorithm used when generating the private key provided in `privateKeyPem`.
-- `readyForRenewal` (Boolean) Is the certificate either expired (i.e. beyond the `validityPeriodHours`) or ready for an early renewal (i.e. within the `earlyRenewalHours`)?
+- `keyAlgorithm` (String) Name of the algorithm used when generating the private key provided in `private_key_pem`.
+- `readyForRenewal` (Boolean) Is the certificate either expired (i.e. beyond the `validity_period_hours`) or ready for an early renewal (i.e. within the `early_renewal_hours`)?
 - `validityEndTime` (String) The time until which the certificate is invalid, expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
 - `validityStartTime` (String) The time after which the certificate is valid, expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
 
@@ -79,15 +79,15 @@ class MyConvertedCode extends TerraformStack {
 
 Optional:
 
-- `commonName` (String) Distinguished name: `cn`
-- `country` (String) Distinguished name: `c`
-- `locality` (String) Distinguished name: `l`
-- `organization` (String) Distinguished name: `o`
-- `organizationalUnit` (String) Distinguished name: `ou`
-- `postalCode` (String) Distinguished name: `pc`
-- `province` (String) Distinguished name: `st`
-- `serialNumber` (String) Distinguished name: `serialnumber`
-- `streetAddress` (List of String) Distinguished name: `street`
+- `commonName` (String) Distinguished name: `CN`
+- `country` (String) Distinguished name: `C`
+- `locality` (String) Distinguished name: `L`
+- `organization` (String) Distinguished name: `O`
+- `organizationalUnit` (String) Distinguished name: `OU`
+- `postalCode` (String) Distinguished name: `PC`
+- `province` (String) Distinguished name: `ST`
+- `serialNumber` (String) Distinguished name: `SERIALNUMBER`
+- `streetAddress` (List of String) Distinguished name: `STREET`
 
 ## Automatic Renewal
 
@@ -105,4 +105,4 @@ a new certificate when the current one is about to expire.
 The creation of a new certificate may of course cause dependent resources to be updated
 or replaced, depending on the lifecycle rules applying to those resources.
 
-<!-- cache-key: cdktf-0.18.0 input-fdcdd1b995d8aef8a660e00b2010a6a6f9c7bd0b3ef6d96ee4709050cd0a2354 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.19.0 input-fdcdd1b995d8aef8a660e00b2010a6a6f9c7bd0b3ef6d96ee4709050cd0a2354 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
