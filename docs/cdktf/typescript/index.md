@@ -139,7 +139,7 @@ class MyConvertedCode extends TerraformStack {
 
 Optional:
 
-- `fromEnv` (Boolean) When `true` the provider will discover the proxy configuration from environment variables. This is based upon [`httpProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) and it supports the same environment variables (default: `true`).
+- `fromEnv` (Boolean) When `true` the provider will discover the proxy configuration from environment variables. This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) and it supports the same environment variables (default: `true`).
 - `password` (String, Sensitive) Password used for Basic authentication against the Proxy.
 - `url` (String) URL used to connect to the Proxy. Accepted schemes are: `http`, `https`, `socks5`.
 - `username` (String) Username (or Token) used for Basic authentication against the Proxy.
@@ -179,4 +179,4 @@ Failing that, **protecting the content of the state file is strongly recommended
 The more general advice is that it's better to generate "secrets" outside of Terraform,
 and then distribute them securely to the system where Terraform will make use of them.
 
-<!-- cache-key: cdktf-0.18.0 input-9629aac943b54f5dd10ea0b4a5ac545ba133cdf7ce49405f60bebc3525e333fa 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.19.0 input-9629aac943b54f5dd10ea0b4a5ac545ba133cdf7ce49405f60bebc3525e333fa 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->

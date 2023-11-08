@@ -65,21 +65,21 @@ class MyConvertedCode extends TerraformStack {
 
 - `certRequestPem` (String) The certificate request data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 - `id` (String) Unique identifier for this resource: hexadecimal representation of the SHA1 checksum of the resource.
-- `keyAlgorithm` (String) Name of the algorithm used when generating the private key provided in `privateKeyPem`.
+- `keyAlgorithm` (String) Name of the algorithm used when generating the private key provided in `private_key_pem`.
 
 <a id="nestedblock--subject"></a>
 ### Nested Schema for `subject`
 
 Optional:
 
-- `commonName` (String) Distinguished name: `cn`
-- `country` (String) Distinguished name: `c`
-- `locality` (String) Distinguished name: `l`
-- `organization` (String) Distinguished name: `o`
-- `organizationalUnit` (String) Distinguished name: `ou`
-- `postalCode` (String) Distinguished name: `pc`
-- `province` (String) Distinguished name: `st`
-- `serialNumber` (String) Distinguished name: `serialnumber`
-- `streetAddress` (List of String) Distinguished name: `street`
+- `commonName` (String) Distinguished name: `CN`
+- `country` (String) Distinguished name: `C`
+- `locality` (String) Distinguished name: `L`
+- `organization` (String) Distinguished name: `O`
+- `organizationalUnit` (String) Distinguished name: `OU`
+- `postalCode` (String) Distinguished name: `PC`
+- `province` (String) Distinguished name: `ST`
+- `serialNumber` (String) Distinguished name: `SERIALNUMBER`
+- `streetAddress` (List of String) Distinguished name: `STREET`
 
-<!-- cache-key: cdktf-0.18.0 input-f0b329ca4c0554d420316e3aa077babdcc26589666ed69b639e7ed93d15ac558 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.19.0 input-f0b329ca4c0554d420316e3aa077babdcc26589666ed69b639e7ed93d15ac558 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
