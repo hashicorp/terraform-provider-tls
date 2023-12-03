@@ -194,7 +194,7 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 	}
 
 	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
-	// so this will return an error: in that case, we set the below fields to emptry strings
+	// so this will return an error: in that case, we set the below fields to empty strings
 	sshPubKey, err := ssh.NewPublicKey(pubKey)
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {
