@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -49,6 +50,12 @@ func TestDataSourceCertificate_CertificateContent(t *testing.T) {
 
 func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 	r.Test(t, r.TestCase{
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			// Terraform 0.13 non-refresh plan unexpectedly shows data resource
+			// change (non-empty plan) unlike all other Terraform versions.
+			// Reference: https://github.com/hashicorp/terraform-plugin-testing/issues/239
+			tfversion.SkipBetween(tfversion.Version0_13_0, tfversion.Version0_14_0),
+		},
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
