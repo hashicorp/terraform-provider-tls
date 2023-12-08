@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -7,99 +10,107 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 	"golang.org/x/net/http/httpproxy"
+
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 )
 
-type provider struct {
+type tlsProvider struct {
 	proxyURL     *url.URL
 	proxyFromEnv bool
 }
 
 // Enforce interfaces we want provider to implement.
-var _ tfsdk.Provider = (*provider)(nil)
+var _ provider.Provider = (*tlsProvider)(nil)
 
-func New() tfsdk.Provider {
-	return &provider{}
+func New() provider.Provider {
+	return &tlsProvider{}
 }
 
-func (p *provider) resetConfig() {
+func (p *tlsProvider) resetConfig() {
 	p.proxyURL = nil
 	p.proxyFromEnv = true
 }
 
-func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Blocks: map[string]tfsdk.Block{
-			"proxy": {
-				NestingMode: tfsdk.BlockNestingModeList,
-				MinItems:    0,
-				MaxItems:    1,
+func (p *tlsProvider) Metadata(_ context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "tls"
+}
+
+func (p *tlsProvider) Schema(_ context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Blocks: map[string]schema.Block{
+			"proxy": schema.ListNestedBlock{
 				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.List{
 					listvalidator.SizeBetween(0, 1),
 				},
-				Attributes: map[string]tfsdk.Attribute{
-					"url": {
-						Type:     types.StringType,
-						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
-							attribute_validator.UrlWithScheme(supportedProxySchemesStr()...),
-							schemavalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("from_env")),
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"url": schema.StringAttribute{
+							Optional: true,
+							Validators: []validator.String{
+								attribute_validator.UrlWithScheme(supportedProxySchemesStr()...),
+								stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("from_env")),
+							},
+							MarkdownDescription: "URL used to connect to the Proxy. " +
+								fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(supportedProxySchemesStr(), "`, `")),
 						},
-						MarkdownDescription: "URL used to connect to the Proxy. " +
-							fmt.Sprintf("Accepted schemes are: `%s`. ", strings.Join(supportedProxySchemesStr(), "`, `")),
-					},
-					"username": {
-						Type:     types.StringType,
-						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
-							schemavalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url")),
+						"username": schema.StringAttribute{
+							Optional: true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("url")),
+							},
+							MarkdownDescription: "Username (or Token) used for Basic authentication against the Proxy.",
 						},
-						MarkdownDescription: "Username (or Token) used for Basic authentication against the Proxy.",
-					},
-					"password": {
-						Type:      types.StringType,
-						Optional:  true,
-						Sensitive: true,
-						Validators: []tfsdk.AttributeValidator{
-							schemavalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("username")),
+						"password": schema.StringAttribute{
+							Optional:  true,
+							Sensitive: true,
+							Validators: []validator.String{
+								stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("username")),
+							},
+							MarkdownDescription: "Password used for Basic authentication against the Proxy.",
 						},
-						MarkdownDescription: "Password used for Basic authentication against the Proxy.",
-					},
-					"from_env": {
-						Type:     types.BoolType,
-						Optional: true,
-						Computed: true,
-						Validators: []tfsdk.AttributeValidator{
-							schemavalidator.ConflictsWith(
-								path.MatchRelative().AtParent().AtName("url"),
-								path.MatchRelative().AtParent().AtName("username"),
-								path.MatchRelative().AtParent().AtName("password"),
-							),
+						"from_env": schema.BoolAttribute{
+							Optional: true,
+							Validators: []validator.Bool{
+								boolvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("url"),
+									path.MatchRelative().AtParent().AtName("username"),
+									path.MatchRelative().AtParent().AtName("password"),
+								),
+							},
+							MarkdownDescription: "When `true` the provider will discover the proxy configuration from environment variables. " +
+								"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
+								"and it supports the same environment variables (default: `true`).",
 						},
-						MarkdownDescription: "When `true` the provider will discover the proxy configuration from environment variables. " +
-							"This is based upon [`http.ProxyFromEnvironment`](https://pkg.go.dev/net/http#ProxyFromEnvironment) " +
-							"and it supports the same environment variables (default: `true`).",
 					},
 				},
 				MarkdownDescription: "Proxy used by resources and data sources that connect to external endpoints.",
 			},
 		},
 		MarkdownDescription: "Provider configuration",
-	}, nil
+	}
 }
 
-func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderRequest, res *tfsdk.ConfigureProviderResponse) {
+func (p *tlsProvider) Configure(ctx context.Context, req provider.ConfigureRequest, res *provider.ConfigureResponse) {
 	tflog.Debug(ctx, "Configuring provider")
 	p.resetConfig()
+
+	// Since the provider instance is being passed, ensure these response
+	// values are always set before early returns, etc.
+	res.DataSourceData = p
+	res.ResourceData = p
 
 	var err error
 
@@ -109,7 +120,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	if res.Diagnostics.HasError() {
 		return
 	}
-	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() || len(conf.Proxy.Elems) == 0 {
+	if conf.Proxy.IsNull() || conf.Proxy.IsUnknown() || len(conf.Proxy.Elements()) == 0 {
 		tflog.Debug(ctx, "No proxy configuration detected: using provider defaults")
 		return
 	}
@@ -135,35 +146,35 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	// Parse the URL
 	if !proxyConf.URL.IsNull() && !proxyConf.URL.IsUnknown() {
 		tflog.Debug(ctx, "Configuring Proxy via URL", map[string]interface{}{
-			"url": proxyConf.URL.Value,
+			"url": proxyConf.URL.ValueString(),
 		})
 
-		p.proxyURL, err = url.Parse(proxyConf.URL.Value)
+		p.proxyURL, err = url.Parse(proxyConf.URL.ValueString())
 		if err != nil {
-			res.Diagnostics.AddError(fmt.Sprintf("Unable to parse proxy URL %q", proxyConf.URL.Value), err.Error())
+			res.Diagnostics.AddError(fmt.Sprintf("Unable to parse proxy URL %q", proxyConf.URL.ValueString()), err.Error())
 		}
 	}
 
 	if !proxyConf.Username.IsNull() && !proxyConf.Username.IsUnknown() {
 		tflog.Debug(ctx, "Adding username to Proxy URL configuration", map[string]interface{}{
-			"username": proxyConf.Username.Value,
+			"username": proxyConf.Username.ValueString(),
 		})
 
 		// NOTE: we know that `.proxyURL` is set, as this is imposed by the provider schema
-		p.proxyURL.User = url.User(proxyConf.Username.Value)
+		p.proxyURL.User = url.User(proxyConf.Username.ValueString())
 	}
 
 	if !proxyConf.Password.IsNull() && !proxyConf.Password.IsUnknown() {
 		tflog.Debug(ctx, "Adding password to Proxy URL configuration")
 
 		// NOTE: we know that `.proxyURL.User.Username()` is set, as this is imposed by the provider schema
-		p.proxyURL.User = url.UserPassword(p.proxyURL.User.Username(), proxyConf.Password.Value)
+		p.proxyURL.User = url.UserPassword(p.proxyURL.User.Username(), proxyConf.Password.ValueString())
 	}
 
 	if !proxyConf.FromEnv.IsNull() && !proxyConf.FromEnv.IsUnknown() {
 		tflog.Debug(ctx, "Configuring Proxy via Environment Variables")
 
-		p.proxyFromEnv = proxyConf.FromEnv.Value
+		p.proxyFromEnv = proxyConf.FromEnv.ValueBool()
 	}
 
 	tflog.Debug(ctx, "Provider configuration", map[string]interface{}{
@@ -171,20 +182,20 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	})
 }
 
-func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
-	return map[string]tfsdk.ResourceType{
-		"tls_private_key":         &privateKeyResourceType{},
-		"tls_cert_request":        &certRequestResourceType{},
-		"tls_self_signed_cert":    &selfSignedCertResourceType{},
-		"tls_locally_signed_cert": &locallySignedCertResourceType{},
-	}, nil
+func (p *tlsProvider) Resources(_ context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+		NewCertRequestResource,
+		NewLocallySignedCertResource,
+		NewPrivateKeyResource,
+		NewSelfSignedCertResource,
+	}
 }
 
-func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
-	return map[string]tfsdk.DataSourceType{
-		"tls_public_key":  &publicKeyDataSourceType{},
-		"tls_certificate": &certificateDataSourceType{},
-	}, nil
+func (p *tlsProvider) DataSources(_ context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		NewCertificateDataSource,
+		NewPublicKeyDataSource,
+	}
 }
 
 // proxyForRequestFunc is an adapter that returns the configured proxy.
@@ -193,7 +204,7 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 // provides the http.Client with the *url.URL to the proxy.
 //
 // It will return nil if there is no proxy configured.
-func (p *provider) proxyForRequestFunc(ctx context.Context) func(_ *http.Request) (*url.URL, error) {
+func (p *tlsProvider) proxyForRequestFunc(ctx context.Context) func(_ *http.Request) (*url.URL, error) {
 	if !p.isProxyConfigured() {
 		tflog.Debug(ctx, "Proxy not configured")
 		return nil
@@ -231,32 +242,27 @@ func (p *provider) proxyForRequestFunc(ctx context.Context) func(_ *http.Request
 }
 
 // isProxyConfigured returns true if a proxy configuration was detected as part of provider.Configure.
-func (p *provider) isProxyConfigured() bool {
+func (p *tlsProvider) isProxyConfigured() bool {
 	return p.proxyURL != nil || p.proxyFromEnv
 }
 
-// toProvider can be used to cast a generic tfsdk.Provider reference to this specific provider.
+// toProvider can be used to cast a generic provider.Provider reference to this specific provider.
 // This is ideally used in DataSourceType.NewDataSource and ResourceType.NewResource calls.
-func toProvider(in tfsdk.Provider) (*provider, diag.Diagnostics) {
+func toProvider(in any) (*tlsProvider, diag.Diagnostics) {
+	if in == nil {
+		return nil, nil
+	}
+
 	var diags diag.Diagnostics
 
-	p, ok := in.(*provider)
+	p, ok := in.(*tlsProvider)
 
 	if !ok {
 		diags.AddError(
 			"Unexpected Provider Instance Type",
 			fmt.Sprintf("While creating the data source or resource, an unexpected provider type (%T) was received. "+
-				"This is always a bug in the provider code and should be reported to the provider developers.", p,
+				"This is always a bug in the provider code and should be reported to the provider developers.", in,
 			),
-		)
-		return nil, diags
-	}
-
-	if p == nil {
-		diags.AddError(
-			"Unexpected Provider Instance Type",
-			"While creating the data source or resource, an unexpected empty (null) provider instance was received. "+
-				"This is always a bug in the provider code and should be reported to the provider developers.",
 		)
 		return nil, diags
 	}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -11,42 +14,45 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
-	"github.com/hashicorp/terraform-provider-tls/internal/openssh"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
+	"golang.org/x/crypto/ssh"
 )
 
-type (
-	privateKeyResourceType struct{}
-	privateKeyResource     struct{}
-)
+type privateKeyResource struct{}
 
 var (
-	_ tfsdk.ResourceType             = (*privateKeyResourceType)(nil)
-	_ tfsdk.Resource                 = (*privateKeyResource)(nil)
-	_ tfsdk.ResourceWithUpgradeState = (*privateKeyResource)(nil)
+	_ resource.Resource                 = (*privateKeyResource)(nil)
+	_ resource.ResourceWithUpgradeState = (*privateKeyResource)(nil)
 )
 
-func (rt *privateKeyResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return privateKeyResourceSchemaV1(), nil
+func NewPrivateKeyResource() resource.Resource {
+	return &privateKeyResource{}
 }
 
-func privateKeyResourceSchemaV1() tfsdk.Schema {
-	return tfsdk.Schema{
+func (r *privateKeyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_private_key"
+}
+
+func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Version: 1,
-		Attributes: map[string]tfsdk.Attribute{
+		Attributes: map[string]schema.Attribute{
 			// Required attributes
-			"algorithm": {
-				Type:     types.StringType,
+			"algorithm": schema.StringAttribute{
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					stringvalidator.OneOf(supportedAlgorithmsStr()...),
 				},
 				Description: "Name of the algorithm to use when generating the private key. " +
@@ -54,25 +60,23 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 			},
 
 			// Optional attributes
-			"rsa_bits": {
-				Type:     types.Int64Type,
+			"rsa_bits": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.Int64{Value: 2048}),
+				Default:  int64default.StaticInt64(2048),
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
 				},
 				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
 			},
-			"ecdsa_curve": {
-				Type:     types.StringType,
+			"ecdsa_curve": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
-					attribute_plan_modifier.DefaultValue(types.String{Value: P224.String()}),
+				Default:  stringdefault.StaticString(P224.String()),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					stringvalidator.OneOf(supportedECDSACurvesStr()...),
 				},
 				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
@@ -81,26 +85,22 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 			},
 
 			// Computed attributes
-			"private_key_pem": {
-				Type:                types.StringType,
+			"private_key_pem": schema.StringAttribute{
 				Computed:            true,
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 			},
-			"private_key_openssh": {
-				Type:                types.StringType,
+			"private_key_openssh": schema.StringAttribute{
 				Computed:            true,
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.",
 			},
-			"private_key_pem_pkcs8": {
-				Type:                types.StringType,
+			"private_key_pem_pkcs8": schema.StringAttribute{
 				Computed:            true,
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
 			},
-			"public_key_pem": {
-				Type:     types.StringType,
+			"public_key_pem": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
@@ -109,8 +109,7 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-			"public_key_openssh": {
-				Type:     types.StringType,
+			"public_key_openssh": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: " The public key data in " +
 					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
@@ -121,22 +120,19 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-			"public_key_fingerprint_md5": {
-				Type:     types.StringType,
+			"public_key_fingerprint_md5": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
 					"Only available if the selected private key format is compatible, similarly to " +
 					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
 			},
-			"public_key_fingerprint_sha256": {
-				Type:     types.StringType,
+			"public_key_fingerprint_sha256": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
 					"Only available if the selected private key format is compatible, similarly to " +
 					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
 			},
-			"id": {
-				Type:     types.StringType,
+			"id": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "Unique identifier for this resource: " +
 					"hexadecimal representation of the SHA1 checksum of the resource.",
@@ -150,11 +146,94 @@ func privateKeyResourceSchemaV1() tfsdk.Schema {
 	}
 }
 
-func (rt *privateKeyResourceType) NewResource(_ context.Context, _ tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	return &privateKeyResource{}, nil
+func privateKeyResourceSchemaV1() schema.Schema {
+	return schema.Schema{
+		Version: 1,
+		Attributes: map[string]schema.Attribute{
+			// Required attributes
+			"algorithm": schema.StringAttribute{
+				Required: true,
+				Description: "Name of the algorithm to use when generating the private key. " +
+					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
+			},
+
+			// Optional attributes
+			"rsa_bits": schema.Int64Attribute{
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
+			},
+			"ecdsa_curve": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
+					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedECDSACurvesStr(), "`, `")) +
+					fmt.Sprintf("(default: `%s`).", P224.String()),
+			},
+
+			// Computed attributes
+			"private_key_pem": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Private key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
+			},
+			"private_key_openssh": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.",
+			},
+			"private_key_pem_pkcs8": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
+			},
+			"public_key_pem": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
+					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
+					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
+					"value append a `\\n` at the end of the PEM. " +
+					"In case this disrupts your use case, we recommend using " +
+					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
+			},
+			"public_key_openssh": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: " The public key data in " +
+					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
+					"This is not populated for `ECDSA` with curve `P224`, as it is [not supported](../../docs#limitations). " +
+					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
+					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
+					"value append a `\\n` at the end of the PEM. " +
+					"In case this disrupts your use case, we recommend using " +
+					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
+			},
+			"public_key_fingerprint_md5": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
+					"Only available if the selected private key format is compatible, similarly to " +
+					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
+			},
+			"public_key_fingerprint_sha256": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
+					"Only available if the selected private key format is compatible, similarly to " +
+					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
+			},
+			"id": schema.StringAttribute{
+				Computed: true,
+				MarkdownDescription: "Unique identifier for this resource: " +
+					"hexadecimal representation of the SHA1 checksum of the resource.",
+			},
+		},
+		MarkdownDescription: "Creates a PEM (and OpenSSH) formatted private key.\n\n" +
+			"Generates a secure private key and encodes it in " +
+			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and " +
+			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +
+			"This resource is primarily intended for easily bootstrapping throwaway development environments.",
+	}
 }
 
-func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, res *tfsdk.CreateResourceResponse) {
+func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {
 	tflog.Debug(ctx, "Creating private key resource")
 
 	// Load entire configuration into the model
@@ -167,7 +246,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 		"privateKeyConfig": fmt.Sprintf("%+v", newState),
 	})
 
-	keyAlgoName := Algorithm(newState.Algorithm.Value)
+	keyAlgoName := Algorithm(newState.Algorithm.ValueString())
 
 	// Identify the correct (Private) Key Generator
 	var keyGen keyGenerator
@@ -231,20 +310,20 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 		return
 	}
 
-	newState.PrivateKeyPem = types.String{Value: string(pem.EncodeToMemory(prvKeyPemBlock))}
-	newState.PrivateKeyPKCS8 = types.String{Value: string(pem.EncodeToMemory(prvKeyPKCS8PemBlock))}
+	newState.PrivateKeyPem = types.StringValue(string(pem.EncodeToMemory(prvKeyPemBlock)))
+	newState.PrivateKeyPKCS8 = types.StringValue(string(pem.EncodeToMemory(prvKeyPKCS8PemBlock)))
 
 	// Marshal the Key in OpenSSH PEM block, if supported
 	tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
-	newState.PrivateKeyOpenSSH = types.String{Value: ""}
+	newState.PrivateKeyOpenSSH = types.StringValue("")
 	if prvKeySupportsOpenSSHMarshalling(prvKey) {
-		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
+		openSSHKeyPemBlock, err := ssh.MarshalPrivateKey(prvKey, "")
 		if err != nil {
 			res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
 			return
 		}
 
-		newState.PrivateKeyOpenSSH = types.String{Value: string(pem.EncodeToMemory(openSSHKeyPemBlock))}
+		newState.PrivateKeyOpenSSH = types.StringValue(string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 	}
 
 	// Store the model populated so far, onto the State
@@ -259,24 +338,24 @@ func (r *privateKeyResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	res.Diagnostics.Append(setPublicKeyAttributes(ctx, &res.State, prvKey)...)
 }
 
-func (r *privateKeyResource) Read(ctx context.Context, _ tfsdk.ReadResourceRequest, _ *tfsdk.ReadResourceResponse) {
+func (r *privateKeyResource) Read(ctx context.Context, _ resource.ReadRequest, _ *resource.ReadResponse) {
 	// NO-OP: all there is to read is in the State, and response is already populated with that.
 	tflog.Debug(ctx, "Reading private key from state")
 }
 
-func (r *privateKeyResource) Update(_ context.Context, _ tfsdk.UpdateResourceRequest, _ *tfsdk.UpdateResourceResponse) {
+func (r *privateKeyResource) Update(_ context.Context, _ resource.UpdateRequest, _ *resource.UpdateResponse) {
 	// NO-OP: changes to this resource will force a "re-create".
 }
 
-func (r *privateKeyResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {
+func (r *privateKeyResource) Delete(ctx context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
 	// NO-OP: Returning no error is enough for the framework to remove the resource from state.
 	tflog.Debug(ctx, "Removing private key from state")
 }
 
-func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]tfsdk.ResourceStateUpgrader {
+func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
 	schemaV1 := privateKeyResourceSchemaV1()
 
-	return map[int64]tfsdk.ResourceStateUpgrader{
+	return map[int64]resource.StateUpgrader{
 		// Upgrading schema v0 -> v1 will add:
 		// * `private_key_openssh` (introduced in v3.2.0)
 		// * `public_key_fingerprint_sha256` (introduced in v3.2.0)
@@ -294,7 +373,7 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]tfsdk.R
 			// If/when that happens, and a new Schema version is released, then a dedicated
 			// schema will be necessary.
 			PriorSchema: &schemaV1,
-			StateUpgrader: func(ctx context.Context, req tfsdk.UpgradeResourceStateRequest, res *tfsdk.UpgradeResourceStateResponse) {
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, res *resource.UpgradeStateResponse) {
 				var upState privateKeyResourceModel
 				res.Diagnostics.Append(req.State.Get(ctx, &upState)...)
 				if res.Diagnostics.HasError() {
@@ -304,21 +383,21 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]tfsdk.R
 				// Parse private key from PEM bytes:
 				// we do this to generate the missing state from the original private key
 				tflog.Debug(ctx, "Parsing private key from PEM")
-				prvKey, _, err := parsePrivateKeyPEM([]byte(upState.PrivateKeyPem.Value))
+				prvKey, _, err := parsePrivateKeyPEM([]byte(upState.PrivateKeyPem.ValueString()))
 				if err != nil {
 					res.Diagnostics.AddError("Unable to parse key from PEM", err.Error())
 				}
 
 				// Marshal the Key in OpenSSH PEM, if necessary and supported
 				tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
-				if (upState.PrivateKeyOpenSSH.IsNull() || upState.PrivateKeyOpenSSH.Value == "") && prvKeySupportsOpenSSHMarshalling(prvKey) {
-					openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
+				if (upState.PrivateKeyOpenSSH.IsNull() || upState.PrivateKeyOpenSSH.ValueString() == "") && prvKeySupportsOpenSSHMarshalling(prvKey) {
+					openSSHKeyPemBlock, err := ssh.MarshalPrivateKey(prvKey, "")
 					if err != nil {
 						res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
 						return
 					}
 
-					upState.PrivateKeyOpenSSH = types.String{Value: string(pem.EncodeToMemory(openSSHKeyPemBlock))}
+					upState.PrivateKeyOpenSSH = types.StringValue(string(pem.EncodeToMemory(openSSHKeyPemBlock)))
 				}
 
 				// Marshal the Key in PKCS#8 PEM
@@ -328,7 +407,7 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]tfsdk.R
 					res.Diagnostics.AddError("Unable to encode private key to PKCS#8 PEM", err.Error())
 					return
 				}
-				upState.PrivateKeyPKCS8 = types.String{Value: string(pem.EncodeToMemory(prvKeyPKCS8PemBlock))}
+				upState.PrivateKeyPKCS8 = types.StringValue(string(pem.EncodeToMemory(prvKeyPKCS8PemBlock)))
 
 				// Upgrading the state
 				tflog.Debug(ctx, "Upgrading state")

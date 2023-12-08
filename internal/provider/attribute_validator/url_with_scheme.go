@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package attribute_validator
 
 import (
@@ -6,8 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
@@ -20,11 +22,11 @@ type urlWithSchemeAttributeValidator struct {
 }
 
 // UrlWithScheme is a helper to instantiate a urlWithSchemeAttributeValidator.
-func UrlWithScheme(acceptableSchemes ...string) tfsdk.AttributeValidator {
+func UrlWithScheme(acceptableSchemes ...string) validator.String {
 	return &urlWithSchemeAttributeValidator{acceptableSchemes}
 }
 
-var _ tfsdk.AttributeValidator = (*urlWithSchemeAttributeValidator)(nil)
+var _ validator.String = (*urlWithSchemeAttributeValidator)(nil)
 
 func (av *urlWithSchemeAttributeValidator) Description(ctx context.Context) string {
 	return av.MarkdownDescription(ctx)
@@ -34,40 +36,29 @@ func (av *urlWithSchemeAttributeValidator) MarkdownDescription(_ context.Context
 	return fmt.Sprintf("Ensures that the attribute is a URL and its scheme is one of: %q", av.acceptableSchemes)
 }
 
-func (av *urlWithSchemeAttributeValidator) Validate(ctx context.Context, req tfsdk.ValidateAttributeRequest, res *tfsdk.ValidateAttributeResponse) {
-	if req.AttributeConfig.IsNull() || req.AttributeConfig.IsUnknown() {
+func (av *urlWithSchemeAttributeValidator) ValidateString(ctx context.Context, req validator.StringRequest, res *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
 
 	tflog.Debug(ctx, "Validating attribute value is a URL with acceptable scheme", map[string]interface{}{
-		"attribute":         req.AttributePath.String(),
+		"attribute":         req.Path.String(),
 		"acceptableSchemes": strings.Join(av.acceptableSchemes, ","),
 	})
 
-	var v types.String
-	diags := tfsdk.ValueAs(ctx, req.AttributeConfig, &v)
-	if diags.HasError() {
-		res.Diagnostics.Append(diags...)
-		return
-	}
-
-	if v.IsNull() || v.IsUnknown() {
-		return
-	}
-
-	u, err := url.Parse(v.Value)
+	u, err := url.Parse(req.ConfigValue.ValueString())
 	if err != nil {
 		res.Diagnostics.AddAttributeError(
-			req.AttributePath,
+			req.Path,
 			"Invalid URL",
-			fmt.Sprintf("Parsing URL %q failed: %v", v.Value, err),
+			fmt.Sprintf("Parsing URL %q failed: %v", req.ConfigValue.ValueString(), err),
 		)
 		return
 	}
 
 	if u.Host == "" {
 		res.Diagnostics.AddAttributeError(
-			req.AttributePath,
+			req.Path,
 			"Invalid URL",
 			fmt.Sprintf("URL %q contains no host", u.String()),
 		)
@@ -81,7 +72,7 @@ func (av *urlWithSchemeAttributeValidator) Validate(ctx context.Context, req tfs
 	}
 
 	res.Diagnostics.AddAttributeError(
-		req.AttributePath,
+		req.Path,
 		"Invalid URL scheme",
 		fmt.Sprintf("URL %q expected to use scheme from %q, got: %q", u.String(), av.acceptableSchemes, u.Scheme),
 	)

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -5,7 +8,8 @@ import (
 	"regexp"
 	"testing"
 
-	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
 

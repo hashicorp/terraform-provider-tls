@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package testutils
 
 import (
@@ -8,8 +11,8 @@ import (
 
 	"github.com/elazarl/goproxy"
 	"github.com/elazarl/goproxy/ext/auth"
-	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // LocalServerTest is a simple HTTP server used for testing.
@@ -68,8 +71,13 @@ func NewHTTPProxyServerWithBasicAuth(expectedUsername, expectedPassword string) 
 		return nil, err
 	}
 
+	proxyHttpServer, ok := proxy.server.Handler.(*goproxy.ProxyHttpServer)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type for %T proxy.Server.Handler", proxy.server.Handler)
+	}
+
 	// Add "HTTP Connect auth handler" to proxy server
-	proxy.server.Handler.(*goproxy.ProxyHttpServer).OnRequest().HandleConnect(auth.BasicConnect("restricted", func(username, password string) bool {
+	proxyHttpServer.OnRequest().HandleConnect(auth.BasicConnect("restricted", func(username, password string) bool {
 		return username == expectedUsername && (expectedPassword == "" || password == expectedPassword)
 	}))
 

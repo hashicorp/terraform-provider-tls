@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -11,62 +14,70 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier"
+
+	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_plan_modifier_bool"
 )
 
-type (
-	selfSignedCertResourceType struct{}
-	selfSignedCertResource     struct{}
-)
+type selfSignedCertResource struct{}
 
 var (
-	_ tfsdk.ResourceType           = (*selfSignedCertResourceType)(nil)
-	_ tfsdk.Resource               = (*selfSignedCertResource)(nil)
-	_ tfsdk.ResourceWithModifyPlan = (*selfSignedCertResource)(nil)
+	_ resource.Resource               = (*selfSignedCertResource)(nil)
+	_ resource.ResourceWithModifyPlan = (*selfSignedCertResource)(nil)
 )
 
-func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
+func NewSelfSignedCertResource() resource.Resource {
+	return &selfSignedCertResource{}
+}
+
+func (r *selfSignedCertResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_self_signed_cert"
+}
+
+func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
 			// Required attributes
-			"private_key_pem": {
-				Type:     types.StringType,
+			"private_key_pem": schema.StringAttribute{
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
+				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
 				Sensitive: true,
 				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
 					"that the certificate will belong to. " +
 					"This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) " +
-					"interpolation function. " +
-					"Only an irreversible secure hash of the private key will be stored in the Terraform state.",
+					"interpolation function. ",
 			},
-			"validity_period_hours": {
-				Type:     types.Int64Type,
+			"validity_period_hours": schema.Int64Attribute{
 				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
 				},
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.Int64{
 					int64validator.AtLeast(0),
 				},
 				Description: "Number of hours, after initial issuing, that the certificate will remain valid for.",
 			},
-			"allowed_uses": {
-				Type: types.ListType{
-					ElemType: types.StringType,
+			"allowed_uses": schema.ListAttribute{
+				ElementType: types.StringType,
+				Required:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 				},
-				Required: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					listvalidator.ValuesAre(
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
 						stringvalidator.OneOf(supportedKeyUsagesStr()...),
 					),
 				},
@@ -79,38 +90,45 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 			},
 
 			// Optional attributes
-			"dns_names": {
-				Type:     types.ListType{ElemType: types.StringType},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+			"dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 				},
 				Description: "List of DNS names for which a certificate is being requested (i.e. certificate subjects).",
 			},
-			"ip_addresses": {
-				Type:     types.ListType{ElemType: types.StringType},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+			"ip_addresses": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+					),
 				},
 				Description: "List of IP addresses for which a certificate is being requested (i.e. certificate subjects).",
 			},
-			"uris": {
-				Type:     types.ListType{ElemType: types.StringType},
-				Optional: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+			"uris": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.LengthAtLeast(1),
+					),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
 			},
-			"early_renewal_hours": {
-				Type:     types.Int64Type,
+			"early_renewal_hours": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Int64{Value: 0}),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(0),
+				Validators: []validator.Int64{
 					int64validator.AtLeast(0),
 				},
 				Description: "The resource will consider the certificate to have expired the given number of hours " +
@@ -121,34 +139,31 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 					"Also, this advance update can only be performed should the Terraform configuration be applied " +
 					"during the early renewal period. (default: `0`)",
 			},
-			"is_ca_certificate": {
-				Type:     types.BoolType,
+			"is_ca_certificate": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
-					tfsdk.RequiresReplace(),
+				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
 			},
-			"set_subject_key_id": {
-				Type:     types.BoolType,
+			"set_subject_key_id": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
-					tfsdk.RequiresReplace(),
+				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include a " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
 			},
-			"set_authority_key_id": {
-				Type:     types.BoolType,
+			"set_authority_key_id": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
-					tfsdk.RequiresReplace(),
+				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include an " +
 					"[authority key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.1): " +
@@ -157,11 +172,10 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 			},
 
 			// Computed attributes
-			"cert_pem": {
-				Type:     types.StringType,
+			"cert_pem": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
@@ -170,136 +184,121 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 					"In case this disrupts your use case, we recommend using " +
 					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
 			},
-			"ready_for_renewal": {
-				Type:     types.BoolType,
+			"ready_for_renewal": schema.BoolAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					attribute_plan_modifier.DefaultValue(types.Bool{Value: false}),
+				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					attribute_plan_modifier_bool.ReadyForRenewal(),
 				},
 				Description: "Is the certificate either expired (i.e. beyond the `validity_period_hours`) " +
 					"or ready for an early renewal (i.e. within the `early_renewal_hours`)?",
 			},
-			"validity_start_time": {
-				Type:     types.StringType,
+			"validity_start_time": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "The time after which the certificate is valid, " +
 					"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
 			},
-			"validity_end_time": {
-				Type:     types.StringType,
+			"validity_end_time": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "The time until which the certificate is invalid, " +
 					"expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.",
 			},
-			"key_algorithm": {
-				Type:     types.StringType,
+			"key_algorithm": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Name of the algorithm used when generating the private key provided in `private_key_pem`. ",
 			},
-			"id": {
-				Type:     types.StringType,
+			"id": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				Description: "Unique identifier for this resource: the certificate serial number.",
 			},
 		},
-		Blocks: map[string]tfsdk.Block{
-			"subject": {
-				NestingMode: tfsdk.BlockNestingModeList,
-				MinItems:    0,
-				MaxItems:    1,
+		Blocks: map[string]schema.Block{
+			"subject": schema.ListNestedBlock{
 				// TODO Remove the validators below, once a fix for https://github.com/hashicorp/terraform-plugin-framework/issues/421 ships
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.List{
 					listvalidator.SizeBetween(0, 1),
 				},
-				PlanModifiers: []tfsdk.AttributePlanModifier{
-					tfsdk.RequiresReplace(),
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
 				},
-				Attributes: map[string]tfsdk.Attribute{
-					"organization": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"organization": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `O`",
 						},
-						Description: "Distinguished name: `O`",
-					},
-					"common_name": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
+						"common_name": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `CN`",
 						},
-						Description: "Distinguished name: `CN`",
-					},
-					"organizational_unit": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
+						"organizational_unit": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `OU`",
 						},
-						Description: "Distinguished name: `OU`",
-					},
-					"street_address": {
-						Type: types.ListType{
-							ElemType: types.StringType,
+						"street_address": schema.ListAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+							PlanModifiers: []planmodifier.List{
+								listplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `STREET`",
 						},
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
+						"locality": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `L`",
 						},
-						Description: "Distinguished name: `STREET`",
-					},
-					"locality": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
+						"province": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `ST`",
 						},
-						Description: "Distinguished name: `L`",
-					},
-					"province": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
+						"country": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `C`",
 						},
-						Description: "Distinguished name: `ST`",
-					},
-					"country": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
+						"postal_code": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `PC`",
 						},
-						Description: "Distinguished name: `C`",
-					},
-					"postal_code": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
+						"serial_number": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Distinguished name: `SERIALNUMBER`",
 						},
-						Description: "Distinguished name: `PC`",
-					},
-					"serial_number": {
-						Type:     types.StringType,
-						Optional: true,
-						PlanModifiers: []tfsdk.AttributePlanModifier{
-							tfsdk.RequiresReplace(),
-						},
-						Description: "Distinguished name: `SERIALNUMBER`",
 					},
 				},
 				MarkdownDescription: "The subject for which a certificate is being requested. " +
@@ -309,14 +308,10 @@ func (rt *selfSignedCertResourceType) GetSchema(_ context.Context) (tfsdk.Schema
 		},
 		MarkdownDescription: "Creates a **self-signed** TLS certificate in " +
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
-	}, nil
+	}
 }
 
-func (rt *selfSignedCertResourceType) NewResource(_ context.Context, _ tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	return &selfSignedCertResource{}, nil
-}
-
-func (r *selfSignedCertResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, res *tfsdk.CreateResourceResponse) {
+func (r *selfSignedCertResource) Create(ctx context.Context, req resource.CreateRequest, res *resource.CreateResponse) {
 	tflog.Debug(ctx, "Creating self signed certificate resource")
 
 	// Load entire configuration into the model
@@ -331,7 +326,7 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req tfsdk.CreateRes
 
 	// Parse the Private Key PEM
 	tflog.Debug(ctx, "Parsing private key PEM")
-	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.Value))
+	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
@@ -341,12 +336,12 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req tfsdk.CreateRes
 	tflog.Debug(ctx, "Detected key algorithm of private key", map[string]interface{}{
 		"keyAlgorithm": algorithm,
 	})
-	newState.KeyAlgorithm = types.String{Value: algorithm.String()}
+	newState.KeyAlgorithm = types.StringValue(algorithm.String())
 
 	cert := x509.Certificate{BasicConstraintsValid: true}
 
 	// Add Subject if provided
-	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elems) > 0 {
+	if !newState.Subject.IsNull() && !newState.Subject.IsUnknown() && len(newState.Subject.Elements()) > 0 {
 		tflog.Debug(ctx, "Adding subject on certificate", map[string]interface{}{
 			"subject": newState.Subject,
 		})
@@ -375,8 +370,13 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req tfsdk.CreateRes
 			"ipAddresses": newState.IPAddresses,
 		})
 
-		for _, ipElem := range newState.IPAddresses.Elems {
-			ipStr := ipElem.(types.String).Value
+		var ipAddresses []string
+		res.Diagnostics.Append(newState.IPAddresses.ElementsAs(ctx, &ipAddresses, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		for _, ipStr := range ipAddresses {
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
 				res.Diagnostics.AddError(
@@ -395,8 +395,13 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req tfsdk.CreateRes
 			"URIs": newState.URIs,
 		})
 
-		for _, uriElem := range newState.URIs.Elems {
-			uriStr := uriElem.(types.String).Value
+		var uris []string
+		res.Diagnostics.Append(newState.URIs.ElementsAs(ctx, &uris, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		for _, uriStr := range uris {
 			uri, err := url.Parse(uriStr)
 			if err != nil {
 				res.Diagnostics.AddError(
@@ -423,29 +428,30 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req tfsdk.CreateRes
 
 	// Store the certificate into the state
 	tflog.Debug(ctx, "Storing self signed certificate into the state")
-	newState.ID = types.String{Value: certificate.id}
-	newState.CertPEM = types.String{Value: certificate.certPem}
-	newState.ValidityStartTime = types.String{Value: certificate.validityStartTime}
-	newState.ValidityEndTime = types.String{Value: certificate.validityEndTime}
+	newState.ID = types.StringValue(certificate.id)
+	newState.CertPEM = types.StringValue(certificate.certPem)
+	newState.ValidityStartTime = types.StringValue(certificate.validityStartTime)
+	newState.ValidityEndTime = types.StringValue(certificate.validityEndTime)
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 
-func (r *selfSignedCertResource) Read(ctx context.Context, _ tfsdk.ReadResourceRequest, _ *tfsdk.ReadResourceResponse) {
-	// NO-OP: all there is to read is in the State, and response is already populated with that.
+func (r *selfSignedCertResource) Read(ctx context.Context, req resource.ReadRequest, res *resource.ReadResponse) {
 	tflog.Debug(ctx, "Reading self signed certificate from state")
+
+	modifyStateIfCertificateReadyForRenewal(ctx, req, res)
 }
 
-func (r *selfSignedCertResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, res *tfsdk.UpdateResourceResponse) {
+func (r *selfSignedCertResource) Update(ctx context.Context, req resource.UpdateRequest, res *resource.UpdateResponse) {
 	tflog.Debug(ctx, "Updating self signed certificate")
 
 	updatedUsingPlan(ctx, &req, res, &selfSignedCertResourceModel{})
 }
 
-func (r *selfSignedCertResource) Delete(ctx context.Context, _ tfsdk.DeleteResourceRequest, _ *tfsdk.DeleteResourceResponse) {
+func (r *selfSignedCertResource) Delete(ctx context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
 	// NO-OP: Returning no error is enough for the framework to remove the resource from state.
 	tflog.Debug(ctx, "Removing self signed certificate from state")
 }
 
-func (r *selfSignedCertResource) ModifyPlan(ctx context.Context, req tfsdk.ModifyResourcePlanRequest, res *tfsdk.ModifyResourcePlanResponse) {
+func (r *selfSignedCertResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, res *resource.ModifyPlanResponse) {
 	modifyPlanIfCertificateReadyForRenewal(ctx, &req, res)
 }

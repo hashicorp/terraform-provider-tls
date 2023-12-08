@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -12,38 +15,43 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/schemavalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/attribute_validator"
 )
 
-type (
-	certificateDataSourceType struct{}
-	certificateDataSource     struct {
-		provider *provider
-	}
-)
+type certificateDataSource struct {
+	provider *tlsProvider
+}
 
-var (
-	_ tfsdk.DataSourceType = (*certificateDataSourceType)(nil)
-	_ tfsdk.DataSource     = (*certificateDataSource)(nil)
-)
+var _ datasource.DataSource = (*certificateDataSource)(nil)
 
-func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
+func NewCertificateDataSource() datasource.DataSource {
+	return &certificateDataSource{}
+}
+
+func (d *certificateDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_certificate"
+}
+
+func (d *certificateDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
 			// Required attributes
-			"url": {
-				Type:     types.StringType,
+			"url": schema.StringAttribute{
 				Optional: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					attribute_validator.UrlWithScheme(supportedURLSchemesStr()...),
-					schemavalidator.ExactlyOneOf(
+					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("content"),
 						path.MatchRoot("url"),
 					),
@@ -53,11 +61,10 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 					"For scheme `https://` it will use the HTTP protocol and apply the `proxy` configuration " +
 					"of the provider, if set. For scheme `tls://` it will instead use a secure TCP socket.",
 			},
-			"content": {
-				Type:     types.StringType,
+			"content": schema.StringAttribute{
 				Optional: true,
-				Validators: []tfsdk.AttributeValidator{
-					schemavalidator.ExactlyOneOf(
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
 						path.MatchRoot("content"),
 						path.MatchRoot("url"),
 					),
@@ -66,11 +73,10 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 			},
 
 			// Optional attributes
-			"verify_chain": {
-				Type:     types.BoolType,
+			"verify_chain": schema.BoolAttribute{
 				Optional: true,
-				Validators: []tfsdk.AttributeValidator{
-					schemavalidator.ConflictsWith(
+				Validators: []validator.Bool{
+					boolvalidator.ConflictsWith(
 						path.MatchRoot("content"),
 					),
 				},
@@ -78,16 +84,13 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 			},
 
 			// Computed attributes
-			"id": {
-				Type:                types.StringType,
+			"id": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "Unique identifier of this data source: hashing of the certificates in the chain.",
 			},
-			"certificates": {
-				Type: types.ListType{
-					ElemType: types.ObjectType{
-						AttrTypes: x509CertObjectAttrTypes(),
-					},
+			"certificates": schema.ListAttribute{
+				ElementType: types.ObjectType{
+					AttrTypes: x509CertObjectAttrTypes(),
 				},
 				Computed:            true,
 				MarkdownDescription: "The certificates protecting the site, with the root of the chain first.",
@@ -96,15 +99,14 @@ func (dst *certificateDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 		MarkdownDescription: "Get information about the TLS certificates securing a host.\n\n" +
 			"Use this data source to get information, such as SHA1 fingerprint or serial number, " +
 			"about the TLS certificates that protects a URL.",
-	}, nil
+	}
 }
 
-func (dst *certificateDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
-	provider, diagnostics := toProvider(p)
-	return &certificateDataSource{provider}, diagnostics
+func (d *certificateDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	d.provider, resp.Diagnostics = toProvider(req.ProviderData)
 }
 
-func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, res *tfsdk.ReadDataSourceResponse) {
+func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRequest, res *datasource.ReadResponse) {
 	var newState certificateDataSourceModel
 	res.Diagnostics.Append(req.Config.Get(ctx, &newState)...)
 	if res.Diagnostics.HasError() {
@@ -116,12 +118,12 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 	// NOTE: Currently it's not possible to specify `Default` values against
 	// attributes of Data Sources nor Providers.
 	if newState.VerifyChain.IsNull() {
-		newState.VerifyChain = types.Bool{Value: true}
+		newState.VerifyChain = types.BoolValue(true)
 	}
 
 	var certs []CertificateModel
 	if !newState.Content.IsNull() && !newState.Content.IsUnknown() {
-		block, _ := pem.Decode([]byte(newState.Content.Value))
+		block, _ := pem.Decode([]byte(newState.Content.ValueString()))
 		if block == nil {
 			res.Diagnostics.AddAttributeError(
 				path.Root("content"),
@@ -153,7 +155,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 
 		certs = []CertificateModel{certificateToStruct(cert)}
 	} else {
-		targetURL, err := url.Parse(newState.URL.Value)
+		targetURL, err := url.Parse(newState.URL.ValueString())
 		if err != nil {
 			res.Diagnostics.AddAttributeError(
 				path.Root("url"),
@@ -164,7 +166,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 		}
 
 		// Determine if we should verify the chain of certificates, or skip said verification
-		shouldVerifyChain := newState.VerifyChain.Value
+		shouldVerifyChain := newState.VerifyChain.ValueBool()
 
 		// Ensure a port is set on the URL, or return an error
 		var peerCerts []*x509.Certificate
@@ -210,7 +212,7 @@ func (ds *certificateDataSource) Read(ctx context.Context, req tfsdk.ReadDataSou
 	}
 
 	// Set ID as hashing of the certificates
-	newState.ID = types.String{Value: hashForState(fmt.Sprintf("%v", certs))}
+	newState.ID = types.StringValue(hashForState(fmt.Sprintf("%v", certs)))
 
 	// Finally, set the state
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
@@ -230,7 +232,7 @@ func fetchPeerCertificatesViaTLS(ctx context.Context, targetURL *url.URL, should
 	return conn.ConnectionState().PeerCertificates, nil
 }
 
-func fetchPeerCertificatesViaHTTPS(ctx context.Context, targetURL *url.URL, shouldVerifyChain bool, p *provider) ([]*x509.Certificate, error) {
+func fetchPeerCertificatesViaHTTPS(ctx context.Context, targetURL *url.URL, shouldVerifyChain bool, p *tlsProvider) ([]*x509.Certificate, error) {
 	tflog.Debug(ctx, "Fetching certificate via HTTP(S) client")
 
 	client := &http.Client{
@@ -272,17 +274,17 @@ func certificateToStruct(cert *x509.Certificate) CertificateModel {
 	certPem := string(pem.EncodeToMemory(&pem.Block{Type: PreambleCertificate.String(), Bytes: cert.Raw}))
 
 	return CertificateModel{
-		SignatureAlgorithm: types.String{Value: cert.SignatureAlgorithm.String()},
-		PublicKeyAlgorithm: types.String{Value: cert.PublicKeyAlgorithm.String()},
-		SerialNumber:       types.String{Value: cert.SerialNumber.String()},
-		IsCA:               types.Bool{Value: cert.IsCA},
-		Version:            types.Int64{Value: int64(cert.Version)},
-		Issuer:             types.String{Value: cert.Issuer.String()},
-		Subject:            types.String{Value: cert.Subject.String()},
-		NotBefore:          types.String{Value: cert.NotBefore.Format(time.RFC3339)},
-		NotAfter:           types.String{Value: cert.NotAfter.Format(time.RFC3339)},
-		SHA1Fingerprint:    types.String{Value: fmt.Sprintf("%x", sha1.Sum(cert.Raw))},
-		CertPEM:            types.String{Value: certPem},
+		SignatureAlgorithm: types.StringValue(cert.SignatureAlgorithm.String()),
+		PublicKeyAlgorithm: types.StringValue(cert.PublicKeyAlgorithm.String()),
+		SerialNumber:       types.StringValue(cert.SerialNumber.String()),
+		IsCA:               types.BoolValue(cert.IsCA),
+		Version:            types.Int64Value(int64(cert.Version)),
+		Issuer:             types.StringValue(cert.Issuer.String()),
+		Subject:            types.StringValue(cert.Subject.String()),
+		NotBefore:          types.StringValue(cert.NotBefore.Format(time.RFC3339)),
+		NotAfter:           types.StringValue(cert.NotAfter.Format(time.RFC3339)),
+		SHA1Fingerprint:    types.StringValue(fmt.Sprintf("%x", sha1.Sum(cert.Raw))),
+		CertPEM:            types.StringValue(certPem),
 	}
 }
 

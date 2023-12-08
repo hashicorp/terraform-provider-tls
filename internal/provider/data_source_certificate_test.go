@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -6,7 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
+
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
@@ -45,6 +50,12 @@ func TestDataSourceCertificate_CertificateContent(t *testing.T) {
 
 func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 	r.Test(t, r.TestCase{
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			// Terraform 0.13 non-refresh plan unexpectedly shows data resource
+			// change (non-empty plan) unlike all other Terraform versions.
+			// Reference: https://github.com/hashicorp/terraform-plugin-testing/issues/239
+			tfversion.SkipBetween(tfversion.Version0_13_0, tfversion.Version0_14_0),
+		},
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
@@ -170,7 +181,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 						url = "https://untrusted-root.badssl.com/"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`certificate signed by[\s]*unknown[\s]*authority`),
+				ExpectError: regexp.MustCompile(`(certificate is not trusted|certificate signed by[\s]*unknown[\s]*authority)`),
 			},
 			{
 				Config: `
@@ -197,7 +208,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "dfa540cf03c6b61a0d78e6c61dc6ea9823245d4f"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "a33e459e760bff66228f99ab9c3c4b0259afaf6c"),
 				),
 			},
 		},

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -33,14 +36,14 @@ var keyGenerators = map[Algorithm]keyGenerator{
 			return nil, fmt.Errorf("RSA bits curve not provided")
 		}
 
-		return rsa.GenerateKey(rand.Reader, int(prvKeyConf.RSABits.Value))
+		return rsa.GenerateKey(rand.Reader, int(prvKeyConf.RSABits.ValueInt64()))
 	},
 	ECDSA: func(prvKeyConf *privateKeyResourceModel) (crypto.PrivateKey, error) {
 		if prvKeyConf.ECDSACurve.IsUnknown() || prvKeyConf.ECDSACurve.IsNull() {
 			return nil, fmt.Errorf("ECDSA curve not provided")
 		}
 
-		curve := ECDSACurve(prvKeyConf.ECDSACurve.Value)
+		curve := ECDSACurve(prvKeyConf.ECDSACurve.ValueString())
 		switch curve {
 		case P224:
 			return ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
@@ -191,7 +194,7 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 	}
 
 	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
-	// so this will return an error: in that case, we set the below fields to emptry strings
+	// so this will return an error: in that case, we set the below fields to empty strings
 	sshPubKey, err := ssh.NewPublicKey(pubKey)
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -10,7 +13,8 @@ import (
 	"testing"
 	"time"
 
-	r "github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
@@ -217,6 +221,106 @@ func TestResourceSelfSignedCert_DetectExpiringAndExpired(t *testing.T) {
 	overridableTimeFunc = oldNow
 }
 
+func TestResourceSelfSignedCert_DetectExpiring_Refresh(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: selfSignedCertConfig(10, 2),
+				Check:  r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "false"),
+			},
+			{
+				PreConfig:          setTimeForTest("2019-06-14T21:30:00Z"),
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T21:30:00Z"),
+				Config:    selfSignedCertConfig(10, 2),
+				Check:     r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "false"),
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
+func TestResourceSelfSignedCert_DetectExpired_Refresh(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config: selfSignedCertConfig(10, 2),
+				Check:  r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "false"),
+			},
+			{
+				PreConfig:          setTimeForTest("2019-06-14T23:30:00Z"),
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+			{
+				PreConfig: setTimeForTest("2019-06-14T23:30:00Z"),
+				Config:    selfSignedCertConfig(10, 2),
+				Check:     r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "false"),
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
+func TestResourceSelfSignedCert_ReadyForRenewal_ValidityPeriodZero(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config:             selfSignedCertConfig(0, 0),
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
+func TestResourceSelfSignedCert_ReadyForRenewal_EarlyRenewalGreaterThanValidityPeriod(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config:             selfSignedCertConfig(1, 2),
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
+func TestResourceSelfSignedCert_ReadyForRenewal_EarlyRenewalEqualsValidityPeriod(t *testing.T) {
+	oldNow := overridableTimeFunc
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		PreCheck:                 setTimeForTest("2019-06-14T12:00:00Z"),
+		Steps: []r.TestStep{
+			{
+				Config:             selfSignedCertConfig(1, 1),
+				ExpectNonEmptyPlan: true,
+				Check:              r.TestCheckResourceAttr("tls_self_signed_cert.test1", "ready_for_renewal", "true"),
+			},
+		},
+	})
+	overridableTimeFunc = oldNow
+}
+
 func TestResourceSelfSignedCert_RecreatesAfterExpired(t *testing.T) {
 	oldNow := overridableTimeFunc
 	var previousCert string
@@ -390,7 +494,7 @@ func TestResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 						private_key_pem = "does not matter"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`Value must be at least 0, got: -1`),
+				ExpectError: regexp.MustCompile(`Attribute validity_period_hours value must be at least 0, got: -1`),
 			},
 			{
 				Config: `
@@ -406,7 +510,7 @@ func TestResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 						private_key_pem = "does not matter"
 					}
 				`,
-				ExpectError: regexp.MustCompile(`Value must be at least 0, got: -10`),
+				ExpectError: regexp.MustCompile(`Attribute early_renewal_hours value must be at least 0, got: -10`),
 			},
 			{
 				Config: `
@@ -427,7 +531,7 @@ func TestResourceSelfSignedCert_InvalidConfigs(t *testing.T) {
 						]
 					}
 				`,
-				ExpectError: regexp.MustCompile(`List must contain at least 0 elements and at most 1 elements, got: 2|No more than 1 "subject" blocks are allowed`),
+				ExpectError: regexp.MustCompile(`List must contain at least 0 elements and at most 1 elements, got: 2|No more than 1 "subject" blocks are allowed|Attribute subject list must contain at least 0 elements and at most 1\nelements, got: 2|The configuration should declare a maximum of 1 block, however 2 blocks were\nconfigured`),
 			},
 			{
 				Config: `

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package provider
 
 import (
@@ -21,6 +24,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -135,12 +139,12 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	if diags.HasError() {
 		return nil, diags
 	}
-	if !allowedUses.IsNull() && !allowedUses.IsUnknown() && len(allowedUses.Elems) > 0 {
-		for _, keyUse := range allowedUses.Elems {
-			if usage, ok := keyUsages[keyUse.(types.String).Value]; ok {
+	if !allowedUses.IsNull() && !allowedUses.IsUnknown() && len(allowedUses.Elements()) > 0 {
+		for _, keyUse := range allowedUses.Elements() {
+			if usage, ok := keyUsages[keyUse.(types.String).ValueString()]; ok {
 				template.KeyUsage |= usage
 			}
-			if usage, ok := extendedKeyUsages[keyUse.(types.String).Value]; ok {
+			if usage, ok := extendedKeyUsages[keyUse.(types.String).ValueString()]; ok {
 				template.ExtKeyUsage = append(template.ExtKeyUsage, usage)
 			}
 		}
@@ -153,7 +157,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	if diags.HasError() {
 		return nil, diags
 	}
-	if !isCACertificate.IsNull() && !isCACertificate.IsUnknown() && isCACertificate.Value {
+	if !isCACertificate.IsNull() && !isCACertificate.IsUnknown() && isCACertificate.ValueBool() {
 		// NOTE: if the Certificate we are trying to create is a Certificate Authority,
 		// then https://datatracker.ietf.org/doc/html/rfc5280#section-4.1.2.6 requires
 		// the `.Subject` to contain at least 1 Distinguished Name.
@@ -180,7 +184,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	if diags.HasError() {
 		return nil, diags
 	}
-	if !setSubjectKeyID.IsNull() && !setSubjectKeyID.IsUnknown() && setSubjectKeyID.Value {
+	if !setSubjectKeyID.IsNull() && !setSubjectKeyID.IsUnknown() && setSubjectKeyID.ValueBool() {
 		template.SubjectKeyId, err = generateSubjectKeyID(pubKey)
 		if err != nil {
 			diags.AddError("Failed to generate subject key identifier", err.Error())
@@ -189,7 +193,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	}
 
 	// Set authority-id on the template
-	_, ok := plan.Schema.Attributes["set_authority_key_id"]
+	_, ok := plan.Schema.GetAttributes()["set_authority_key_id"]
 	if ok {
 		setAuthorityKeyIDPath := path.Root("set_authority_key_id")
 		var setAuthorityKeyID types.Bool
@@ -197,7 +201,7 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 		if diags.HasError() {
 			return nil, diags
 		}
-		if !setAuthorityKeyID.IsNull() && !setAuthorityKeyID.IsUnknown() && setAuthorityKeyID.Value {
+		if !setAuthorityKeyID.IsNull() && !setAuthorityKeyID.IsUnknown() && setAuthorityKeyID.ValueBool() {
 			if len(parent.SubjectKeyId) == 0 {
 				diags.AddError(
 					"Invalid Certificate Authority",
@@ -249,7 +253,7 @@ type commonCertificate struct {
 	validityEndTime   string
 }
 
-func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *tfsdk.ModifyResourcePlanRequest, res *tfsdk.ModifyResourcePlanResponse) {
+func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *resource.ModifyPlanRequest, res *resource.ModifyPlanResponse) {
 	// Retrieve `validity_end_time` and confirm is a known, non-null value
 	validityEndTimePath := path.Root("validity_end_time")
 	var validityEndTimeStr types.String
@@ -262,10 +266,10 @@ func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *tfsdk.Modi
 	}
 
 	// Parse `validity_end_time`
-	validityEndTime, err := time.Parse(time.RFC3339, validityEndTimeStr.Value)
+	validityEndTime, err := time.Parse(time.RFC3339, validityEndTimeStr.ValueString())
 	if err != nil {
 		res.Diagnostics.AddError(
-			fmt.Sprintf("Failed to parse data from string: %s", validityEndTimeStr.Value),
+			fmt.Sprintf("Failed to parse data from string: %s", validityEndTimeStr.ValueString()),
 			err.Error(),
 		)
 		return
@@ -290,8 +294,53 @@ func modifyPlanIfCertificateReadyForRenewal(ctx context.Context, req *tfsdk.Modi
 	if timeToEarlyRenewal <= 0 {
 		tflog.Info(ctx, "Certificate is ready for early renewal")
 		readyForRenewalPath := path.Root("ready_for_renewal")
-		res.Diagnostics.Append(res.Plan.SetAttribute(ctx, readyForRenewalPath, true)...)
+		res.Diagnostics.Append(res.Plan.SetAttribute(ctx, readyForRenewalPath, types.BoolUnknown())...)
 		res.RequiresReplace = append(res.RequiresReplace, readyForRenewalPath)
+	}
+}
+
+func modifyStateIfCertificateReadyForRenewal(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	// Retrieve `validity_end_time` and confirm is a known, non-null value
+	validityEndTimePath := path.Root("validity_end_time")
+	var validityEndTimeStr types.String
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, validityEndTimePath, &validityEndTimeStr)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if validityEndTimeStr.IsNull() || validityEndTimeStr.IsUnknown() {
+		return
+	}
+
+	// Parse `validity_end_time`
+	validityEndTime, err := time.Parse(time.RFC3339, validityEndTimeStr.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Failed to parse data from string: %s", validityEndTimeStr.ValueString()),
+			err.Error(),
+		)
+		return
+	}
+
+	// Retrieve `early_renewal_hours`
+	earlyRenewalHoursPath := path.Root("early_renewal_hours")
+	var earlyRenewalHours int64
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, earlyRenewalHoursPath, &earlyRenewalHours)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	currentTime := overridableTimeFunc()
+
+	// Determine the time from which an "early renewal" is possible
+	earlyRenewalPeriod := time.Duration(-earlyRenewalHours) * time.Hour
+	earlyRenewalTime := validityEndTime.Add(earlyRenewalPeriod)
+
+	// If "early renewal" time has passed, mark it "ready for renewal"
+	timeToEarlyRenewal := earlyRenewalTime.Sub(currentTime)
+	if timeToEarlyRenewal <= 0 {
+		tflog.Info(ctx, "Certificate is ready for early renewal")
+		readyForRenewalPath := path.Root("ready_for_renewal")
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, readyForRenewalPath, true)...)
 	}
 }
 
@@ -301,15 +350,15 @@ func createSubjectDistinguishedNames(ctx context.Context, subject certificateSub
 	result := pkix.Name{}
 
 	if !subject.CommonName.IsNull() && !subject.CommonName.IsUnknown() {
-		result.CommonName = subject.CommonName.Value
+		result.CommonName = subject.CommonName.ValueString()
 	}
 
 	if !subject.Organization.IsNull() && !subject.Organization.IsUnknown() {
-		result.Organization = []string{subject.Organization.Value}
+		result.Organization = []string{subject.Organization.ValueString()}
 	}
 
 	if !subject.OrganizationalUnit.IsNull() && !subject.OrganizationalUnit.IsUnknown() {
-		result.OrganizationalUnit = []string{subject.OrganizationalUnit.Value}
+		result.OrganizationalUnit = []string{subject.OrganizationalUnit.ValueString()}
 	}
 
 	if !subject.StreetAddress.IsNull() && !subject.StreetAddress.IsUnknown() {
@@ -317,23 +366,23 @@ func createSubjectDistinguishedNames(ctx context.Context, subject certificateSub
 	}
 
 	if !subject.Locality.IsNull() && !subject.Locality.IsUnknown() {
-		result.Locality = []string{subject.Locality.Value}
+		result.Locality = []string{subject.Locality.ValueString()}
 	}
 
 	if !subject.Province.IsNull() && !subject.Province.IsUnknown() {
-		result.Province = []string{subject.Province.Value}
+		result.Province = []string{subject.Province.ValueString()}
 	}
 
 	if !subject.Country.IsNull() && !subject.Country.IsUnknown() {
-		result.Country = []string{subject.Country.Value}
+		result.Country = []string{subject.Country.ValueString()}
 	}
 
 	if !subject.PostalCode.IsNull() && !subject.PostalCode.IsUnknown() {
-		result.PostalCode = []string{subject.PostalCode.Value}
+		result.PostalCode = []string{subject.PostalCode.ValueString()}
 	}
 
 	if !subject.SerialNumber.IsNull() && !subject.SerialNumber.IsUnknown() {
-		result.SerialNumber = subject.SerialNumber.Value
+		result.SerialNumber = subject.SerialNumber.ValueString()
 	}
 
 	return result
