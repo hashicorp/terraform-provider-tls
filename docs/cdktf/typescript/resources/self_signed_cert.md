@@ -34,10 +34,12 @@ class MyConvertedCode extends TerraformStack {
     new SelfSignedCert(this, "example", {
       allowedUses: ["key_encipherment", "digital_signature", "server_auth"],
       privateKeyPem: Token.asString(Fn.file("private_key.pem")),
-      subject: {
-        commonName: "example.com",
-        organization: "ACME Examples, Inc",
-      },
+      subject: [
+        {
+          commonName: "example.com",
+          organization: "ACME Examples, Inc",
+        },
+      ],
       validityPeriodHours: 12,
     });
   }
@@ -69,8 +71,8 @@ class MyConvertedCode extends TerraformStack {
 
 - `certPem` (String) Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 - `id` (String) Unique identifier for this resource: the certificate serial number.
-- `keyAlgorithm` (String) Name of the algorithm used when generating the private key provided in `private_key_pem`.
-- `readyForRenewal` (Boolean) Is the certificate either expired (i.e. beyond the `validity_period_hours`) or ready for an early renewal (i.e. within the `early_renewal_hours`)?
+- `keyAlgorithm` (String) Name of the algorithm used when generating the private key provided in `privateKeyPem`.
+- `readyForRenewal` (Boolean) Is the certificate either expired (i.e. beyond the `validityPeriodHours`) or ready for an early renewal (i.e. within the `earlyRenewalHours`)?
 - `validityEndTime` (String) The time until which the certificate is invalid, expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
 - `validityStartTime` (String) The time after which the certificate is valid, expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
 
@@ -105,4 +107,4 @@ a new certificate when the current one is about to expire.
 The creation of a new certificate may of course cause dependent resources to be updated
 or replaced, depending on the lifecycle rules applying to those resources.
 
-<!-- cache-key: cdktf-0.19.0 input-fdcdd1b995d8aef8a660e00b2010a6a6f9c7bd0b3ef6d96ee4709050cd0a2354 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.20.0 input-fdcdd1b995d8aef8a660e00b2010a6a6f9c7bd0b3ef6d96ee4709050cd0a2354 -->

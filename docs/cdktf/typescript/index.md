@@ -49,10 +49,12 @@ class MyConvertedCode extends TerraformStack {
       earlyRenewalHours: 3,
       keyAlgorithm: example.algorithm,
       privateKeyPem: example.privateKeyPem,
-      subject: {
-        commonName: "example.com",
-        organization: "ACME Examples, Inc",
-      },
+      subject: [
+        {
+          commonName: "example.com",
+          organization: "ACME Examples, Inc",
+        },
+      ],
       validityPeriodHours: 12,
     });
     /*This allows the Terraform resource name to match the original name. You can remove the call if you don't need them to match.*/
@@ -89,9 +91,11 @@ class MyConvertedCode extends TerraformStack {
   constructor(scope: Construct, name: string) {
     super(scope, name);
     new TlsProvider(this, "tls", {
-      proxy: {
-        url: "https://corporate.proxy.service",
-      },
+      proxy: [
+        {
+          url: "https://corporate.proxy.service",
+        },
+      ],
     });
     new DataTlsCertificate(this, "test", {
       url: "https://example.com",
@@ -115,9 +119,11 @@ class MyConvertedCode extends TerraformStack {
   constructor(scope: Construct, name: string) {
     super(scope, name);
     new TlsProvider(this, "tls", {
-      proxy: {
-        fromEnv: true,
-      },
+      proxy: [
+        {
+          fromEnv: true,
+        },
+      ],
     });
     new DataTlsCertificate(this, "test", {
       url: "https://example.com",
@@ -146,26 +152,26 @@ Optional:
 
 ## Limitations
 
-### `ecdsa` with `p224` elliptic curve
+### `ECDSA` with `P224` elliptic curve
 
-When using `ecdsa` with `p224`, all the (computed) attributes
+When using `ECDSA` with `P224`, all the (computed) attributes
 that have to do with [OpenSSH](https://www.openssh.com/) will have a value of `""` (empty string).
 This applies to different resources and data sources offered by this provider,
-like the `tlsPrivateKey` resource or the `tlsPublicKey` data source.
+like the `tls_private_key` resource or the `tls_public_key` data source.
 
 The attributes affected are:
 
-* `publicKeyOpenssh`
-* `privateKeyOpenssh`
-* `publicKeyFingerprintMd5`
-* `publicKeyFingerprintSha256`
+* `.public_key_openssh`
+* `.private_key_openssh`
+* `.public_key_fingerprint_md5`
+* `.public_key_fingerprint_sha256`
 
 This is because the SSH ECC Algorithm Integration ([RFC 5656](https://datatracker.ietf.org/doc/html/rfc5656))
 restricts support for elliptic curves to "nistp256", "nistp384" and "nistp521".
 
 ### Secrets and Terraform state
 
-Some resources that can be created with this provider, like `tlsPrivateKey`, are
+Some resources that can be created with this provider, like `tls_private_key`, are
 considered "secrets", and as such are marked by this provider as _sensitive_, so to
 help practitioner to not accidentally leak their value in logs or other form of output.
 
@@ -179,4 +185,4 @@ Failing that, **protecting the content of the state file is strongly recommended
 The more general advice is that it's better to generate "secrets" outside of Terraform,
 and then distribute them securely to the system where Terraform will make use of them.
 
-<!-- cache-key: cdktf-0.19.0 input-9629aac943b54f5dd10ea0b4a5ac545ba133cdf7ce49405f60bebc3525e333fa 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.20.0 input-9629aac943b54f5dd10ea0b4a5ac545ba133cdf7ce49405f60bebc3525e333fa -->

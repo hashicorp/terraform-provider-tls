@@ -60,10 +60,10 @@ class MyConvertedCode extends TerraformStack {
 
 ### Read-Only
 
-- `caKeyAlgorithm` (String) Name of the algorithm used when generating the private key provided in `ca_private_key_pem`.
+- `caKeyAlgorithm` (String) Name of the algorithm used when generating the private key provided in `caPrivateKeyPem`.
 - `certPem` (String) Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 - `id` (String) Unique identifier for this resource: the certificate serial number.
-- `readyForRenewal` (Boolean) Is the certificate either expired (i.e. beyond the `validity_period_hours`) or ready for an early renewal (i.e. within the `early_renewal_hours`)?
+- `readyForRenewal` (Boolean) Is the certificate either expired (i.e. beyond the `validityPeriodHours`) or ready for an early renewal (i.e. within the `earlyRenewalHours`)?
 - `validityEndTime` (String) The time until which the certificate is invalid, expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
 - `validityStartTime` (String) The time after which the certificate is valid, expressed as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
 
@@ -83,4 +83,4 @@ a new certificate when the current one is about to expire.
 The creation of a new certificate may of course cause dependent resources to be updated
 or replaced, depending on the lifecycle rules applying to those resources.
 
-<!-- cache-key: cdktf-0.19.0 input-68f5a3ac6e15730702eda898fd0b26d83e0623e2680b4782c44d4d8fba2cfe8f 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.20.0 input-68f5a3ac6e15730702eda898fd0b26d83e0623e2680b4782c44d4d8fba2cfe8f -->
