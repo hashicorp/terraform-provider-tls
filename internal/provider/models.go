@@ -65,6 +65,7 @@ type certificateSubjectModel struct {
 
 type privateKeyResourceModel struct {
 	Algorithm                  types.String `tfsdk:"algorithm"`
+	OpenSSHComment             types.String `tfsdk:"openssh_comment"`
 	RSABits                    types.Int64  `tfsdk:"rsa_bits"`
 	ECDSACurve                 types.String `tfsdk:"ecdsa_curve"`
 	PrivateKeyPem              types.String `tfsdk:"private_key_pem"`
