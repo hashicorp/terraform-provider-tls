@@ -27,4 +27,3 @@ linters:
 run:
   # Prevent false positive timeouts in CI
   timeout: 5m
-  allow-parallel-runners: true

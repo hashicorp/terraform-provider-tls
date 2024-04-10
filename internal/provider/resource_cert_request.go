@@ -276,7 +276,7 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 		for _, ipStr := range ipAddresses {
 			ip := net.ParseIP(ipStr)
 			if ip == nil {
-				res.Diagnostics.AddError("Invalid IP address", fmt.Sprintf("Failed to parse %#v", ipString.ValueString()))
+				res.Diagnostics.AddError("Invalid IP address", fmt.Sprintf("Failed to parse %#v", ipStr))
 				return
 			}
 			certReq.IPAddresses = append(certReq.IPAddresses, ip)
@@ -298,7 +298,7 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 		for _, uriStr := range uris {
 			uri, err := url.Parse(uriStr)
 			if err != nil {
-				res.Diagnostics.AddError("Invalid URI", fmt.Sprintf("Failed to parse %#v: %v", uriString.ValueString(), err.Error()))
+				res.Diagnostics.AddError("Invalid URI", fmt.Sprintf("Failed to parse %#v: %v", uriStr, err.Error()))
 				return
 			}
 			certReq.URIs = append(certReq.URIs, uri)

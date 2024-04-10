@@ -106,8 +106,8 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"name_constraint_permitted_dns_names_critical": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
-					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Should name constraints permitted dns domains attribute be marked critical.",
@@ -142,9 +142,7 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"max_path_length": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []planmodifier.Int64{
-					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(-1)),
-				},
+				Default:  int64default.StaticInt64(-1),
 				Validators: []validator.Int64{
 					int64validator.AtLeast(-1),
 				},
@@ -179,8 +177,8 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"set_authority_key_id": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  booldefault.StaticBool(false),
 				PlanModifiers: []planmodifier.Bool{
-					attribute_plan_modifier_bool.DefaultValue(types.BoolValue(false)),
 					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include an " +
