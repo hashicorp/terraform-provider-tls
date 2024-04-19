@@ -363,15 +363,11 @@ func TestAccPrivateKeyED25519_UpgradeFromVersion3_4_0(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				PlanOnly: true,
-			},
-			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config: `
-					resource "tls_private_key" "test" {
-						algorithm = "ED25519"
-					}
-				`,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyPKCS8.String()),
 					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
