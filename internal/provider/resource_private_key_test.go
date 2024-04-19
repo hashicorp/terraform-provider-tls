@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
@@ -93,15 +94,11 @@ func TestAccPrivateKeyRSA_UpgradeFromVersion3_4_0(t *testing.T) {
 						algorithm = "RSA"
 					}
 				`,
-				PlanOnly: true,
-			},
-			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config: `
-					resource "tls_private_key" "test" {
-						algorithm = "RSA"
-					}
-				`,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyRSA.String()),
 					r.TestCheckResourceAttrWith("tls_private_key.test", "private_key_pem", func(pem string) error {
@@ -155,15 +152,11 @@ func TestAccPrivateKeyRSA_UpgradeFromVersion3_1_0(t *testing.T) {
 						algorithm = "RSA"
 					}
 				`,
-				PlanOnly: true,
-			},
-			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config: `
-					resource "tls_private_key" "test" {
-						algorithm = "RSA"
-					}
-				`,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyRSA.String()),
 					r.TestCheckResourceAttrWith("tls_private_key.test", "private_key_pem", func(pem string) error {
@@ -252,15 +245,11 @@ func TestAccPrivateKeyECDSA_UpgradeFromVersion3_4_0(t *testing.T) {
 						algorithm = "ECDSA"
 					}
 				`,
-				PlanOnly: true,
-			},
-			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config: `
-					resource "tls_private_key" "test" {
-						algorithm = "ECDSA"
-					}
-				`,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyEC.String()),
 					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
@@ -304,16 +293,11 @@ func TestAccPrivateKeyECDSA_UpgradeFromVersion3_1_0(t *testing.T) {
 						ecdsa_curve = "P256"
 					}
 				`,
-				PlanOnly: true,
-			},
-			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config: `
-					resource "tls_private_key" "test" {
-						algorithm = "ECDSA"
-						ecdsa_curve = "P256"
-					}
-				`,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyEC.String()),
 					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
@@ -379,15 +363,11 @@ func TestAccPrivateKeyED25519_UpgradeFromVersion3_4_0(t *testing.T) {
 						algorithm = "ED25519"
 					}
 				`,
-				PlanOnly: true,
-			},
-			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config: `
-					resource "tls_private_key" "test" {
-						algorithm = "ED25519"
-					}
-				`,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectEmptyPlan(),
+					},
+				},
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_private_key.test", "private_key_pem", PreamblePrivateKeyPKCS8.String()),
 					tu.TestCheckPEMFormat("tls_private_key.test", "public_key_pem", PreamblePublicKey.String()),
