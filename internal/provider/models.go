@@ -44,6 +44,7 @@ type certRequestResourceModel struct {
 	DNSNames       types.List   `tfsdk:"dns_names"`
 	IPAddresses    types.List   `tfsdk:"ip_addresses"`
 	URIs           types.List   `tfsdk:"uris"`
+	HashAlgorithm  types.String `tfsdk:"hashing_algorithm"`
 	PrivateKeyPEM  types.String `tfsdk:"private_key_pem"`
 	KeyAlgorithm   types.String `tfsdk:"key_algorithm"`
 	CertRequestPEM types.String `tfsdk:"cert_request_pem"`
@@ -85,6 +86,7 @@ type selfSignedCertResourceModel struct {
 	Subject             types.List   `tfsdk:"subject"` //< certificateSubjectModel
 	ValidityPeriodHours types.Int64  `tfsdk:"validity_period_hours"`
 	AllowedUses         types.List   `tfsdk:"allowed_uses"`
+	HashAlgorithm       types.String `tfsdk:"hashing_algorithm"`
 	EarlyRenewalHours   types.Int64  `tfsdk:"early_renewal_hours"`
 	IsCACertificate     types.Bool   `tfsdk:"is_ca_certificate"`
 	SetSubjectKeyID     types.Bool   `tfsdk:"set_subject_key_id"`
@@ -103,6 +105,7 @@ type locallySignedCertResourceModel struct {
 	CertRequestPEM      types.String `tfsdk:"cert_request_pem"`
 	ValidityPeriodHours types.Int64  `tfsdk:"validity_period_hours"`
 	AllowedUses         types.List   `tfsdk:"allowed_uses"`
+	HashAlgorithm       types.String `tfsdk:"hashing_algorithm"`
 	EarlyRenewalHours   types.Int64  `tfsdk:"early_renewal_hours"`
 	IsCACertificate     types.Bool   `tfsdk:"is_ca_certificate"`
 	SetSubjectKeyID     types.Bool   `tfsdk:"set_subject_key_id"`
