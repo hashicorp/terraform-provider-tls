@@ -753,3 +753,52 @@ func TestResourceLocallySignedCert_InvalidConfigs(t *testing.T) {
 		},
 	})
 }
+
+const tlsLocallySignedCertWithHash = `
+resource "tls_private_key" "ca_prv_test" {
+	algorithm = "RSA"
+	rsa_bits  = 4096
+}
+resource "tls_self_signed_cert" "ca_cert_test" {
+	private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+	validity_period_hours = 8760
+	allowed_uses = ["cert_signing"]
+}
+resource "tls_private_key" "test" {
+	algorithm = "RSA"
+	rsa_bits  = 4096
+}
+resource "tls_cert_request" "test" {
+	private_key_pem = tls_private_key.test.private_key_pem
+}
+resource "tls_locally_signed_cert" "test" {
+	validity_period_hours = 1
+	early_renewal_hours = 0
+	allowed_uses = ["server_auth", "client_auth"]
+	cert_request_pem = tls_cert_request.test.cert_request_pem
+	ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+	ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+	hashing_algorithm = "%s"
+}
+`
+
+func TestResourceLocallySignedCert_PrivateKeyPEMWithHash(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(tlsLocallySignedCertWithHash, "sha512"),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMCertificateSignatureAlgorithm("tls_locally_signed_cert.test", "cert_pem", "SHA512-RSA"),
+				),
+			},
+			{
+				Taint:  []string{"tls_locally_signed_cert.test"},
+				Config: fmt.Sprintf(tlsLocallySignedCertWithHash, "sha256"),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMCertificateSignatureAlgorithm("tls_locally_signed_cert.test", "cert_pem", "SHA256-RSA"),
+				),
+			},
+		},
+	})
+}

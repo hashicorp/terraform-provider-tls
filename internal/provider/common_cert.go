@@ -155,7 +155,7 @@ func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
 // getSignatureAlgorithm calculates the algorithm based on the public key and the desired hash.
 func getSignatureAlgorithm(pubKey crypto.PublicKey, hashAlg string) (*x509.SignatureAlgorithm, error) {
 	var err error
-	var algorithm = hashAlg
+	var algorithm = strings.ToLower(hashAlg)
 
 	// lookup algorithm from public key type
 	switch pub := pubKey.(type) {

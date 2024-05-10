@@ -196,6 +196,17 @@ func TestCheckPEMCertificateAgainstPEMRootCA(name, key string, rootCA []byte) r.
 	})
 }
 
+func TestCheckPEMCertificateRequestSignatureAlgorithm(name, key string, expected string) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(crt *x509.CertificateRequest) error {
+		return compareSignatureAlgorithm(expected, &crt.SignatureAlgorithm)
+	})
+}
+func TestCheckPEMCertificateSignatureAlgorithm(name, key string, expected string) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+		return compareSignatureAlgorithm(expected, &crt.SignatureAlgorithm)
+	})
+}
+
 func compareCertSubjects(expected, actualSubject *pkix.Name) error {
 	if expected.SerialNumber != "" && expected.SerialNumber != actualSubject.SerialNumber {
 		return fmt.Errorf("incorrect subject serial number: expected %v, got %v", expected.SerialNumber, actualSubject.SerialNumber)
@@ -281,6 +292,13 @@ func compareExtKeyUsages(expected, actual []x509.ExtKeyUsage) error {
 		}
 	}
 
+	return nil
+}
+
+func compareSignatureAlgorithm(expected string, actual *x509.SignatureAlgorithm) error {
+	if !cmp.Equal(actual.String(), expected) {
+		return fmt.Errorf("incorrect Signature Algorithm: expected %v, got %v", expected, actual.String())
+	}
 	return nil
 }
 
