@@ -159,50 +159,34 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 	})
 }
 
-// NOTE: Yes, this test is fetching a live certificate.
-// It can potentially break over time, and we will need to keep the
-// data we check against up to date, when that happens.
 func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
-	r.Test(t, r.TestCase{
+	server, err := tu.NewHTTPServer()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	go server.ServeTLS()
+
+	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
-				Config: `
-					data "tls_certificate" "test" {
-						url = "https://untrusted-root.badssl.com/"
-					}
-				`,
-				ExpectError: regexp.MustCompile(`(certificate is not trusted|certificate signed by[\s]*unknown[\s]*authority)`),
+				Config: fmt.Sprintf(`
+						data "tls_certificate" "test" {
+							url = "https://%s"
+						}
+					`, server.Address()),
+				ExpectError: regexp.MustCompile(`(certificate has expired|certificate is not trusted|certificate signed by[\s]*unknown[\s]*authority)`),
 			},
 			{
-				Config: `
-					data "tls_certificate" "test" {
-						url = "https://untrusted-root.badssl.com/"
-						verify_chain = false
-					}
-				`,
-				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
-
-					// BadSSL Untrusted Root Certificate Authority
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=BadSSL Untrusted Root Certificate Authority,O=BadSSL,L=San Francisco,ST=California,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=BadSSL Untrusted Root Certificate Authority,O=BadSSL,L=San Francisco,ST=California,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "7890c8934d5869b25d2f8d0d646f9a5d7385ba85"),
-
-					// BadSSL
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=BadSSL Untrusted Root Certificate Authority,O=BadSSL,L=San Francisco,ST=California,C=US"),
-					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=*.badssl.com,O=BadSSL,L=San Francisco,ST=California,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
-					// MAINTAINER NOTE: This value is expected to change over time.
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "6922cd864f3c6299f6e751a019e5ddcdbc415a71"),
-				),
+				Config: fmt.Sprintf(`
+						data "tls_certificate" "test" {
+							url = "https://%s"
+							verify_chain = false
+						}
+					`, server.Address()),
+				Check: localTestCertificateChainCheckFunc(),
 			},
 		},
 	})
