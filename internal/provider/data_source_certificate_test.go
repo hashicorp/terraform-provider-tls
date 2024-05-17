@@ -159,9 +159,6 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 	})
 }
 
-// NOTE: Yes, this test is fetching a live certificate.
-// It can potentially break over time, and we will need to keep the
-// data we check against up to date, when that happens.
 func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 	server, err := tu.NewHTTPServer()
 	if err != nil {
