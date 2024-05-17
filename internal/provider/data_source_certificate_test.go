@@ -180,7 +180,7 @@ func TestAccDataSourceCertificate_BadSSL(t *testing.T) {
 							url = "https://%s"
 						}
 					`, server.Address()),
-				ExpectError: regexp.MustCompile(`(certificate is not trusted|certificate signed by[\s]*unknown[\s]*authority)`),
+				ExpectError: regexp.MustCompile(`(certificate has expired|certificate is not trusted|certificate signed by[\s]*unknown[\s]*authority)`),
 			},
 			{
 				Config: fmt.Sprintf(`
