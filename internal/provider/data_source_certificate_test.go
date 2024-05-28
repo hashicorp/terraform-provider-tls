@@ -133,23 +133,30 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "3"),
 
-					// ISRG Root X1, R3
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R3,O=Let's Encrypt,C=US"),
+					// ISRG Root X1
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=DST Root CA X3,O=Digital Signature Trust Co."),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "a053375bfe84e8b748782c7cee15827a6af5a405"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "933c6ddee95c9c41a40f9f50493d82be03ad87bf"),
 
-					// terraform.io
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=R3,O=Let's Encrypt,C=US"),
+					// Let's Encrypt Intermediate Root R3
 					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=www.terraform.io"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=R3,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "true"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "a053375bfe84e8b748782c7cee15827a6af5a405"),
+
+					// www.terraform.io
+					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.2.issuer", "data.tls_certificate.test", "certificates.1.subject"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.subject", "CN=www.terraform.io"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.signature_algorithm", "SHA256-RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.public_key_algorithm", "RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.is_ca", "false"),
 
 					// NOTE: Not checking the fingerprint, as this certificate is auto-updated frequently:
 					//   all the other data are stable, but the signature changes every time.
@@ -628,14 +635,18 @@ func TestDataSourceCertificate_MalformedURL(t *testing.T) {
 	})
 }
 
+// Reference: https://github.com/hashicorp/terraform-provider-tls/issues/244
 func TestDataSourceCertificate_UnknownComputedCertificatesUntilApplied(t *testing.T) {
 	r.Test(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
 		Steps: []r.TestStep{
 			{
-
 				Config: `
+					# This could be replaced with Terraform 1.4+ terraform_data
+					# managed resource input/output for the unknown value, but
+					# this uses a provider resource for earlier Terraform
+					# version compatibility instead.
 					resource "tls_private_key" "test" {
 						algorithm = "ED25519"
 					}
@@ -653,18 +664,8 @@ func TestDataSourceCertificate_UnknownComputedCertificatesUntilApplied(t *testin
 						value = data.tls_certificate.test.certificates[0].sha1_fingerprint
 					}
 				`,
-				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
-
-					// ISRG Root X1, R3
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R3,O=Let's Encrypt,C=US"),
-
-					// terraform.io
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.issuer", "CN=R3,O=Let's Encrypt,C=US"),
-					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=www.terraform.io"),
-				),
+				// Configuration applying without error is enough regression
+				// verification, e.g. no need for Checks.
 			},
 		},
 	})
