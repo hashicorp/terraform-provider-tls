@@ -856,3 +856,43 @@ func TestResourceSelfSignedCert_NoSubject(t *testing.T) {
 		},
 	})
 }
+
+const tlsCertWithHash = `
+resource "tls_private_key" "test" {
+	algorithm = "RSA"
+	rsa_bits  = 4096
+}
+resource "tls_self_signed_cert" "test" {
+	private_key_pem = tls_private_key.test.private_key_pem
+	subject {
+		organization = "test-organization"
+	}
+	validity_period_hours = 6
+	allowed_uses = [
+		"cert_signing",
+	]
+
+	hashing_algorithm = "%s"
+}
+`
+
+func TestResourceSelfSignedCert_PrivateKeyPEMWithHash(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(tlsCertWithHash, "sha512"),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMCertificateSignatureAlgorithm("tls_self_signed_cert.test", "cert_pem", "SHA512-RSA"),
+				),
+			},
+			{
+				Taint:  []string{"tls_self_signed_cert.test"},
+				Config: fmt.Sprintf(tlsCertWithHash, "sha256"),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMCertificateSignatureAlgorithm("tls_self_signed_cert.test", "cert_pem", "SHA256-RSA"),
+				),
+			},
+		},
+	})
+}
