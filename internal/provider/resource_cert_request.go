@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -86,6 +87,14 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 					),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
+			},
+			"hashing_algorithm": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(supportedHashingAlgorithms()...),
+				},
+				Description: "The algorithm to use when hashing the certificate for signature signing " +
+					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedHashingAlgorithms(), "`, `")),
 			},
 
 			// Computed attributes
@@ -302,6 +311,23 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 				return
 			}
 			certReq.URIs = append(certReq.URIs, uri)
+		}
+	}
+
+	// Set signature-algorithm on the template
+	if !newState.HashAlgorithm.IsNull() && !newState.HashAlgorithm.IsUnknown() {
+		pubKey, err := privateKeyToPublicKey(key)
+		if err != nil {
+			res.Diagnostics.AddError("Failed to generate public key", err.Error())
+			return
+		}
+		sigAlg, err := getSignatureAlgorithm(pubKey, newState.HashAlgorithm.ValueString())
+		if err != nil {
+			res.Diagnostics.AddError("Failed to generate signature algorithm", err.Error())
+			return
+		}
+		if sigAlg != nil {
+			certReq.SignatureAlgorithm = *sigAlg
 		}
 	}
 
