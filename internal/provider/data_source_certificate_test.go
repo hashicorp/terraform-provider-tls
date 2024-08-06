@@ -149,7 +149,6 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "3aeb49dc3768d48c4b7167c5d1d2dd2d3a3e966d"),
 
 					// NOTE: Not checking the fingerprint, as this certificate is auto-updated frequently:
 					//   all the other data are stable, but the signature changes every time.
