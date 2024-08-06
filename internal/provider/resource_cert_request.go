@@ -7,10 +7,13 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -86,6 +89,20 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 					),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
+			},
+			"allowed_uses": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.OneOf(supportedEtendedKeyUsagesStr()...),
+					),
+				},
+				Description: "List of key usages for the certificate singing request. " +
+					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedEtendedKeyUsagesStr(), "`, `")),
 			},
 
 			// Computed attributes
@@ -303,6 +320,38 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			}
 			certReq.URIs = append(certReq.URIs, uri)
 		}
+	}
+
+	// Add AllowedUses if provided
+	if !newState.AllowedUses.IsNull() && !newState.AllowedUses.IsUnknown() && len(newState.AllowedUses.Elements()) > 0 {
+		tflog.Debug(ctx, "Adding key usages in certificate request", map[string]interface{}{
+			"extraExtensions": newState.AllowedUses,
+		})
+
+		var extKeyUsages []string
+		res.Diagnostics.Append(newState.AllowedUses.ElementsAs(ctx, &extKeyUsages, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		var extKeyUsageOIDs []asn1.ObjectIdentifier
+		for _, extKeyUsageStr := range extKeyUsages {
+			extKeyUsageOID, ok := extendedKeyUsageOIDs[extKeyUsageStr]
+			if !ok {
+				res.Diagnostics.AddError("Invalid key usage", fmt.Sprintf("%#v unsupported", extKeyUsageStr))
+				return
+			}
+			extKeyUsageOIDs = append(extKeyUsageOIDs, extKeyUsageOID)
+		}
+		asn1ExtKeyUsages, err := asn1.Marshal(extKeyUsageOIDs)
+		if err != nil {
+			res.Diagnostics.AddError("Error creating key usage list for certificate request", err.Error())
+			return
+		}
+		certReq.ExtraExtensions = append(certReq.ExtraExtensions, pkix.Extension{
+			Id:    asn1.ObjectIdentifier{2, 5, 29, 37},
+			Value: asn1ExtKeyUsages,
+		})
 	}
 
 	// Generate `Certificate Request`
