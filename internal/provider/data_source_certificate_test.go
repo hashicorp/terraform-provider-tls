@@ -133,30 +133,22 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "3"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
 
 					// ISRG Root X1
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=DST Root CA X3,O=Digital Signature Trust Co."),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R11,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "933c6ddee95c9c41a40f9f50493d82be03ad87bf"),
-
-					// Let's Encrypt Intermediate Root R3
-					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=R3,O=Let's Encrypt,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "true"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.sha1_fingerprint", "a053375bfe84e8b748782c7cee15827a6af5a405"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "696db3af0dffc17e65c6a20d925c5a7bd24dec7e"),
 
 					// www.terraform.io
-					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.2.issuer", "data.tls_certificate.test", "certificates.1.subject"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.subject", "CN=www.terraform.io"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.signature_algorithm", "SHA256-RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.public_key_algorithm", "RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.is_ca", "false"),
+					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=www.terraform.io"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
 
 					// NOTE: Not checking the fingerprint, as this certificate is auto-updated frequently:
 					//   all the other data are stable, but the signature changes every time.
