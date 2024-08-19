@@ -193,6 +193,13 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 							},
 							Description: "Distinguished name: `SERIALNUMBER`",
 						},
+						"email_address": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "Email Address: `1.2.840.113549.1.9.1`",
+						},
 					},
 				},
 				MarkdownDescription: "The subject for which a certificate is being requested. " +
