@@ -79,5 +79,6 @@ Optional:
 - `province` (String) Distinguished name: `ST`
 - `serial_number` (String) Distinguished name: `SERIALNUMBER`
 - `street_address` (List of String) Distinguished name: `STREET`
+- `email_address` (String) Email address: `emailAddress (x509 1.2.840.113549.1.9.1)`
 
 <!-- cache-key: cdktf-0.20.8 input-f0b329ca4c0554d420316e3aa077babdcc26589666ed69b639e7ed93d15ac558 -->
