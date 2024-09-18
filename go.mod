@@ -3,8 +3,8 @@ module github.com/hashicorp/terraform-provider-tls
 go 1.22.7
 
 require (
-	github.com/elazarl/goproxy v0.0.0-20220529153421-8ea89ba92021
-	github.com/elazarl/goproxy/ext v0.0.0-20220529153421-8ea89ba92021
+	github.com/elazarl/goproxy v0.0.0-20231117061959-7cc037d33fb5
+	github.com/elazarl/goproxy/ext v0.0.0-20231117061959-7cc037d33fb5
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/terraform-plugin-framework v1.11.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.13.0
@@ -46,7 +46,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
-	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/oklog/run v1.1.0 // indirect

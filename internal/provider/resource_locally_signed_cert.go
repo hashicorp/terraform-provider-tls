@@ -102,6 +102,33 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedKeyUsagesStr(), "`, `")),
 			},
 
+			// Name constraints
+			"name_constraint_permitted_dns_names_critical": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+				Description: "Should name constraints permitted dns domains attribute be marked critical.",
+			},
+			"name_constraint_permitted_dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Description: "List of permitted DNS names for which a certificate name constraints is being requested (i.e. permitted DNS domains).",
+			},
+			"name_constraint_excluded_dns_names": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Description: "List of excluded DNS names for which a certificate name constraints is being requested (i.e. excluded DNS domains).",
+			},
+
 			// Optional attributes
 			"is_ca_certificate": schema.BoolAttribute{
 				Optional: true,
@@ -111,6 +138,16 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Is the generated certificate representing a Certificate Authority (CA) (default: `false`).",
+			},
+			"max_path_length": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+				Default:  int64default.StaticInt64(-1),
+				Validators: []validator.Int64{
+					int64validator.AtLeast(-1),
+				},
+				Description: "Maximum number of intermediate certificates that may follow this certificate in a " +
+					"valid certification path. If `is_ca_certificate` is `false`, this value is ignored. (default: `-1`)",
 			},
 			"early_renewal_hours": schema.Int64Attribute{
 				Optional: true,
@@ -135,6 +172,18 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 					boolplanmodifier.RequiresReplace(),
 				},
 				Description: "Should the generated certificate include a " +
+					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
+			},
+			"set_authority_key_id": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
+				Description: "Should the generated certificate include an " +
+					"[authority key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.1): " +
+					"for self-signed certificates this is the same value as the " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
 			},
 
