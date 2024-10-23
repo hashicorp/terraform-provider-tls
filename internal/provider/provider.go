@@ -195,6 +195,8 @@ func (p *tlsProvider) DataSources(_ context.Context) []func() datasource.DataSou
 	return []func() datasource.DataSource{
 		NewCertificateDataSource,
 		NewPublicKeyDataSource,
+		NewPfxToPemDataSource,
+		NewPemToPfxDataSource,
 	}
 }
 
