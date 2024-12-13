@@ -69,6 +69,10 @@ func (d *publicKeyDataSource) Schema(ctx context.Context, req datasource.SchemaR
 				Description: "The name of the algorithm used by the given private key. " +
 					fmt.Sprintf("Possible values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
 			},
+			"openssh_comment": schema.StringAttribute{
+				Computed:    true,
+				Description: "The OpenSSH comment.",
+			},
 			"public_key_pem": schema.StringAttribute{
 				Computed: true,
 				Description: "The public key, in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
