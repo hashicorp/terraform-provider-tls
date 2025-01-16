@@ -198,7 +198,7 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.RequiresReplace(),
 							},
-							Description: "Email Address: `1.2.840.113549.1.9.1`",
+							Description: "ASN.1 Object Identifier (OID): `1.2.840.113549.1.9.1`",
 						},
 					},
 				},
