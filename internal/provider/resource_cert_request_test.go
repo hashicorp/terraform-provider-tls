@@ -5,6 +5,7 @@ package provider
 
 import (
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"fmt"
 	"net"
 	"net/url"
@@ -37,6 +38,7 @@ func TestResourceCertRequest(t *testing.T) {
 							country = "US"
 							postal_code = "95559-1227"
 							serial_number = "2"
+							email_address = "example@example.com"
 						}
 						dns_names = [
 							"example.com",
@@ -65,6 +67,15 @@ func TestResourceCertRequest(t *testing.T) {
 						Province:           []string{"CA"},
 						Country:            []string{"US"},
 						PostalCode:         []string{"95559-1227"},
+						ExtraNames: []pkix.AttributeTypeAndValue{
+							{
+								Type: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1},
+								Value: asn1.RawValue{
+									Tag:   asn1.TagIA5String,
+									Bytes: []byte("example@example.com"),
+								},
+							},
+						},
 					}),
 					tu.TestCheckPEMCertificateRequestDNSNames("tls_cert_request.test1", "cert_request_pem", []string{
 						"example.com",
