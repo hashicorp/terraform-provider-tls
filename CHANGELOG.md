@@ -1,3 +1,15 @@
+## 4.0.6 (September 11, 2024)
+
+NOTES:
+
+* all: This release introduces no functional changes. It does however include dependency updates which address upstream CVEs. ([#552](https://github.com/hashicorp/terraform-provider-tls/issues/552))
+
+## 4.0.5 (November 27, 2023)
+
+NOTES:
+
+* This release introduces no functional changes. It does however include dependency updates which address upstream CVEs. ([#432](https://github.com/hashicorp/terraform-provider-tls/issues/432))
+
 ## 4.0.4 (October 31, 2022)
 
 BUG FIXES:

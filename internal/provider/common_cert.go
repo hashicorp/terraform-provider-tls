@@ -88,6 +88,7 @@ func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
 			err = fmt.Errorf("received 'nil' pointer instead of public key")
 		}
 	case *ecdsa.PublicKey:
+		//nolint:staticcheck // Reference: https://github.com/hashicorp/terraform-provider-tls/issues/480
 		pubKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
 	case ed25519.PublicKey:
 		pubKeyBytes, err = asn1.Marshal(pub)

@@ -24,8 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
-	"github.com/hashicorp/terraform-provider-tls/internal/openssh"
+	"golang.org/x/crypto/ssh"
 )
 
 type privateKeyResource struct{}
@@ -318,7 +317,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 	tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
 	newState.PrivateKeyOpenSSH = types.StringValue("")
 	if prvKeySupportsOpenSSHMarshalling(prvKey) {
-		openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
+		openSSHKeyPemBlock, err := ssh.MarshalPrivateKey(prvKey, "")
 		if err != nil {
 			res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
 			return
@@ -392,7 +391,7 @@ func (r *privateKeyResource) UpgradeState(ctx context.Context) map[int64]resourc
 				// Marshal the Key in OpenSSH PEM, if necessary and supported
 				tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
 				if (upState.PrivateKeyOpenSSH.IsNull() || upState.PrivateKeyOpenSSH.ValueString() == "") && prvKeySupportsOpenSSHMarshalling(prvKey) {
-					openSSHKeyPemBlock, err := openssh.MarshalPrivateKey(prvKey, "")
+					openSSHKeyPemBlock, err := ssh.MarshalPrivateKey(prvKey, "")
 					if err != nil {
 						res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
 						return

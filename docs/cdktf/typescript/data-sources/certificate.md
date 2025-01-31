@@ -121,17 +121,17 @@ class MyConvertedCode extends TerraformStack {
 
 Read-Only:
 
-- `isCa` (Boolean) `true` if the certificate is of a CA (Certificate Authority).
+- `is_ca` (Boolean) `true` if the certificate is of a CA (Certificate Authority).
 - `issuer` (String) Who verified and signed the certificate, roughly following [RFC2253](https://tools.ietf.org/html/rfc2253).
 - `notAfter` (String) The time until which the certificate is invalid, as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
 - `notBefore` (String) The time after which the certificate is valid, as an [RFC3339](https://tools.ietf.org/html/rfc3339) timestamp.
-- `publicKeyAlgorithm` (String) The key algorithm used to create the certificate.
+- `public_key_algorithm` (String) The key algorithm used to create the certificate.
 - `serialNumber` (String) Number that uniquely identifies the certificate with the CA's system.
   The `format` function can be used to convert this _base 10_ number into other bases, such as hex.
-- `sha1Fingerprint` (String) The SHA1 fingerprint of the public key of the certificate.
-- `signatureAlgorithm` (String) The algorithm used to sign the certificate.
+- `sha1_fingerprint` (String) The SHA1 fingerprint of the public key of the certificate.
+- `signature_algorithm` (String) The algorithm used to sign the certificate.
 - `subject` (String) The entity the certificate belongs to, roughly following [RFC2253](https://tools.ietf.org/html/rfc2253).
 - `version` (Number) The version the certificate is in.
 - `certPem` (String) Certificate data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
 
-<!-- cache-key: cdktf-0.18.0 input-aa0448a429be224544a948790292f3b630d2ecf0739247bd90334feadefa8419 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.20.8 input-aa0448a429be224544a948790292f3b630d2ecf0739247bd90334feadefa8419 -->

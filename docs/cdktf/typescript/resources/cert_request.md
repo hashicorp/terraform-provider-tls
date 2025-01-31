@@ -37,10 +37,12 @@ class MyConvertedCode extends TerraformStack {
     super(scope, name);
     new CertRequest(this, "example", {
       privateKeyPem: Token.asString(Fn.file("private_key.pem")),
-      subject: {
-        commonName: "example.com",
-        organization: "ACME Examples, Inc",
-      },
+      subject: [
+        {
+          commonName: "example.com",
+          organization: "ACME Examples, Inc",
+        },
+      ],
     });
   }
 }
@@ -72,14 +74,14 @@ class MyConvertedCode extends TerraformStack {
 
 Optional:
 
-- `commonName` (String) Distinguished name: `cn`
-- `country` (String) Distinguished name: `c`
-- `locality` (String) Distinguished name: `l`
-- `organization` (String) Distinguished name: `o`
-- `organizationalUnit` (String) Distinguished name: `ou`
-- `postalCode` (String) Distinguished name: `pc`
-- `province` (String) Distinguished name: `st`
-- `serialNumber` (String) Distinguished name: `serialnumber`
-- `streetAddress` (List of String) Distinguished name: `street`
+- `commonName` (String) Distinguished name: `CN`
+- `country` (String) Distinguished name: `C`
+- `locality` (String) Distinguished name: `L`
+- `organization` (String) Distinguished name: `O`
+- `organizationalUnit` (String) Distinguished name: `OU`
+- `postalCode` (String) Distinguished name: `PC`
+- `province` (String) Distinguished name: `ST`
+- `serialNumber` (String) Distinguished name: `SERIALNUMBER`
+- `streetAddress` (List of String) Distinguished name: `STREET`
 
-<!-- cache-key: cdktf-0.18.0 input-f0b329ca4c0554d420316e3aa077babdcc26589666ed69b639e7ed93d15ac558 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.20.8 input-f0b329ca4c0554d420316e3aa077babdcc26589666ed69b639e7ed93d15ac558 -->

@@ -49,10 +49,11 @@ class MyConvertedCode(TerraformStack):
             early_renewal_hours=3,
             key_algorithm=example.algorithm,
             private_key_pem=example.private_key_pem,
-            subject=SelfSignedCertSubject(
+            subject=[SelfSignedCertSubject(
                 common_name="example.com",
                 organization="ACME Examples, Inc"
-            ),
+            )
+            ],
             validity_period_hours=12
         )
         # This allows the Terraform resource name to match the original name. You can remove the call if you don't need them to match.
@@ -82,9 +83,10 @@ class MyConvertedCode(TerraformStack):
     def __init__(self, scope, name):
         super().__init__(scope, name)
         TlsProvider(self, "tls",
-            proxy=TlsProviderProxy(
+            proxy=[TlsProviderProxy(
                 url="https://corporate.proxy.service"
             )
+            ]
         )
         DataTlsCertificate(self, "test",
             url="https://example.com"
@@ -105,9 +107,10 @@ class MyConvertedCode(TerraformStack):
     def __init__(self, scope, name):
         super().__init__(scope, name)
         TlsProvider(self, "tls",
-            proxy=TlsProviderProxy(
+            proxy=[TlsProviderProxy(
                 from_env=True
             )
+            ]
         )
         DataTlsCertificate(self, "test",
             url="https://example.com"
@@ -166,4 +169,4 @@ Failing that, **protecting the content of the state file is strongly recommended
 The more general advice is that it's better to generate "secrets" outside of Terraform,
 and then distribute them securely to the system where Terraform will make use of them.
 
-<!-- cache-key: cdktf-0.18.0 input-9629aac943b54f5dd10ea0b4a5ac545ba133cdf7ce49405f60bebc3525e333fa 556251879b8ed0dc4c87a76b568667e0ab5e2c46efdd14a05c556daf05678783-->
+<!-- cache-key: cdktf-0.20.8 input-9629aac943b54f5dd10ea0b4a5ac545ba133cdf7ce49405f60bebc3525e333fa -->
