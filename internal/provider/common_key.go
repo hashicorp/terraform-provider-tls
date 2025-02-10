@@ -12,6 +12,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 
@@ -184,6 +185,11 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 	}
 
 	diags.Append(s.SetAttribute(ctx, path.Root("id"), hashForState(string(pubKeyBytes)))...)
+	if diags.HasError() {
+		return diags
+	}
+
+	diags.Append(s.SetAttribute(ctx, path.Root("public_key_der"), string(base64.RawStdEncoding.EncodeToString(pubKeyBytes)))...)
 	if diags.HasError() {
 		return diags
 	}
