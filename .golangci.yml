@@ -5,9 +5,9 @@ issues:
 linters:
   disable-all: true
   enable:
+    - copyloopvar
     - durationcheck
     - errcheck
-    - exportloopref
     - forcetypeassert
     - godot
     - gofmt
@@ -19,10 +19,10 @@ linters:
     - nilerr
     - predeclared
     - staticcheck
-    - tenv
     - unconvert
     - unparam
     - unused
+    - usetesting
 
 run:
   # Prevent false positive timeouts in CI
