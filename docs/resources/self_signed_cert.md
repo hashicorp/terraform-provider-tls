@@ -72,6 +72,7 @@ Optional:
 
 - `common_name` (String) Distinguished name: `CN`
 - `country` (String) Distinguished name: `C`
+- `email_address` (String) ASN.1 Object Identifier (OID): `1.2.840.113549.1.9.1`
 - `locality` (String) Distinguished name: `L`
 - `organization` (String) Distinguished name: `O`
 - `organizational_unit` (String) Distinguished name: `OU`
