@@ -70,6 +70,7 @@ type privateKeyResourceModel struct {
 	PrivateKeyPem              types.String `tfsdk:"private_key_pem"`
 	PrivateKeyOpenSSH          types.String `tfsdk:"private_key_openssh"`
 	PrivateKeyPKCS8            types.String `tfsdk:"private_key_pem_pkcs8"`
+	PublicKeyDer               types.String `tfsdk:"public_key_der"`
 	PublicKeyPem               types.String `tfsdk:"public_key_pem"`
 	PublicKeyOpenSSH           types.String `tfsdk:"public_key_openssh"`
 	PublicKeyFingerprintMD5    types.String `tfsdk:"public_key_fingerprint_md5"`
