@@ -53,6 +53,7 @@ resource "tls_private_key" "ed25519-example" {
 ### Optional
 
 - `ecdsa_curve` (String) When `algorithm` is `ECDSA`, the name of the elliptic curve to use. Currently-supported values are: `P224`, `P256`, `P384`, `P521`. (default: `P224`).
+- `openssh_comment` (String) Comment to add to the OpenSSH key (default: `""`).
 - `rsa_bits` (Number) When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).
 
 ### Read-Only
