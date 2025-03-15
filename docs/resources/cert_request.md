@@ -45,7 +45,8 @@ resource "tls_cert_request" "example" {
 - `ip_addresses` (List of String) List of IP addresses for which a certificate is being requested (i.e. certificate subjects).
 - `subject` (Block List) The subject for which a certificate is being requested. The acceptable arguments are all optional and their naming is based upon [Issuer Distinguished Names (RFC5280)](https://tools.ietf.org/html/rfc5280#section-4.1.2.4) section. (see [below for nested schema](#nestedblock--subject))
 - `uris` (List of String) List of URIs for which a certificate is being requested (i.e. certificate subjects).
-
+- `allowed_uses` (List of String) List of key usages for the certificate singing request. Accepted values: `any_extended`, `client_auth`, `code_signing`, `email_protection`, `ipsec_end_system`, `ipsec_tunnel`, `ipsec_user`, `microsoft_commercial_code_signing`, `microsoft_kernel_code_signing`, `microsoft_server_gated_crypto`, `netscape_server_gated_crypto`, `ocsp_signing`, `server_auth`, `timestamping`.
+-
 ### Read-Only
 
 - `cert_request_pem` (String) The certificate request data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. **NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) [libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this value append a `\n` at the end of the PEM. In case this disrupts your use case, we recommend using [`trimspace()`](https://www.terraform.io/language/functions/trimspace).
