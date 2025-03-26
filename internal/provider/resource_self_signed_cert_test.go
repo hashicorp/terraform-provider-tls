@@ -109,7 +109,7 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 		Steps: []r.TestStep{
 			{
 				ExternalProviders: providerVersion340(),
-				Config:            selfSignedCertConfig(1, 0),
+				Config:            selfSignedCertConfigVersion340(1, 0),
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_self_signed_cert.test1", "cert_pem", PreambleCertificate.String()),
 					tu.TestCheckPEMCertificateSubject("tls_self_signed_cert.test1", "cert_pem", &pkix.Name{
@@ -597,6 +597,53 @@ func selfSignedCertConfig(validity, earlyRenewal uint32) string {
                 postal_code = "95559-1227"
                 serial_number = "2"
 				email_address = "example@example.com"
+            }
+
+            dns_names = [
+                "example.com",
+                "example.net",
+            ]
+
+            ip_addresses = [
+                "127.0.0.1",
+                "127.0.0.2",
+            ]
+
+            uris = [
+                "spiffe://example-trust-domain/ca",
+                "spiffe://example-trust-domain/ca2",
+            ]
+
+            validity_period_hours = %d
+            early_renewal_hours = %d
+
+            allowed_uses = [
+                "key_encipherment",
+                "digital_signature",
+                "server_auth",
+                "client_auth",
+                "content_commitment",
+            ]
+
+            private_key_pem = <<EOT
+%s
+EOT
+        }`, validity, earlyRenewal, fixtures.TestPrivateKeyPEM)
+}
+
+func selfSignedCertConfigVersion340(validity, earlyRenewal uint32) string {
+	return fmt.Sprintf(`
+        resource "tls_self_signed_cert" "test1" {
+            subject {
+                common_name = "example.com"
+                organization = "Example, Inc"
+                organizational_unit = "Department of Terraform Testing"
+                street_address = ["5879 Cotton Link"]
+                locality = "Pirate Harbor"
+                province = "CA"
+                country = "US"
+                postal_code = "95559-1227"
+                serial_number = "2"
             }
 
             dns_names = [
