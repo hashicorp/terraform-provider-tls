@@ -1,6 +1,7 @@
 module github.com/hashicorp/terraform-provider-tls
 
 go 1.23.7
+toolchain go1.24.1
 
 require (
 	github.com/elazarl/goproxy v1.7.2
@@ -12,7 +13,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.12.0
 	golang.org/x/crypto v0.36.0
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 )
 
 require (
