@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"net/http"
 	"net/url"
 	"strings"
@@ -33,6 +34,7 @@ type tlsProvider struct {
 
 // Enforce interfaces we want provider to implement.
 var _ provider.Provider = (*tlsProvider)(nil)
+var _ provider.ProviderWithEphemeralResources = (*tlsProvider)(nil)
 
 func New() provider.Provider {
 	return &tlsProvider{}
@@ -195,6 +197,12 @@ func (p *tlsProvider) DataSources(_ context.Context) []func() datasource.DataSou
 	return []func() datasource.DataSource{
 		NewCertificateDataSource,
 		NewPublicKeyDataSource,
+	}
+}
+
+func (p *tlsProvider) EphemeralResources(context.Context) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{
+		NewPrivateKeyEphemeralResource,
 	}
 }
 
