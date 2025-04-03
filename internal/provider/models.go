@@ -4,7 +4,12 @@
 package provider
 
 import (
+	"crypto"
+	"crypto/x509"
+	"encoding/pem"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"golang.org/x/crypto/ssh"
 )
 
 type providerConfigModel struct {
@@ -75,6 +80,105 @@ type privateKeyResourceModel struct {
 	PublicKeyFingerprintMD5    types.String `tfsdk:"public_key_fingerprint_md5"`
 	PublicKeyFingerprintSHA256 types.String `tfsdk:"public_key_fingerprint_sha256"`
 	ID                         types.String `tfsdk:"id"`
+}
+
+func (d privateKeyResourceModel) toEphemeralModel() *privateKeyEphemeralModel {
+	return &privateKeyEphemeralModel{
+		Algorithm:                  d.Algorithm,
+		RSABits:                    d.RSABits,
+		ECDSACurve:                 d.ECDSACurve,
+		PrivateKeyPem:              d.PrivateKeyPem,
+		PrivateKeyOpenSSH:          d.PrivateKeyOpenSSH,
+		PrivateKeyPKCS8:            d.PrivateKeyPKCS8,
+		PublicKeyPem:               d.PublicKeyPem,
+		PublicKeyOpenSSH:           d.PublicKeyOpenSSH,
+		PublicKeyFingerprintMD5:    d.PublicKeyFingerprintMD5,
+		PublicKeyFingerprintSHA256: d.PublicKeyFingerprintSHA256,
+	}
+}
+
+type privateKeyEphemeralModel struct {
+	Algorithm                  types.String `tfsdk:"algorithm"`
+	RSABits                    types.Int64  `tfsdk:"rsa_bits"`
+	ECDSACurve                 types.String `tfsdk:"ecdsa_curve"`
+	PrivateKeyPem              types.String `tfsdk:"private_key_pem"`
+	PrivateKeyOpenSSH          types.String `tfsdk:"private_key_openssh"`
+	PrivateKeyPKCS8            types.String `tfsdk:"private_key_pem_pkcs8"`
+	PublicKeyPem               types.String `tfsdk:"public_key_pem"`
+	PublicKeyOpenSSH           types.String `tfsdk:"public_key_openssh"`
+	PublicKeyFingerprintMD5    types.String `tfsdk:"public_key_fingerprint_md5"`
+	PublicKeyFingerprintSHA256 types.String `tfsdk:"public_key_fingerprint_sha256"`
+}
+
+// setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
+// encodes related attributes.
+func (data *privateKeyEphemeralModel) setPublicKeyAttributes(prvKey crypto.PrivateKey) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	pubKey, err := privateKeyToPublicKey(prvKey)
+	if err != nil {
+		diags.Append(diag.NewErrorDiagnostic(
+			"Failed to get public key from private key",
+			err.Error(),
+		))
+		return diags
+	}
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		diags.Append(diag.NewErrorDiagnostic(
+			"Failed to marshal public key",
+			err.Error(),
+		))
+		return diags
+	}
+	pubKeyPemBlock := &pem.Block{
+		Type:  PreamblePublicKey.String(),
+		Bytes: pubKeyBytes,
+	}
+
+	data.PublicKeyPem = types.StringValue(string(pem.EncodeToMemory(pubKeyPemBlock)))
+
+	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
+	// so this will return an error: in that case, we set the below fields to empty strings
+	sshPubKey, err := ssh.NewPublicKey(pubKey)
+	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
+	if err == nil {
+		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
+
+		pubKeySSH = string(sshPubKeyBytes)
+		pubKeySSHFingerprintMD5 = ssh.FingerprintLegacyMD5(sshPubKey)
+		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
+	}
+
+	data.PublicKeyOpenSSH = types.StringValue(pubKeySSH)
+	data.PublicKeyFingerprintMD5 = types.StringValue(pubKeySSHFingerprintMD5)
+	data.PublicKeyFingerprintSHA256 = types.StringValue(pubKeySSHFingerprintSHA256)
+
+	return nil
+}
+
+func (data *privateKeyEphemeralModel) setupDefaultValue() {
+	if data.RSABits.IsNull() || data.RSABits.IsUnknown() {
+		data.RSABits = types.Int64Value(2048)
+	}
+	if data.ECDSACurve.IsNull() || data.ECDSACurve.IsUnknown() {
+		data.ECDSACurve = types.StringValue(P224.String())
+	}
+}
+
+func (data *privateKeyEphemeralModel) toResourceModel() privateKeyResourceModel {
+	return privateKeyResourceModel{
+		Algorithm:                  data.Algorithm,
+		RSABits:                    data.RSABits,
+		ECDSACurve:                 data.ECDSACurve,
+		PrivateKeyPem:              data.PrivateKeyPem,
+		PrivateKeyOpenSSH:          data.PrivateKeyOpenSSH,
+		PrivateKeyPKCS8:            data.PrivateKeyPKCS8,
+		PublicKeyPem:               data.PublicKeyPem,
+		PublicKeyOpenSSH:           data.PublicKeyOpenSSH,
+		PublicKeyFingerprintMD5:    data.PublicKeyFingerprintMD5,
+		PublicKeyFingerprintSHA256: data.PublicKeyFingerprintSHA256,
+	}
 }
 
 type selfSignedCertResourceModel struct {
