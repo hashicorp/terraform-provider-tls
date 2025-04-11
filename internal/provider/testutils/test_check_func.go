@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"net"
@@ -30,6 +31,29 @@ func TestCheckPEMCertificateRequestWith(name, key string, f func(csr *x509.Certi
 		csr, err := x509.ParseCertificateRequest(block.Bytes)
 		if err != nil {
 			return fmt.Errorf("error parsing Certificate Request: %s", err)
+		}
+
+		var subject pkix.RDNSequence
+
+		_, err = asn1.Unmarshal(csr.RawSubject, &subject)
+		if err != nil {
+			return fmt.Errorf("error parsing Certificate Request Subject: %s", err)
+		}
+
+		for _, rdn := range subject {
+			for _, atv := range rdn {
+				if atv.Type.Equal(asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}) {
+					str, _ := atv.Value.(string)
+
+					csr.Subject.ExtraNames = append(csr.Subject.ExtraNames, pkix.AttributeTypeAndValue{
+						Type: atv.Type,
+						Value: asn1.RawValue{
+							Tag:   asn1.TagIA5String,
+							Bytes: []byte(str),
+						},
+					})
+				}
+			}
 		}
 
 		return f(csr)
@@ -75,6 +99,29 @@ func TestCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate)
 		crt, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
 			return fmt.Errorf("error parsing Certificate: %s", err)
+		}
+
+		var subject pkix.RDNSequence
+
+		_, err = asn1.Unmarshal(crt.RawSubject, &subject)
+		if err != nil {
+			return fmt.Errorf("error parsing Certificate Request Subject: %s", err)
+		}
+
+		for _, rdn := range subject {
+			for _, atv := range rdn {
+				if atv.Type.Equal(asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}) {
+					str, _ := atv.Value.(string)
+
+					crt.Subject.ExtraNames = append(crt.Subject.ExtraNames, pkix.AttributeTypeAndValue{
+						Type: atv.Type,
+						Value: asn1.RawValue{
+							Tag:   asn1.TagIA5String,
+							Bytes: []byte(str),
+						},
+					})
+				}
+			}
 		}
 
 		return f(crt)
@@ -223,6 +270,9 @@ func compareCertSubjects(expected, actualSubject *pkix.Name) error {
 	}
 	if len(expected.PostalCode) > 0 && !reflect.DeepEqual(expected.PostalCode, actualSubject.PostalCode) {
 		return fmt.Errorf("incorrect subject postal code: expected %v, got %v", expected.PostalCode, actualSubject.PostalCode)
+	}
+	if len(expected.ExtraNames) > 0 && !reflect.DeepEqual(expected.ExtraNames, actualSubject.ExtraNames) {
+		return fmt.Errorf("incorrect subject extra names: expected %v, got %v", expected.ExtraNames, actualSubject.ExtraNames)
 	}
 
 	return nil

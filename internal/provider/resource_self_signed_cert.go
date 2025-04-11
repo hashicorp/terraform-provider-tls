@@ -299,6 +299,13 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 							},
 							Description: "Distinguished name: `SERIALNUMBER`",
 						},
+						"email_address": schema.StringAttribute{
+							Optional: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.RequiresReplace(),
+							},
+							Description: "ASN.1 Object Identifier (OID): `1.2.840.113549.1.9.1`",
+						},
 					},
 				},
 				MarkdownDescription: "The subject for which a certificate is being requested. " +
