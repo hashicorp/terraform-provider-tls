@@ -49,6 +49,7 @@ resource "tls_self_signed_cert" "example" {
 
 - `dns_names` (List of String) List of DNS names for which a certificate is being requested (i.e. certificate subjects).
 - `early_renewal_hours` (Number) The resource will consider the certificate to have expired the given number of hours before its actual expiry time. This can be useful to deploy an updated certificate in advance of the expiration of the current certificate. However, the old certificate remains valid until its true expiration time, since this resource does not (and cannot) support certificate revocation. Also, this advance update can only be performed should the Terraform configuration be applied during the early renewal period. (default: `0`)
+- `hashing_algorithm` (String) The algorithm to use when hashing the certificate for signature signing Accepted values: `md2`, `md5`, `sha1`, `sha256`, `sha384`, `sha512`.
 - `ip_addresses` (List of String) List of IP addresses for which a certificate is being requested (i.e. certificate subjects).
 - `is_ca_certificate` (Boolean) Is the generated certificate representing a Certificate Authority (CA) (default: `false`).
 - `set_authority_key_id` (Boolean) Should the generated certificate include an [authority key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.1): for self-signed certificates this is the same value as the [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).

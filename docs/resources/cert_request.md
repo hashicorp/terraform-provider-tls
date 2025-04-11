@@ -42,6 +42,7 @@ resource "tls_cert_request" "example" {
 ### Optional
 
 - `dns_names` (List of String) List of DNS names for which a certificate is being requested (i.e. certificate subjects).
+- `hashing_algorithm` (String) The algorithm to use when hashing the certificate for signature signing Accepted values: `md2`, `md5`, `sha1`, `sha256`, `sha384`, `sha512`.
 - `ip_addresses` (List of String) List of IP addresses for which a certificate is being requested (i.e. certificate subjects).
 - `subject` (Block List) The subject for which a certificate is being requested. The acceptable arguments are all optional and their naming is based upon [Issuer Distinguished Names (RFC5280)](https://tools.ietf.org/html/rfc5280#section-4.1.2.4) section. (see [below for nested schema](#nestedblock--subject))
 - `uris` (List of String) List of URIs for which a certificate is being requested (i.e. certificate subjects).
