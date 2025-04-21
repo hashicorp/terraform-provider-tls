@@ -62,7 +62,6 @@ type certificateSubjectModel struct {
 	PostalCode         types.String `tfsdk:"postal_code"`
 	EmailAddress       types.String `tfsdk:"email_address"`
 	SerialNumber       types.String `tfsdk:"serial_number"`
-	EmailAddress       types.String `tfsdk:"email_address"`
 }
 
 type privateKeyResourceModel struct {
