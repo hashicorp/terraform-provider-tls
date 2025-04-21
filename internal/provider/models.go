@@ -60,6 +60,7 @@ type certificateSubjectModel struct {
 	Province           types.String `tfsdk:"province"`
 	Country            types.String `tfsdk:"country"`
 	PostalCode         types.String `tfsdk:"postal_code"`
+	EmailAddress       types.String `tfsdk:"email_address"`
 	SerialNumber       types.String `tfsdk:"serial_number"`
 	EmailAddress       types.String `tfsdk:"email_address"`
 }

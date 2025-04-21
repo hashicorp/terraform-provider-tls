@@ -121,7 +121,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 // NOTE: Yes, this test is fetching a live certificate.
 // It can potentially break over time, and we will need to keep the
 // data we check against up to date, when that happens.
-func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
+func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 	r.Test(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 
@@ -129,7 +129,7 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 			{
 				Config: `
 					data "tls_certificate" "test" {
-						url = "https://www.terraform.io/"
+						url = "https://developer.hashicorp.com/"
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -137,15 +137,15 @@ func TestAccDataSourceCertificate_TerraformIO(t *testing.T) {
 
 					// ISRG Root X1
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R11,O=Let's Encrypt,C=US"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R10,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "696db3af0dffc17e65c6a20d925c5a7bd24dec7e"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "00abefd055f9a9c784ffdeabd1dcdd8fed741436"),
 
-					// www.terraform.io
+					// developer.hashicorp.com
 					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=www.terraform.io"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=developer.hashicorp.com"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),

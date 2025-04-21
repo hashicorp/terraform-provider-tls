@@ -67,3 +67,4 @@ Optional:
 - `province` (String) Distinguished name: `ST`
 - `serial_number` (String) Distinguished name: `SERIALNUMBER`
 - `street_address` (List of String) Distinguished name: `STREET`
+- `email_address` (String) Email address: `emailAddress (x509 1.2.840.113549.1.9.1)`
