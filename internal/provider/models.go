@@ -7,6 +7,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"golang.org/x/crypto/ssh"
@@ -159,10 +160,10 @@ func (data *privateKeyEphemeralModel) setPublicKeyAttributes(prvKey crypto.Priva
 }
 
 func (data *privateKeyEphemeralModel) setupDefaultValue() {
-	if data.RSABits.IsNull() || data.RSABits.IsUnknown() {
+	if data.RSABits.IsNull() {
 		data.RSABits = types.Int64Value(2048)
 	}
-	if data.ECDSACurve.IsNull() || data.ECDSACurve.IsUnknown() {
+	if data.ECDSACurve.IsNull() {
 		data.ECDSACurve = types.StringValue(P224.String())
 	}
 }

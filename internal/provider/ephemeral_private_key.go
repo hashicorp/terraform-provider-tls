@@ -115,11 +115,16 @@ func (p *privateKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.
 					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
 			},
 		},
-		MarkdownDescription: "Creates a PEM (and OpenSSH) formatted private key.\n\n" +
+		MarkdownDescription: "-> If the managed resource doesn't have a write-only argument available for the private key (first introduced in Terraform 1.11), then the " +
+			"private key can only be created with the managed resource variant of [`tls_private_key`](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key).\n" +
+			"\n" +
+			"Creates a PEM (and OpenSSH) formatted private key.\n\n" +
 			"Generates a secure private key and encodes it in " +
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and " +
 			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +
-			"This resource is primarily intended for easily bootstrapping throwaway development environments.",
+			"\n\n" +
+			"The primary use-case for generating an ephemeral private key is to be used in combination with a write-only argument " +
+			"in a managed resource, which will avoid Terraform storing the private key data in the plan or state file.",
 	}
 }
 
