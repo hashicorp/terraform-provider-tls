@@ -1,6 +1,0 @@
-kind: NOTES
-body: New [ephemeral resource](https://developer.hashicorp.com/terraform/language/resources/ephemeral)
-  `tls_private_key` now supports [ephemeral values](https://developer.hashicorp.com/terraform/language/values/variables#exclude-values-from-state).
-time: 2025-04-21T16:13:20.797478-04:00
-custom:
-    Issue: "637"
