@@ -1,3 +1,18 @@
+## 4.1.0 (April 23, 2025)
+
+NOTES:
+
+* New [ephemeral resource](https://developer.hashicorp.com/terraform/language/resources/ephemeral) `tls_private_key` now supports [ephemeral values](https://developer.hashicorp.com/terraform/language/values/variables#exclude-values-from-state). ([#637](https://github.com/hashicorp/terraform-provider-tls/issues/637))
+
+FEATURES:
+
+* ephemeral/tls_private_key: New ephemeral resource that generates a PEM formatted private key. When used in combination with a managed resource write-only attribute, Terraform will not store the private key data in the plan or state file. ([#637](https://github.com/hashicorp/terraform-provider-tls/issues/637))
+
+ENHANCEMENTS:
+
+* tls_cert_request: Added optional `email_address` attribute ([#35](https://github.com/hashicorp/terraform-provider-tls/issues/35))
+* tls_self_signed_cert: Added optional `email_address` attribute ([#35](https://github.com/hashicorp/terraform-provider-tls/issues/35))
+
 ## 4.0.6 (September 11, 2024)
 
 NOTES:
