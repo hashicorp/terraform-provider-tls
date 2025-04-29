@@ -72,6 +72,7 @@ Optional:
 
 - `common_name` (String) Distinguished name: `CN`
 - `country` (String) Distinguished name: `C`
+- `email_address` (String) ASN.1 Object Identifier (OID): `1.2.840.113549.1.9.1`
 - `locality` (String) Distinguished name: `L`
 - `organization` (String) Distinguished name: `O`
 - `organizational_unit` (String) Distinguished name: `OU`
@@ -80,4 +81,4 @@ Optional:
 - `serial_number` (String) Distinguished name: `SERIALNUMBER`
 - `street_address` (List of String) Distinguished name: `STREET`
 
-<!-- cache-key: cdktf-0.20.8 input-f0b329ca4c0554d420316e3aa077babdcc26589666ed69b639e7ed93d15ac558 -->
+<!-- cache-key: cdktf-0.20.8 input-5fc3454a287e0ef0992677dd4a77aa057e244661e06a2fdf1bd98cf262a46a61 -->
