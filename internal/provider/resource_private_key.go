@@ -138,7 +138,11 @@ func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaReques
 					"hexadecimal representation of the SHA1 checksum of the resource.",
 			},
 		},
-		MarkdownDescription: "Creates a PEM (and OpenSSH) formatted private key.\n\n" +
+		MarkdownDescription: "-> If the managed resource supports a write-only attribute for the private key (first introduced in Terraform 1.11), then the " +
+			"ephemeral variant of [`tls_private_key`](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/ephemeral-resources/private_key) should be used, " +
+			"when possible, to avoid storing the private key data in the plan or state file." +
+			"\n\n" +
+			"Creates a PEM (and OpenSSH) formatted private key.\n\n" +
 			"Generates a secure private key and encodes it in " +
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and " +
 			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +

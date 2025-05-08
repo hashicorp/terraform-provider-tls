@@ -79,6 +79,7 @@ Optional:
 
 - `common_name` (String) Distinguished name: `CN`
 - `country` (String) Distinguished name: `C`
+- `email_address` (String) ASN.1 Object Identifier (OID): `1.2.840.113549.1.9.1`
 - `locality` (String) Distinguished name: `L`
 - `organization` (String) Distinguished name: `O`
 - `organizational_unit` (String) Distinguished name: `OU`
@@ -103,4 +104,4 @@ a new certificate when the current one is about to expire.
 The creation of a new certificate may of course cause dependent resources to be updated
 or replaced, depending on the lifecycle rules applying to those resources.
 
-<!-- cache-key: cdktf-0.20.8 input-fdcdd1b995d8aef8a660e00b2010a6a6f9c7bd0b3ef6d96ee4709050cd0a2354 -->
+<!-- cache-key: cdktf-0.20.8 input-ca3c384970a3f662b6419fa312eb9ab382ef3340d1737b9370047311b0379d4f -->

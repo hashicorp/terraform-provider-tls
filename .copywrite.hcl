@@ -5,6 +5,9 @@ project {
   copyright_year = 2017
 
   header_ignore = [
+    # internal catalog metadata (prose)
+    "META.d/**/*.yaml",
+
     # changie tooling configuration and CHANGELOG entries (prose)
     ".changes/unreleased/*.yaml",
     ".changie.yaml",
@@ -20,9 +23,6 @@ project {
 
     # golangci-lint tooling configuration
     ".golangci.yml",
-
-    # GoReleaser tooling configuration
-    ".goreleaser.yml",
 
     # Release Engineering tooling configuration
     ".release/*.hcl",

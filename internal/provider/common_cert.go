@@ -388,8 +388,11 @@ func createSubjectDistinguishedNames(ctx context.Context, subject certificateSub
 
 	if !subject.EmailAddress.IsNull() && !subject.EmailAddress.IsUnknown() {
 		result.ExtraNames = append(result.ExtraNames, pkix.AttributeTypeAndValue{
-			Type:  []int{1, 2, 840, 113549, 1, 9, 1},
-			Value: subject.EmailAddress.ValueString(),
+			Type: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1},
+			Value: asn1.RawValue{
+				Tag:   asn1.TagIA5String,
+				Bytes: []byte(subject.EmailAddress.ValueString()),
+			},
 		})
 	}
 
