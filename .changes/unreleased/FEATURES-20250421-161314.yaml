@@ -1,0 +1,7 @@
+kind: FEATURES
+body: 'ephemeral/tls_private_key: New ephemeral resource that generates a PEM formatted private key.
+  When used in combination with a managed resource write-only attribute, Terraform
+  will not store the private key data in the plan or state file.'
+time: 2025-04-21T16:13:14.054966-04:00
+custom:
+    Issue: "637"
