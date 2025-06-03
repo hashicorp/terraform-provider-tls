@@ -471,6 +471,68 @@ resource "tls_cert_request" "client_csr" {
 }
 `
 
+const tlsCertRequestWithHash = `
+resource "tls_private_key" "this" {
+	algorithm = "RSA"
+	rsa_bits  = 4096
+}
+
+resource "tls_cert_request" "test" {
+  private_key_pem = tls_private_key.this.private_key_pem
+  hashing_algorithm = "%s"
+
+  subject {
+	common_name = "this"
+  }
+}
+`
+
+func TestResourceCertRequest_PrivateKeyPEMWithHash(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(tlsCertRequestWithHash, "sha512"),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMCertificateRequestSignatureAlgorithm("tls_cert_request.test", "cert_request_pem", "SHA512-RSA"),
+				),
+			},
+			{
+				Taint:  []string{"tls_cert_request.test"},
+				Config: fmt.Sprintf(tlsCertRequestWithHash, "sha256"),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMCertificateRequestSignatureAlgorithm("tls_cert_request.test", "cert_request_pem", "SHA256-RSA"),
+				),
+			},
+		},
+	})
+}
+func TestResourceCertRequest_PrivateKeyPEMWithHashIncompatible(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+				resource "tls_private_key" "this" {
+					algorithm   = "ECDSA"
+					ecdsa_curve = "P384"
+				}
+				
+				resource "tls_cert_request" "test" {
+				  private_key_pem = tls_private_key.this.private_key_pem
+				  hashing_algorithm = "md5"
+				
+				  subject {
+					common_name = "this"
+				  }
+				}
+				`,
+				ExpectError: regexp.MustCompile(`unable to determine a signature algorithm from public key of type`),
+			},
+		},
+	})
+}
+
 func testExtractResourceAttr(resourceName string, attributeName string, attributeValue *string) r.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
