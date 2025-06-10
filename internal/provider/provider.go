@@ -203,6 +203,7 @@ func (p *tlsProvider) DataSources(_ context.Context) []func() datasource.DataSou
 func (p *tlsProvider) EphemeralResources(context.Context) []func() ephemeral.EphemeralResource {
 	return []func() ephemeral.EphemeralResource{
 		NewPrivateKeyEphemeralResource,
+		NewPublicKeyEphemeralResource,
 	}
 }
 
