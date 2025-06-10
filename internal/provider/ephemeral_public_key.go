@@ -8,10 +8,12 @@ import (
 	"crypto"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
@@ -139,5 +141,24 @@ func (p *publicKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Ope
 	}
 
 	tflog.Debug(ctx, "Storing private key's public key info into the state")
-	resp.Diagnostics.Append(setPublicKeyAttributes(ctx, &resp.Result, prvKey)...)
+	resp.Diagnostics.Append(setPublicKeyAttributes(ctx, newEphemeralResultDataWrapper(&resp.Result), prvKey)...)
+}
+
+var _ state = (*ephemeralResultDataWrapper)(nil)
+
+type ephemeralResultDataWrapper struct {
+	*tfsdk.EphemeralResultData
+}
+
+func newEphemeralResultDataWrapper(data *tfsdk.EphemeralResultData) state {
+	return &ephemeralResultDataWrapper{
+		EphemeralResultData: data,
+	}
+}
+
+func (w *ephemeralResultDataWrapper) SetAttribute(ctx context.Context, p path.Path, val interface{}) diag.Diagnostics {
+	if p.String() != "id" {
+		return w.EphemeralResultData.SetAttribute(ctx, p, val)
+	}
+	return nil
 }
