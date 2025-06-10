@@ -102,11 +102,6 @@ func (p *publicKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.S
 					"Only available if the selected private key format is compatible, as per the rules for " +
 					"`public_key_openssh` and [ECDSA P224 limitations](../../docs#limitations).",
 			},
-			"id": schema.StringAttribute{
-				Computed: true,
-				Description: "Unique identifier for this data source: " +
-					"hexadecimal representation of the SHA1 checksum of the data source.",
-			},
 		},
 		MarkdownDescription: "Get a public key from a PEM-encoded private key.\n\n" +
 			"Use this data source to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
