@@ -17,7 +17,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -159,7 +158,7 @@ func privateKeyToAlgorithm(prvKey crypto.PrivateKey) (Algorithm, error) {
 
 // setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
 // encodes related attributes on the given *tfsdk.State.
-func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.PrivateKey) diag.Diagnostics {
+func setPublicKeyAttributes(ctx context.Context, s state, prvKey crypto.PrivateKey) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	pubKey, err := privateKeyToPublicKey(prvKey)
