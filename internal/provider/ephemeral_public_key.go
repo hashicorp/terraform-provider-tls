@@ -8,12 +8,10 @@ import (
 	"crypto"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"strings"
@@ -104,6 +102,11 @@ func (p *publicKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.S
 					"Only available if the selected private key format is compatible, as per the rules for " +
 					"`public_key_openssh` and [ECDSA P224 limitations](../../docs#limitations).",
 			},
+			"id": schema.StringAttribute{
+				Computed: true,
+				Description: "Unique identifier for this ephemeral resource: " +
+					"hexadecimal representation of the SHA1 checksum of the ephemeral resource.",
+			},
 		},
 		MarkdownDescription: "Get a public key from a PEM-encoded private key.\n\n" +
 			"Use this data source to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
@@ -141,24 +144,5 @@ func (p *publicKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Ope
 	}
 
 	tflog.Debug(ctx, "Storing private key's public key info into the state")
-	resp.Diagnostics.Append(setPublicKeyAttributes(ctx, newEphemeralResultDataWrapper(&resp.Result), prvKey)...)
-}
-
-var _ state = (*ephemeralResultDataWrapper)(nil)
-
-type ephemeralResultDataWrapper struct {
-	*tfsdk.EphemeralResultData
-}
-
-func newEphemeralResultDataWrapper(data *tfsdk.EphemeralResultData) state {
-	return &ephemeralResultDataWrapper{
-		EphemeralResultData: data,
-	}
-}
-
-func (w *ephemeralResultDataWrapper) SetAttribute(ctx context.Context, p path.Path, val interface{}) diag.Diagnostics {
-	if p.String() != "id" {
-		return w.EphemeralResultData.SetAttribute(ctx, p, val)
-	}
-	return nil
+	resp.Diagnostics.Append(setPublicKeyAttributes(ctx, &resp.Result, prvKey)...)
 }
