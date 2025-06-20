@@ -178,6 +178,66 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 		}
 	}
 
+	// Set max-path-len on the template
+	maxPathLenPath := path.Root("max_path_length")
+	var maxPathLen types.Int64
+	diags.Append(plan.GetAttribute(ctx, maxPathLenPath, &maxPathLen)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !maxPathLen.IsNull() && !maxPathLen.IsUnknown() && maxPathLen.ValueInt64() >= 0 {
+		template.MaxPathLen = int(maxPathLen.ValueInt64())
+	}
+
+	// Set name constraints in the template
+	permittedDNSDomainsCriticalPath := path.Root("name_constraint_permitted_dns_names_critical")
+	var permittedDNSDomainsCritical types.Bool
+	diags.Append(plan.GetAttribute(ctx, permittedDNSDomainsCriticalPath, &permittedDNSDomainsCritical)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !permittedDNSDomainsCritical.IsNull() && !permittedDNSDomainsCritical.IsUnknown() && permittedDNSDomainsCritical.ValueBool() {
+		template.PermittedDNSDomainsCritical = permittedDNSDomainsCritical.ValueBool()
+	}
+
+	permittedDNSDomainsPath := path.Root("name_constraint_permitted_dns_names")
+	var permittedDNSDomains types.List
+	diags.Append(plan.GetAttribute(ctx, permittedDNSDomainsPath, &permittedDNSDomains)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !permittedDNSDomains.IsNull() && !permittedDNSDomains.IsUnknown() && len(permittedDNSDomains.Elements()) > 0 {
+		template.PermittedDNSDomains = []string{}
+
+		for _, permittedDNSDomain := range permittedDNSDomains.Elements() {
+			permittedDNSDomainString, ok := permittedDNSDomain.(types.String)
+			if !ok {
+				diags.AddError("Failed to convert permittedDNSDomain to string", "expected permittedDNSDomain to be of type types.String")
+				return nil, diags
+			}
+			template.PermittedDNSDomains = append(template.PermittedDNSDomains, permittedDNSDomainString.ValueString())
+		}
+	}
+
+	excludedDNSDomainsPath := path.Root("name_constraint_excluded_dns_names")
+	var excludedDNSDomains types.List
+	diags.Append(plan.GetAttribute(ctx, excludedDNSDomainsPath, &excludedDNSDomains)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !excludedDNSDomains.IsNull() && !excludedDNSDomains.IsUnknown() && len(excludedDNSDomains.Elements()) > 0 {
+		template.ExcludedDNSDomains = []string{}
+
+		for _, excludedDNSDomain := range excludedDNSDomains.Elements() {
+			excludedDNSDomainString, ok := excludedDNSDomain.(types.String)
+			if !ok {
+				diags.AddError("Failed to convert excludedDNSDomain to string", "expected excludedDNSDomain to be of type types.String")
+				return nil, diags
+			}
+			template.ExcludedDNSDomains = append(template.ExcludedDNSDomains, excludedDNSDomainString.ValueString())
+		}
+	}
+
 	// Set subject-id on the template
 	setSubjectKeyIDPath := path.Root("set_subject_key_id")
 	var setSubjectKeyID types.Bool
