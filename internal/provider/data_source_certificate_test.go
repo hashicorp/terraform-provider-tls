@@ -137,11 +137,11 @@ func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 
 					// ISRG Root X1
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R10,O=Let's Encrypt,C=US"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R11,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "00abefd055f9a9c784ffdeabd1dcdd8fed741436"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "696db3af0dffc17e65c6a20d925c5a7bd24dec7e"),
 
 					// developer.hashicorp.com
 					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
