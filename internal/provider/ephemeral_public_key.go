@@ -7,6 +7,8 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral/schema"
@@ -14,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"strings"
 )
 
 var (
@@ -109,9 +110,9 @@ func (p *publicKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.S
 			},
 		},
 		MarkdownDescription: "Get a public key from a PEM-encoded private key.\n\n" +
-			"Use this data source to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
+			"Use this ephemeral resource to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
 			"or [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formatted private key, " +
-			"for use in other resources.",
+			"for use in other resources without storing the value in state..",
 	}
 }
 
@@ -125,10 +126,10 @@ func (p *publicKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Ope
 	// Given the use of `ExactlyOneOf` in the Schema, we are guaranteed
 	// that either `private_key_pem` or `private_key_openssh` will be set.
 	var prvKeyArg types.String
-	if req.Config.GetAttribute(ctx, path.Root("private_key_pem"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
+	if req.Config.GetAttribute(ctx, path.Root("private_key_pem"), &prvKeyArg); !prvKeyArg.IsNull() {
 		tflog.Debug(ctx, "Parsing private key from PEM")
 		prvKey, algorithm, err = parsePrivateKeyPEM([]byte(prvKeyArg.ValueString()))
-	} else if req.Config.GetAttribute(ctx, path.Root("private_key_openssh"), &prvKeyArg); !prvKeyArg.IsNull() && !prvKeyArg.IsUnknown() {
+	} else if req.Config.GetAttribute(ctx, path.Root("private_key_openssh"), &prvKeyArg); !prvKeyArg.IsNull() {
 		tflog.Debug(ctx, "Parsing private key from OpenSSH PEM")
 		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.ValueString()))
 	}
@@ -137,12 +138,10 @@ func (p *publicKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Ope
 		return
 	}
 
-	tflog.Debug(ctx, "Storing private key algorithm info into the state")
 	resp.Diagnostics.Append(resp.Result.SetAttribute(ctx, path.Root("algorithm"), &algorithm)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	tflog.Debug(ctx, "Storing private key's public key info into the state")
 	resp.Diagnostics.Append(setPublicKeyAttributes(ctx, &resp.Result, prvKey)...)
 }

@@ -14,6 +14,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -215,6 +216,72 @@ func setPublicKeyAttributes(ctx context.Context, s state, prvKey crypto.PrivateK
 	}
 
 	diags.Append(s.SetAttribute(ctx, path.Root("public_key_fingerprint_sha256"), pubKeySSHFingerprintSHA256)...)
+	if diags.HasError() {
+		return diags
+	}
+
+	return nil
+}
+
+// setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
+// encodes related attributes on the given *tfsdk.EphemeralResultData.
+func setPublicKeyAttributesEphemeral(ctx context.Context, d *tfsdk.EphemeralResultData, prvKey crypto.PrivateKey) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	pubKey, err := privateKeyToPublicKey(prvKey)
+	if err != nil {
+		diags.Append(diag.NewErrorDiagnostic(
+			"Failed to get public key from private key",
+			err.Error(),
+		))
+		return diags
+	}
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		diags.Append(diag.NewErrorDiagnostic(
+			"Failed to marshal public key",
+			err.Error(),
+		))
+		return diags
+	}
+	pubKeyPemBlock := &pem.Block{
+		Type:  PreamblePublicKey.String(),
+		Bytes: pubKeyBytes,
+	}
+
+	diags.Append(d.SetAttribute(ctx, path.Root("id"), hashForState(string(pubKeyBytes)))...)
+	if diags.HasError() {
+		return diags
+	}
+
+	diags.Append(d.SetAttribute(ctx, path.Root("public_key_pem"), string(pem.EncodeToMemory(pubKeyPemBlock)))...)
+	if diags.HasError() {
+		return diags
+	}
+
+	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
+	// so this will return an error: in that case, we set the below fields to empty strings
+	sshPubKey, err := ssh.NewPublicKey(pubKey)
+	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
+	if err == nil {
+		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
+
+		pubKeySSH = string(sshPubKeyBytes)
+		pubKeySSHFingerprintMD5 = ssh.FingerprintLegacyMD5(sshPubKey)
+		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
+	}
+
+	diags.Append(d.SetAttribute(ctx, path.Root("public_key_openssh"), pubKeySSH)...)
+	if diags.HasError() {
+		return diags
+	}
+
+	diags.Append(d.SetAttribute(ctx, path.Root("public_key_fingerprint_md5"), pubKeySSHFingerprintMD5)...)
+	if diags.HasError() {
+		return diags
+	}
+
+	diags.Append(d.SetAttribute(ctx, path.Root("public_key_fingerprint_sha256"), pubKeySSHFingerprintSHA256)...)
 	if diags.HasError() {
 		return diags
 	}
