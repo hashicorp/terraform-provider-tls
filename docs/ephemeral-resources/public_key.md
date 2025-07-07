@@ -4,14 +4,14 @@ page_title: "tls_public_key Ephemeral Resource - terraform-provider-tls"
 subcategory: ""
 description: |-
   Get a public key from a PEM-encoded private key.
-  Use this data source to get the public key from a PEM (RFC 1421) https://datatracker.ietf.org/doc/html/rfc1421 or OpenSSH PEM (RFC 4716) https://datatracker.ietf.org/doc/html/rfc4716 formatted private key, for use in other resources.
+  Use this ephemeral resource to get the public key from a PEM (RFC 1421) https://datatracker.ietf.org/doc/html/rfc1421 or OpenSSH PEM (RFC 4716) https://datatracker.ietf.org/doc/html/rfc4716 formatted private key, for use in other resources without storing the value in state..
 ---
 
 # tls_public_key (Ephemeral Resource)
 
 Get a public key from a PEM-encoded private key.
 
-Use this data source to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) or [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formatted private key, for use in other resources.
+Use this ephemeral resource to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) or [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formatted private key, for use in other resources without storing the value in state..
 
 
 
