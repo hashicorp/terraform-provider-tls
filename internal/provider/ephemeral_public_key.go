@@ -143,5 +143,5 @@ func (p *publicKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Ope
 		return
 	}
 
-	resp.Diagnostics.Append(setPublicKeyAttributes(ctx, &resp.Result, prvKey)...)
+	resp.Diagnostics.Append(setPublicKeyAttributesEphemeral(ctx, &resp.Result, prvKey)...)
 }

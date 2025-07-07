@@ -4,12 +4,8 @@
 package provider
 
 import (
-	"context"
 	"encoding/pem"
 	"fmt"
-
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 )
 
 // Algorithm represents a type of private key algorithm.
@@ -180,8 +176,4 @@ func supportedURLSchemesStr() []string {
 		supportedStr[i] = string(supported[i])
 	}
 	return supportedStr
-}
-
-type state interface {
-	SetAttribute(ctx context.Context, path path.Path, val interface{}) diag.Diagnostics
 }
