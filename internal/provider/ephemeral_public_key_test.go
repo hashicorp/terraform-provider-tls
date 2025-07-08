@@ -180,6 +180,10 @@ func TestPublicKey_ephemeral_OpenSSHPEM(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.desc, func(t *testing.T) {
 			r.UnitTest(t, r.TestCase{
+				// Ephemeral resources are only available in 1.10 and later
+				TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+					tfversion.SkipBelow(tfversion.Version1_10_0),
+				},
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
 					"echo": echoprovider.NewProviderServer(),
@@ -236,6 +240,10 @@ func TestPublicKey_ephemeral_PKCS8PEM(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.desc, func(t *testing.T) {
 			r.UnitTest(t, r.TestCase{
+				// Ephemeral resources are only available in 1.10 and later
+				TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+					tfversion.SkipBelow(tfversion.Version1_10_0),
+				},
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
 					"echo": echoprovider.NewProviderServer(),
@@ -277,6 +285,10 @@ func TestPublicKey_ephemeral_errorCases(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.desc, func(t *testing.T) {
 			r.UnitTest(t, r.TestCase{
+				// Ephemeral resources are only available in 1.10 and later
+				TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+					tfversion.SkipBelow(tfversion.Version1_10_0),
+				},
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
 					"echo": echoprovider.NewProviderServer(),

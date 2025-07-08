@@ -112,7 +112,7 @@ func (p *publicKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.S
 		MarkdownDescription: "Get a public key from a PEM-encoded private key.\n\n" +
 			"Use this ephemeral resource to get the public key from a [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) " +
 			"or [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formatted private key, " +
-			"for use in other resources without storing the value in state..",
+			"for use in other resources without storing the value in state.",
 	}
 }
 
