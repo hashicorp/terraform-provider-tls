@@ -1,0 +1,5 @@
+kind: FEATURES
+body: 'ephemeral/tls_public_key: New ephemeral resource that extracts the public key from a private key.'
+time: 2025-07-08T11:58:43.388154+02:00
+custom:
+    Issue: "668"
