@@ -27,7 +27,7 @@ func TestAccEphemeralPrivateKey_RSA_DefaultRsaBits(t *testing.T) {
 		},
 		Steps: []r.TestStep{
 			{
-				Config: addEchoConfig(`
+				Config: ephemeralPrivateKeyWithEchoConfig(`
 					ephemeral "tls_private_key" "test" {
 						algorithm = "RSA"
 					}
@@ -65,7 +65,7 @@ func TestAccEphemeralPrivateKey_RSA_4096RsaBits(t *testing.T) {
 		},
 		Steps: []r.TestStep{
 			{
-				Config: addEchoConfig(`ephemeral "tls_private_key" "test" {
+				Config: ephemeralPrivateKeyWithEchoConfig(`ephemeral "tls_private_key" "test" {
 						algorithm = "RSA"
 						rsa_bits = 4096
 					}`),
@@ -102,7 +102,7 @@ func TestAccEphemeralPrivateKey_ECDSA_DefaultEcdsaCurve(t *testing.T) {
 		},
 		Steps: []r.TestStep{
 			{
-				Config: addEchoConfig(`ephemeral "tls_private_key" "test" {
+				Config: ephemeralPrivateKeyWithEchoConfig(`ephemeral "tls_private_key" "test" {
 						algorithm = "ECDSA"
 					}`),
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -132,7 +132,7 @@ func TestAccEphemeralPrivateKey_ECDSA_P256(t *testing.T) {
 		},
 		Steps: []r.TestStep{
 			{
-				Config: addEchoConfig(`ephemeral "tls_private_key" "test" {
+				Config: ephemeralPrivateKeyWithEchoConfig(`ephemeral "tls_private_key" "test" {
 						algorithm   = "ECDSA"
 						ecdsa_curve = "P256"
 					}`),
@@ -163,7 +163,7 @@ func TestAccEphemeralPrivateKey_ED25519(t *testing.T) {
 		},
 		Steps: []r.TestStep{
 			{
-				Config: addEchoConfig(`ephemeral "tls_private_key" "test" {
+				Config: ephemeralPrivateKeyWithEchoConfig(`ephemeral "tls_private_key" "test" {
 						algorithm = "ED25519"
 					}`),
 				Check: r.ComposeAggregateTestCheckFunc(
@@ -181,7 +181,7 @@ func TestAccEphemeralPrivateKey_ED25519(t *testing.T) {
 }
 
 // Adds the test echo provider to enable using state checks with ephemeral resources.
-func addEchoConfig(cfg string) string {
+func ephemeralPrivateKeyWithEchoConfig(cfg string) string {
 	return fmt.Sprintf(`
 	%s
 	provider "echo" {
