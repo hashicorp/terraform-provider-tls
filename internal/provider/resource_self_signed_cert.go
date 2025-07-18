@@ -152,7 +152,7 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.Int64{
-					attribute_plan_modifier_int64.DefaultValue(types.Int64Value(-1)),
+					int64planmodifier.RequiresReplace(),
 				},
 				Validators: []validator.Int64{
 					int64validator.AtLeast(-1),
