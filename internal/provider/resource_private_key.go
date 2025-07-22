@@ -100,6 +100,10 @@ func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaReques
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
 			},
+			"public_key_der": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The public key data in raw ASN.1 DER format, Base64-encoded without headers or newlines.",
+			},
 			"public_key_pem": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
@@ -190,6 +194,10 @@ func privateKeyResourceSchemaV1() schema.Schema {
 				Computed:            true,
 				Sensitive:           true,
 				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
+			},
+			"public_key_der": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "The public key data in raw ASN.1 DER format, Base64-encoded without headers or newlines.",
 			},
 			"public_key_pem": schema.StringAttribute{
 				Computed: true,
