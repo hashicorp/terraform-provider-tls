@@ -115,6 +115,7 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 			"max_path_length": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
+				Default:  int64default.StaticInt64(-1),
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.RequiresReplace(),
 				},
