@@ -14,6 +14,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -201,6 +202,15 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
 
 		pubKeySSH = string(sshPubKeyBytes)
+
+		// Manually add the comment as MarshalAuthorizedKeys ignores it: https://github.com/golang/go/issues/46870
+		var comment *string
+		diags.Append(s.GetAttribute(ctx, path.Root("openssh_comment"), &comment)...)
+
+		if comment != nil {
+			pubKeySSH = fmt.Sprintf("%s %s\n", strings.TrimSuffix(pubKeySSH, "\n"), *comment)
+		}
+
 		pubKeySSHFingerprintMD5 = ssh.FingerprintLegacyMD5(sshPubKey)
 		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
 	}
