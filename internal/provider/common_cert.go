@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -57,6 +58,46 @@ var extendedKeyUsages = map[string]x509.ExtKeyUsage{
 	"netscape_server_gated_crypto":      x509.ExtKeyUsageNetscapeServerGatedCrypto,
 	"microsoft_commercial_code_signing": x509.ExtKeyUsageMicrosoftCommercialCodeSigning,
 	"microsoft_kernel_code_signing":     x509.ExtKeyUsageMicrosoftKernelCodeSigning,
+}
+
+var signatureAlgorithms = map[string]x509.SignatureAlgorithm{
+	"md2_rsa":       x509.MD2WithRSA,  // Unsupported
+	"md5_rsa":       x509.MD5WithRSA,  // Only supported for signing, not verification.
+	"sha1_rsa":      x509.SHA1WithRSA, // Only supported for signing, and verification of CRLs, CSRs, and OCSP responses.
+	"sha256_rsa":    x509.SHA256WithRSA,
+	"sha384_rsa":    x509.SHA384WithRSA,
+	"sha512_rsa":    x509.SHA512WithRSA,
+	"sha1_dsa":      x509.DSAWithSHA1,   // Unsupported.
+	"sha256_dsa":    x509.DSAWithSHA256, // Unsupported.
+	"sha1_ecdsa":    x509.ECDSAWithSHA1, // Only supported for signing, and verification of CRLs, CSRs, and OCSP responses.
+	"sha256_ecdsa":  x509.ECDSAWithSHA256,
+	"sha384_ecdsa":  x509.ECDSAWithSHA384,
+	"sha512_ecdsa":  x509.ECDSAWithSHA512,
+	"sha256_rsapss": x509.SHA256WithRSAPSS,
+	"sha384_rsapss": x509.SHA384WithRSAPSS,
+	"sha512_rsapss": x509.SHA512WithRSAPSS,
+	"ed25519":       x509.PureEd25519,
+}
+
+func supportedHashingAlgorithms() []string {
+	list := make([]string, 0, len(keyUsages)+len(signatureAlgorithms))
+
+	for k := range signatureAlgorithms {
+		if strings.Contains(k, "_") {
+			alg := strings.Split(k, "_")[0]
+			list = append(list, alg)
+		}
+	}
+	allKeys := make(map[string]bool)
+	res := []string{}
+	for _, item := range list {
+		if _, value := allKeys[item]; !value {
+			allKeys[item] = true
+			res = append(res, item)
+		}
+	}
+	sort.Strings(res)
+	return res
 }
 
 // supportedKeyUsagesStr returns a slice with all the keys in keyUsages and extendedKeyUsages.
@@ -109,6 +150,39 @@ func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
 
 	pubKeyHash := sha1.Sum(pubKeyBytes)
 	return pubKeyHash[:], nil
+}
+
+// getSignatureAlgorithm calculates the algorithm based on the public key and the desired hash.
+func getSignatureAlgorithm(pubKey crypto.PublicKey, hashAlg string) (*x509.SignatureAlgorithm, error) {
+	var err error
+	var algorithm = strings.ToLower(hashAlg)
+
+	// lookup algorithm from public key type
+	switch pub := pubKey.(type) {
+	case *rsa.PublicKey:
+		algorithm += "_rsa"
+	case *ecdsa.PublicKey:
+		algorithm += "_ecdsa"
+	case ed25519.PublicKey:
+		// no hash algorithm is required
+		algorithm = "ed25519"
+	case *ed25519.PublicKey:
+		// no hash algorithm is required
+		algorithm = "ed25519"
+	default:
+		err = fmt.Errorf("unsupported public key type %T", pub)
+	}
+
+	// If any of the cases above failed, an error would have been set
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal public key of type %T: %w", pubKey, err)
+	}
+
+	if sigAlgo, ok := signatureAlgorithms[algorithm]; ok {
+		return &sigAlgo, nil
+	}
+
+	return nil, fmt.Errorf("unable to determine a signature algorithm from public key of type %T and %s hashing algorithm", pubKey, hashAlg)
 }
 
 func createCertificate(ctx context.Context, template, parent *x509.Certificate, pubKey crypto.PublicKey, prvKey crypto.PrivateKey, plan *tfsdk.Plan) (*commonCertificate, diag.Diagnostics) {
@@ -175,6 +249,24 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 		if err != nil {
 			diags.AddError("Failed to generate subject key identifier", err.Error())
 			return nil, diags
+		}
+	}
+
+	// Set signature-algorithm on the template
+	hashAlgorithmPath := path.Root("hashing_algorithm")
+	var hashAlgorithm types.String
+	diags.Append(plan.GetAttribute(ctx, hashAlgorithmPath, &hashAlgorithm)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !hashAlgorithm.IsNull() && !hashAlgorithm.IsUnknown() {
+		var sigAlg, err = getSignatureAlgorithm(pubKey, hashAlgorithm.ValueString())
+		if err != nil {
+			diags.AddError("Failed to generate signature algorithm", err.Error())
+			return nil, diags
+		}
+		if sigAlg != nil {
+			template.SignatureAlgorithm = *sigAlg
 		}
 	}
 
