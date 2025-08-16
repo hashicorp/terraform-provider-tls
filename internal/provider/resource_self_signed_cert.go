@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -46,11 +48,11 @@ func (r *selfSignedCertResource) Metadata(_ context.Context, req resource.Metada
 }
 
 func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			// Required attributes
 			"private_key_pem": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
@@ -59,7 +61,47 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 					"that the certificate will belong to. " +
 					"This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) " +
 					"interpolation function. ",
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
+						path.MatchRoot("private_key_pem"),
+						path.MatchRoot("private_key_pem_wo"),
+					),
+				},
 			},
+			"private_key_pem_wo": schema.StringAttribute{
+				Optional:    true,
+				WriteOnly:   true,
+				Sensitive:   true,
+				Description: "Write only variant of private_key_pem.",
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
+						path.MatchRoot("private_key_pem"),
+						path.MatchRoot("private_key_pem_wo"),
+					),
+					stringvalidator.AlsoRequires(
+						path.MatchRoot("private_key_pem_wo_version"),
+					),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^-----BEGIN [[:alpha:] ]+-----\n(.|\s)+\n-----END [[:alpha:] ]+-----\n?$`),
+						"must be a valid PEM string",
+					),
+				},
+			},
+			"private_key_pem_wo_version": schema.Int64Attribute{
+				Required: false,
+				Optional: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
+				Validators: []validator.Int64{
+					int64validator.AlsoRequires(
+						path.MatchRoot("private_key_pem_wo"),
+					),
+				},
+				Sensitive:   false,
+				Description: "Triggers update of the certificate using the private_key_pem_wo write-only value.",
+			},
+
 			"validity_period_hours": schema.Int64Attribute{
 				Required: true,
 				PlanModifiers: []planmodifier.Int64{
@@ -331,9 +373,16 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 		"selfSignedCertConfig": fmt.Sprintf("%+v", newState),
 	})
 
+	privateKeyPEM := ""
+	diagnostics := req.Config.GetAttribute(ctx, path.Root("private_key_pem_wo"), &privateKeyPEM)
+	if privateKeyPEM == "" || diagnostics.HasError() {
+		tflog.Debug(ctx, "private_key_pem_wo not set, using private_key_pem instead")
+		privateKeyPEM = newState.PrivateKeyPEM.ValueString()
+	}
+
 	// Parse the Private Key PEM
 	tflog.Debug(ctx, "Parsing private key PEM")
-	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
+	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(privateKeyPEM))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
