@@ -204,18 +204,20 @@ type selfSignedCertResourceModel struct {
 }
 
 type locallySignedCertResourceModel struct {
-	CACertPEM           types.String `tfsdk:"ca_cert_pem"`
-	CAPrivateKeyPEM     types.String `tfsdk:"ca_private_key_pem"`
-	CertRequestPEM      types.String `tfsdk:"cert_request_pem"`
-	ValidityPeriodHours types.Int64  `tfsdk:"validity_period_hours"`
-	AllowedUses         types.List   `tfsdk:"allowed_uses"`
-	EarlyRenewalHours   types.Int64  `tfsdk:"early_renewal_hours"`
-	IsCACertificate     types.Bool   `tfsdk:"is_ca_certificate"`
-	SetSubjectKeyID     types.Bool   `tfsdk:"set_subject_key_id"`
-	CertPEM             types.String `tfsdk:"cert_pem"`
-	ReadyForRenewal     types.Bool   `tfsdk:"ready_for_renewal"`
-	ValidityStartTime   types.String `tfsdk:"validity_start_time"`
-	ValidityEndTime     types.String `tfsdk:"validity_end_time"`
-	CAKeyAlgorithm      types.String `tfsdk:"ca_key_algorithm"`
-	ID                  types.String `tfsdk:"id"`
+	CACertPEM                types.String `tfsdk:"ca_cert_pem"`
+	CAPrivateKeyPEM          types.String `tfsdk:"ca_private_key_pem"`
+	CAPrivateKeyPEMWO        types.String `tfsdk:"ca_private_key_pem_wo"`
+	CAPrivateKeyPEMWOVersion types.Int64  `tfsdk:"ca_private_key_pem_wo_version"`
+	CertRequestPEM           types.String `tfsdk:"cert_request_pem"`
+	ValidityPeriodHours      types.Int64  `tfsdk:"validity_period_hours"`
+	AllowedUses              types.List   `tfsdk:"allowed_uses"`
+	EarlyRenewalHours        types.Int64  `tfsdk:"early_renewal_hours"`
+	IsCACertificate          types.Bool   `tfsdk:"is_ca_certificate"`
+	SetSubjectKeyID          types.Bool   `tfsdk:"set_subject_key_id"`
+	CertPEM                  types.String `tfsdk:"cert_pem"`
+	ReadyForRenewal          types.Bool   `tfsdk:"ready_for_renewal"`
+	ValidityStartTime        types.String `tfsdk:"validity_start_time"`
+	ValidityEndTime          types.String `tfsdk:"validity_end_time"`
+	CAKeyAlgorithm           types.String `tfsdk:"ca_key_algorithm"`
+	ID                       types.String `tfsdk:"id"`
 }
