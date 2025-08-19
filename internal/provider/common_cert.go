@@ -178,6 +178,17 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 		}
 	}
 
+	// Set max-path-len on the template
+	maxPathLenPath := path.Root("max_path_length")
+	var maxPathLen types.Int64
+	diags.Append(plan.GetAttribute(ctx, maxPathLenPath, &maxPathLen)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !maxPathLen.IsNull() && !maxPathLen.IsUnknown() && maxPathLen.ValueInt64() >= 0 {
+		template.MaxPathLen = int(maxPathLen.ValueInt64())
+	}
+
 	// Set subject-id on the template
 	setSubjectKeyIDPath := path.Root("set_subject_key_id")
 	var setSubjectKeyID types.Bool
