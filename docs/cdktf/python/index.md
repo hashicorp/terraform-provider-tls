@@ -47,7 +47,6 @@ class MyConvertedCode(TerraformStack):
             allowed_uses=["key_encipherment", "digital_signature", "server_auth"],
             dns_names=["example.com", "example.net"],
             early_renewal_hours=3,
-            key_algorithm=example.algorithm,
             private_key_pem=example.private_key_pem,
             subject=[SelfSignedCertSubject(
                 common_name="example.com",
@@ -169,4 +168,4 @@ Failing that, **protecting the content of the state file is strongly recommended
 The more general advice is that it's better to generate "secrets" outside of Terraform,
 and then distribute them securely to the system where Terraform will make use of them.
 
-<!-- cache-key: cdktf-0.20.8 input-9629aac943b54f5dd10ea0b4a5ac545ba133cdf7ce49405f60bebc3525e333fa -->
+<!-- cache-key: cdktf-0.20.8 input-782aabf55f7149424470079a8f77a1374b433d8cd08f3cb290f017c72b7ee748 -->
