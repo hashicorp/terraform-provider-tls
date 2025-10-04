@@ -914,3 +914,36 @@ func TestResourceSelfSignedCert_NoSubject(t *testing.T) {
 		},
 	})
 }
+
+func TestResourceSelfSignedCert_UsingWriteOnlyEphemeralPrivateKey(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "RSA"
+						rsa_bits  = 4096
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem_wo         = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = 1
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "RSA"),
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+		},
+	})
+}
