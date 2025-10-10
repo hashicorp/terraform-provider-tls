@@ -170,6 +170,14 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 					"for self-signed certificates this is the same value as the " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
 			},
+			"hashing_algorithm": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(supportedHashingAlgorithms()...),
+				},
+				Description: "The algorithm to use when hashing the certificate for signature signing " +
+					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedHashingAlgorithms(), "`, `")),
+			},
 
 			// Computed attributes
 			"cert_pem": schema.StringAttribute{
