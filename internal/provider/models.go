@@ -7,6 +7,8 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -72,6 +74,7 @@ type certificateSubjectModel struct {
 
 type privateKeyResourceModel struct {
 	Algorithm                  types.String `tfsdk:"algorithm"`
+	OpenSSHComment             types.String `tfsdk:"openssh_comment"`
 	RSABits                    types.Int64  `tfsdk:"rsa_bits"`
 	ECDSACurve                 types.String `tfsdk:"ecdsa_curve"`
 	PrivateKeyPem              types.String `tfsdk:"private_key_pem"`
@@ -87,6 +90,7 @@ type privateKeyResourceModel struct {
 func (d privateKeyResourceModel) toEphemeralModel() *privateKeyEphemeralModel {
 	return &privateKeyEphemeralModel{
 		Algorithm:                  d.Algorithm,
+		OpenSSHComment:             d.OpenSSHComment,
 		RSABits:                    d.RSABits,
 		ECDSACurve:                 d.ECDSACurve,
 		PrivateKeyPem:              d.PrivateKeyPem,
@@ -101,6 +105,7 @@ func (d privateKeyResourceModel) toEphemeralModel() *privateKeyEphemeralModel {
 
 type privateKeyEphemeralModel struct {
 	Algorithm                  types.String `tfsdk:"algorithm"`
+	OpenSSHComment             types.String `tfsdk:"openssh_comment"`
 	RSABits                    types.Int64  `tfsdk:"rsa_bits"`
 	ECDSACurve                 types.String `tfsdk:"ecdsa_curve"`
 	PrivateKeyPem              types.String `tfsdk:"private_key_pem"`
@@ -148,6 +153,12 @@ func (data *privateKeyEphemeralModel) setPublicKeyAttributes(prvKey crypto.Priva
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
 
 		pubKeySSH = string(sshPubKeyBytes)
+
+		openSSHComment := data.OpenSSHComment.ValueString()
+		if openSSHComment != "" {
+			pubKeySSH = fmt.Sprintf("%s %s\n", strings.TrimSuffix(pubKeySSH, "\n"), openSSHComment)
+		}
+
 		pubKeySSHFingerprintMD5 = ssh.FingerprintLegacyMD5(sshPubKey)
 		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
 	}
@@ -171,6 +182,7 @@ func (data *privateKeyEphemeralModel) setupDefaultValue() {
 func (data *privateKeyEphemeralModel) toResourceModel() privateKeyResourceModel {
 	return privateKeyResourceModel{
 		Algorithm:                  data.Algorithm,
+		OpenSSHComment:             data.OpenSSHComment,
 		RSABits:                    data.RSABits,
 		ECDSACurve:                 data.ECDSACurve,
 		PrivateKeyPem:              data.PrivateKeyPem,
