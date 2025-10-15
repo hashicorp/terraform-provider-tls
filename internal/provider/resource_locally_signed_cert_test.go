@@ -510,6 +510,36 @@ EOT
 				// Authority Key Identifier
 				Check: tu.TestCheckPEMCertificateNoAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem"),
 			},
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						validity_period_hours = 8760
+						allowed_uses = ["cert_signing"]
+					}
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+					}
+					resource "tls_locally_signed_cert" "test" {
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = ["server_auth", "client_auth"]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				// NOTE: As the CA used for this certificate is a non-CA self-signed certificate that doesn't
+				// carry a Subject Key Identifier, this is reflected in the child certificate that has no
+				// Authority Key Identifier
+				Check: tu.TestCheckPEMCertificateNoAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem"),
+			},
 		},
 	})
 }
@@ -553,6 +583,59 @@ func TestResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 						cert_request_pem = tls_cert_request.test.cert_request_pem
 						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
 						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "ED25519"),
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_FromED25519WriteOnlyPrivateKeyWResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "ca_prv_test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem_wo = ephemeral.tls_private_key.ca_prv_test.private_key_pem
+						private_key_pem_wo_version = 1
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = 1
+						subject {
+							common_name  = "test.com"
+						}
+					}
+					resource "tls_locally_signed_cert" "test" {
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						allowed_uses = [
+							"server_auth",
+							"client_auth",
+						]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem_wo = ephemeral.tls_private_key.ca_prv_test.private_key_pem
+						ca_private_key_pem_wo_version = 1
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
