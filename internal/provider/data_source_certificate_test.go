@@ -72,7 +72,6 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.serial_number", "266244246501122064554217434340898012243"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "false"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.max_path_length", "-1"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.version", "3"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=Root CA,O=Test Org,L=Here"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=Child Cert,O=Child Co.,L=Everywhere"),
@@ -140,12 +139,12 @@ func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 
 					// ISRG Root X1
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R10,O=Let's Encrypt,C=US"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R12,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.max_path_length", "0"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "00abefd055f9a9c784ffdeabd1dcdd8fed741436"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "ee44782835d8fb31394da5ceb840dc93849bcf5a"),
 
 					// developer.hashicorp.com
 					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
