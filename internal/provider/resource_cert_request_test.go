@@ -508,3 +508,30 @@ func testStringValue(sPtr *string) string {
 
 	return *sPtr
 }
+
+func TestResourceCertRequest_UsingWriteOnlyEphemeralPrivateKey(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "RSA"
+						rsa_bits  = 4096
+					}
+					resource "tls_cert_request" "test" {
+					  private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+                      private_key_pem_wo_version = 1
+					
+					  subject {
+					    common_name = "this"
+					  }
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_cert_request.test", "private_key_pem_wo_version", "1"),
+				),
+			},
+		},
+	})
+}
