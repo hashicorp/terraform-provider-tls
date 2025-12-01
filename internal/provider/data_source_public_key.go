@@ -69,6 +69,10 @@ func (d *publicKeyDataSource) Schema(ctx context.Context, req datasource.SchemaR
 				Description: "The name of the algorithm used by the given private key. " +
 					fmt.Sprintf("Possible values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
 			},
+			"public_key_der": schema.StringAttribute{
+				Computed:    true,
+				Description: "The public key data in raw ASN.1 DER format, Base64-encoded without headers or newlines.",
+			},
 			"public_key_pem": schema.StringAttribute{
 				Computed: true,
 				Description: "The public key, in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +

@@ -38,6 +38,7 @@ func TestPublicKey_dataSource_PEM(t *testing.T) {
 			{
 				Config: fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_der", fixtures.TestPublicKeyDER),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
@@ -92,6 +93,7 @@ func TestPublicKey_dataSource_PEM_UpgradeFromVersion3_4_0(t *testing.T) {
 				ExternalProviders: providerVersion340(),
 				Config:            fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckNoResourceAttr("data.tls_public_key.test", "public_key_der"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
@@ -108,6 +110,7 @@ func TestPublicKey_dataSource_PEM_UpgradeFromVersion3_4_0(t *testing.T) {
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   fmt.Sprintf(configDataSourcePublicKeyViaPEM, fixtures.TestPrivateKeyPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_der", fixtures.TestPublicKeyDER),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
@@ -126,6 +129,7 @@ func TestPublicKey_dataSource_OpenSSHPEM(t *testing.T) {
 			{
 				Config: fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, fixtures.TestPrivateKeyOpenSSHPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_der", fixtures.TestPublicKeyDER),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
@@ -179,6 +183,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM_UpgradeFromVersion3_4_0(t *testing.T
 				ExternalProviders: providerVersion340(),
 				Config:            fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, fixtures.TestPrivateKeyOpenSSHPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_der", fixtures.TestPublicKeyDER),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
@@ -190,6 +195,7 @@ func TestAccPublicKey_dataSource_OpenSSHPEM_UpgradeFromVersion3_4_0(t *testing.T
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   fmt.Sprintf(configDataSourcePublicKeyViaOpenSSHPEM, fixtures.TestPrivateKeyOpenSSHPEM),
 				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_der", fixtures.TestPublicKeyDER),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_pem", strings.TrimSpace(fixtures.TestPublicKeyPEM)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_openssh", strings.TrimSpace(fixtures.TestPublicKeyOpenSSH)+"\n"),
 					r.TestCheckResourceAttr("data.tls_public_key.test", "public_key_fingerprint_md5", strings.TrimSpace(fixtures.TestPublicKeyOpenSSHFingerprintMD5)),
