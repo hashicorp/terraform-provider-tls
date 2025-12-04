@@ -43,7 +43,14 @@ func (r *privateKeyResource) Metadata(_ context.Context, req resource.MetadataRe
 }
 
 func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
+	// The schema is defined by a separate function so that it can be easily referenced in the
+	// UpgradeState method which currently takes advantage of specific unmarshaling behaviours
+	// in framework. See the comment in the UpgradeState method for more details.
+	resp.Schema = privateKeyResourceSchemaV1()
+}
+
+func privateKeyResourceSchemaV1() schema.Schema {
+	return schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			// Required attributes
@@ -143,93 +150,6 @@ func (r *privateKeyResource) Schema(_ context.Context, req resource.SchemaReques
 			"when possible, to avoid storing the private key data in the plan or state file." +
 			"\n\n" +
 			"Creates a PEM (and OpenSSH) formatted private key.\n\n" +
-			"Generates a secure private key and encodes it in " +
-			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and " +
-			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +
-			"This resource is primarily intended for easily bootstrapping throwaway development environments.",
-	}
-}
-
-func privateKeyResourceSchemaV1() schema.Schema {
-	return schema.Schema{
-		Version: 1,
-		Attributes: map[string]schema.Attribute{
-			// Required attributes
-			"algorithm": schema.StringAttribute{
-				Required: true,
-				Description: "Name of the algorithm to use when generating the private key. " +
-					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
-			},
-
-			// Optional attributes
-			"rsa_bits": schema.Int64Attribute{
-				Optional:            true,
-				Computed:            true,
-				MarkdownDescription: "When `algorithm` is `RSA`, the size of the generated RSA key, in bits (default: `2048`).",
-			},
-			"ecdsa_curve": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				MarkdownDescription: "When `algorithm` is `ECDSA`, the name of the elliptic curve to use. " +
-					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedECDSACurvesStr(), "`, `")) +
-					fmt.Sprintf("(default: `%s`).", P224.String()),
-			},
-
-			// Computed attributes
-			"private_key_pem": schema.StringAttribute{
-				Computed:            true,
-				Sensitive:           true,
-				MarkdownDescription: "Private key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
-			},
-			"private_key_openssh": schema.StringAttribute{
-				Computed:            true,
-				Sensitive:           true,
-				MarkdownDescription: "Private key data in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format.",
-			},
-			"private_key_pem_pkcs8": schema.StringAttribute{
-				Computed:            true,
-				Sensitive:           true,
-				MarkdownDescription: "Private key data in [PKCS#8 PEM (RFC 5208)](https://datatracker.ietf.org/doc/html/rfc5208) format.",
-			},
-			"public_key_pem": schema.StringAttribute{
-				Computed: true,
-				MarkdownDescription: "Public key data in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
-					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
-					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
-					"value append a `\\n` at the end of the PEM. " +
-					"In case this disrupts your use case, we recommend using " +
-					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
-			},
-			"public_key_openssh": schema.StringAttribute{
-				Computed: true,
-				MarkdownDescription: " The public key data in " +
-					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
-					"This is not populated for `ECDSA` with curve `P224`, as it is [not supported](../../docs#limitations). " +
-					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
-					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
-					"value append a `\\n` at the end of the PEM. " +
-					"In case this disrupts your use case, we recommend using " +
-					"[`trimspace()`](https://www.terraform.io/language/functions/trimspace).",
-			},
-			"public_key_fingerprint_md5": schema.StringAttribute{
-				Computed: true,
-				MarkdownDescription: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
-					"Only available if the selected private key format is compatible, similarly to " +
-					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
-			},
-			"public_key_fingerprint_sha256": schema.StringAttribute{
-				Computed: true,
-				MarkdownDescription: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
-					"Only available if the selected private key format is compatible, similarly to " +
-					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
-			},
-			"id": schema.StringAttribute{
-				Computed: true,
-				MarkdownDescription: "Unique identifier for this resource: " +
-					"hexadecimal representation of the SHA1 checksum of the resource.",
-			},
-		},
-		MarkdownDescription: "Creates a PEM (and OpenSSH) formatted private key.\n\n" +
 			"Generates a secure private key and encodes it in " +
 			"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and " +
 			"[OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. " +
