@@ -254,6 +254,75 @@ func TestPublicKey_ephemeral_PKCS8PEM(t *testing.T) {
 	}
 }
 
+func TestPublicKey_ephemeral_OpenSSHComment(t *testing.T) {
+	cases := []struct {
+		desc string
+		step r.TestStep
+	}{
+		{
+			desc: "RSA OpenSSH from resource",
+			step: r.TestStep{
+				Config: ephemeralPublicKeyWithEchoConfig(`
+					resource "tls_private_key" "rsaPrvKey" {
+						algorithm = "RSA"
+						openssh_comment = "test@test"
+					}
+					ephemeral "tls_public_key" "test" {
+						private_key_openssh = tls_private_key.rsaPrvKey.private_key_openssh
+					}
+				`),
+				Check: r.TestMatchResourceAttr("echo.tls_public_key_test", "data.public_key_openssh", regexp.MustCompile(` test@test\n$`)),
+			},
+		},
+		{
+			desc: "ECDSA9 OpenSSH from resource",
+			step: r.TestStep{
+				Config: ephemeralPublicKeyWithEchoConfig(`
+					resource "tls_private_key" "ecdsaPrvKey" {
+						algorithm = "ED25519"
+						ecdsa_curve = "P384"
+						openssh_comment = "test@test"
+					}
+					ephemeral "tls_public_key" "test" {
+						private_key_openssh = tls_private_key.ecdsaPrvKey.private_key_openssh
+					}
+				`),
+				Check: r.TestMatchResourceAttr("echo.tls_public_key_test", "data.public_key_openssh", regexp.MustCompile(` test@test\n$`)),
+			},
+		},
+		{
+			desc: "ED25519 OpenSSH from resource",
+			step: r.TestStep{
+				Config: ephemeralPublicKeyWithEchoConfig(`
+					resource "tls_private_key" "ed25519PrvKey" {
+						algorithm = "ED25519"
+						openssh_comment = "test@test"
+					}
+					ephemeral "tls_public_key" "test" {
+						private_key_openssh = tls_private_key.ed25519PrvKey.private_key_openssh
+					}
+				`),
+				Check: r.TestMatchResourceAttr("echo.tls_public_key_test", "data.public_key_openssh", regexp.MustCompile(` test@test\n$`)),
+			},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.desc, func(t *testing.T) {
+			r.UnitTest(t, r.TestCase{
+				// Ephemeral resources are only available in 1.10 and later
+				TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+					tfversion.SkipBelow(tfversion.Version1_10_0),
+				},
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
+					"echo": echoprovider.NewProviderServer(),
+				},
+				Steps: []r.TestStep{c.step},
+			})
+		})
+	}
+}
+
 func TestPublicKey_ephemeral_errorCases(t *testing.T) {
 	cases := []struct {
 		desc string
