@@ -977,3 +977,144 @@ func TestResourceSelfSignedCert_WithMaxPathLen(t *testing.T) {
 		},
 	})
 }
+
+func TestResourceSelfSignedCert_PrivateKeyPEM_WriteOnly(t *testing.T) {
+	var cert1, cert2 string
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							common_name = "example.com"
+						}
+						validity_period_hours = 12
+						allowed_uses = [
+							"key_encipherment",
+							"digital_signature",
+							"server_auth",
+						]
+						private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = "1"
+					}
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateSubject("tls_self_signed_cert.test", "cert_pem", &pkix.Name{
+						CommonName: "example.com",
+					}),
+					testExtractResourceAttr("tls_self_signed_cert.test", "cert_pem", &cert1),
+				),
+			},
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							common_name = "example.com"
+						}
+						validity_period_hours = 12
+						allowed_uses = [
+							"key_encipherment",
+							"digital_signature",
+							"server_auth",
+						]
+						private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = "2"
+					}
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateSubject("tls_self_signed_cert.test", "cert_pem", &pkix.Name{
+						CommonName: "example.com",
+					}),
+					testExtractResourceAttr("tls_self_signed_cert.test", "cert_pem", &cert2),
+					testCheckAttributeValuesDiffer(&cert1, &cert2),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_WriteOnly_Conflict(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					ephemeral "tls_private_key" "wo" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						subject { common_name = "example.com" }
+						validity_period_hours = 12
+						allowed_uses = ["server_auth"]
+
+						private_key_pem = tls_private_key.test.private_key_pem
+						private_key_pem_wo = ephemeral.tls_private_key.wo.private_key_pem
+						private_key_pem_wo_version = "1"
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_WriteOnly_MissingVersion(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "wo" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						subject { common_name = "example.com" }
+						validity_period_hours = 12
+						allowed_uses = ["server_auth"]
+
+						private_key_pem_wo = ephemeral.tls_private_key.wo.private_key_pem
+						# Version missing
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_WriteOnly_VersionWithoutWO(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						subject { common_name = "example.com" }
+						validity_period_hours = 12
+						allowed_uses = ["server_auth"]
+
+						private_key_pem = tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = "1"
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
