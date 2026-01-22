@@ -17,6 +17,13 @@ or when deployed internally to an organization.
 
 {{ tffile "examples/resources/tls_locally_signed_cert/resource.tf" }}
 
+### Example Usage with Write-Only CA Private Key
+
+This example demonstrates how to use the `ca_private_key_pem_wo` attribute to supply the CA private key without storing it in the Terraform state.
+Note that `ca_private_key_pem_wo_version` must be set and managed to trigger updates when the CA key changes.
+
+{{ tffile "examples/resources/tls_locally_signed_cert/write_only/resource.tf" }}
+
 {{ .SchemaMarkdown | trimspace }}
 
 ## Automatic Renewal
