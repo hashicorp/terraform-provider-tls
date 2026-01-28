@@ -508,3 +508,122 @@ func testStringValue(sPtr *string) string {
 
 	return *sPtr
 }
+
+func TestResourceCertRequest_PrivateKeyPEM_WriteOnly(t *testing.T) {
+	var cert1, cert2 string
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							common_name = "example.com"
+						}
+						private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = "1"
+					}
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest.String()),
+					tu.TestCheckPEMCertificateRequestSubject("tls_cert_request.test", "cert_request_pem", &pkix.Name{
+						CommonName: "example.com",
+					}),
+					testExtractResourceAttr("tls_cert_request.test", "cert_request_pem", &cert1),
+				),
+			},
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							common_name = "example.com"
+						}
+						private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = "2"
+					}
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest.String()),
+					tu.TestCheckPEMCertificateRequestSubject("tls_cert_request.test", "cert_request_pem", &pkix.Name{
+						CommonName: "example.com",
+					}),
+					testExtractResourceAttr("tls_cert_request.test", "cert_request_pem", &cert2),
+					testCheckAttributeValuesDiffer(&cert1, &cert2),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_WriteOnly_Conflict(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject { common_name = "example.com" }
+						private_key_pem = tls_private_key.test.private_key_pem
+						private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = "1"
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_WriteOnly_MissingVersion(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject { common_name = "example.com" }
+						private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_WriteOnly_VersionWithoutWO(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject { common_name = "example.com" }
+						private_key_pem = tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = "1"
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
