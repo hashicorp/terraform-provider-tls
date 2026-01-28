@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: 'resource/tls_self_signed_cert: Added optional `max_path_length` attribute'
-time: 2025-07-29T19:57:43.298625175+02:00
-custom:
-    Issue: "301"

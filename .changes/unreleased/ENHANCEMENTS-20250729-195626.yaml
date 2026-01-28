@@ -1,5 +1,0 @@
-kind: ENHANCEMENTS
-body: "data-source/tls_certificats: Added `max_path_length` attribute"
-time: 2025-07-29T19:56:26.925836889+02:00
-custom:
-    Issue: "301"
