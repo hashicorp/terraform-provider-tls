@@ -1,3 +1,9 @@
+## 4.2.1 (January 30, 2026)
+
+BUG FIXES:
+
+* fix regression triggering a replace for certs due to max_path_length defaulting to -1 ([#737](https://github.com/hashicorp/terraform-provider-tls/issues/737))
+
 ## 4.2.0 (January 28, 2026)
 
 FEATURES:

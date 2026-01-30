@@ -14,6 +14,7 @@ import (
 	"time"
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -172,6 +173,132 @@ func TestAccResourceLocallySignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 					tu.TestCheckPEMCertificateDuration("tls_locally_signed_cert.test", "cert_pem", time.Hour),
 					tu.TestCheckPEMCertificateAuthorityKeyID("tls_locally_signed_cert.test", "cert_pem", fixtures.TestCAPrivateKeySubjectKeyID),
 				),
+			},
+		},
+	})
+}
+
+// TestAccResourceLocallySignedCert_UpgradeFromVersion4_1_0 verifies that upgrading from v4.1.0
+// (which did not have max_path_length attribute) to the current version does not cause
+// resource replacement. This is a regression test for https://github.com/hashicorp/terraform-provider-tls/issues/735
+func TestAccResourceLocallySignedCert_UpgradeFromVersion4_1_0(t *testing.T) {
+	config := `
+		resource "tls_private_key" "ca" {
+			algorithm = "RSA"
+		}
+		resource "tls_self_signed_cert" "ca" {
+			private_key_pem = tls_private_key.ca.private_key_pem
+			subject {
+				organization = "test-organization"
+			}
+			is_ca_certificate     = true
+			validity_period_hours = 8760
+			allowed_uses = [
+				"cert_signing",
+			]
+		}
+		resource "tls_private_key" "test" {
+			algorithm = "RSA"
+		}
+		resource "tls_cert_request" "test" {
+			private_key_pem = tls_private_key.test.private_key_pem
+			subject {
+				common_name = "test.com"
+			}
+		}
+		resource "tls_locally_signed_cert" "test" {
+			validity_period_hours = 8760
+			allowed_uses = [
+				"server_auth",
+				"client_auth",
+			]
+			cert_request_pem   = tls_cert_request.test.cert_request_pem
+			ca_cert_pem        = tls_self_signed_cert.ca.cert_pem
+			ca_private_key_pem = tls_private_key.ca.private_key_pem
+		}
+	`
+
+	r.Test(t, r.TestCase{
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion410(),
+				Config:            config,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					r.TestCheckNoResourceAttr("tls_locally_signed_cert.test", "max_path_length"),
+				),
+			},
+			{
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				Config:                   config,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+		},
+	})
+}
+
+// TestAccResourceLocallySignedCert_UpgradeFromVersion4_2_0 verifies that upgrading from v4.2.0
+// (where max_path_length defaulted to -1) to the patched version does not cause
+// resource replacement.
+func TestAccResourceLocallySignedCert_UpgradeFromVersion4_2_0(t *testing.T) {
+	config := `
+		resource "tls_private_key" "ca" {
+			algorithm = "RSA"
+		}
+		resource "tls_self_signed_cert" "ca" {
+			private_key_pem = tls_private_key.ca.private_key_pem
+			subject {
+				organization = "test-organization"
+			}
+			is_ca_certificate     = true
+			validity_period_hours = 8760
+			allowed_uses = [
+				"cert_signing",
+			]
+		}
+		resource "tls_private_key" "test" {
+			algorithm = "RSA"
+		}
+		resource "tls_cert_request" "test" {
+			private_key_pem = tls_private_key.test.private_key_pem
+			subject {
+				common_name = "test.com"
+			}
+		}
+		resource "tls_locally_signed_cert" "test" {
+			validity_period_hours = 8760
+			allowed_uses = [
+				"server_auth",
+				"client_auth",
+			]
+			cert_request_pem   = tls_cert_request.test.cert_request_pem
+			ca_cert_pem        = tls_self_signed_cert.ca.cert_pem
+			ca_private_key_pem = tls_private_key.ca.private_key_pem
+		}
+	`
+
+	r.Test(t, r.TestCase{
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion420(),
+				Config:            config,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "max_path_length", "-1"),
+				),
+			},
+			{
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				Config:                   config,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
 			},
 		},
 	})
@@ -797,7 +924,7 @@ func TestResourceLocallySignedCert_WithoutMaxPathLen(t *testing.T) {
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "max_path_length", "-1"),
+					r.TestCheckNoResourceAttr("tls_locally_signed_cert.test", "max_path_length"),
 					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
 				),
 			},
