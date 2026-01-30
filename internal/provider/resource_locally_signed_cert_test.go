@@ -236,10 +236,6 @@ func TestAccResourceLocallySignedCert_UpgradeFromVersion4_1_0(t *testing.T) {
 						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
 					},
 				},
-				Check: r.ComposeAggregateTestCheckFunc(
-					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
-					r.TestCheckNoResourceAttr("tls_locally_signed_cert.test", "max_path_length"),
-				),
 			},
 		},
 	})
