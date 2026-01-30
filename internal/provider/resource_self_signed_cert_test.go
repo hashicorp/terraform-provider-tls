@@ -284,15 +284,11 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion4_2_0(t *testing.T) {
 			{
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   config,
-				PlanOnly:                 true,
-			},
-			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config:                   config,
-				Check: r.ComposeAggregateTestCheckFunc(
-					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
-					r.TestCheckResourceAttr("tls_self_signed_cert.test", "max_path_length", "-1"),
-				),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
 			},
 		},
 	})
