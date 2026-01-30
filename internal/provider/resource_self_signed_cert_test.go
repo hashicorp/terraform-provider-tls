@@ -286,7 +286,7 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion4_2_0(t *testing.T) {
 				Config:                   config,
 				ConfigPlanChecks: r.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
-						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
+						plancheck.ExpectResourceAction("tls_self_signed_cert.test", plancheck.ResourceActionNoop),
 					},
 				},
 			},
