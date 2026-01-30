@@ -15,6 +15,7 @@ import (
 	"time"
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -239,11 +240,11 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion4_1_0(t *testing.T) {
 			{
 				ProtoV5ProviderFactories: protoV5ProviderFactories(),
 				Config:                   config,
-				PlanOnly:                 true,
-			},
-			{
-				ProtoV5ProviderFactories: protoV5ProviderFactories(),
-				Config:                   config,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_self_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
 					r.TestCheckNoResourceAttr("tls_self_signed_cert.test", "max_path_length"),
