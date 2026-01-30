@@ -151,15 +151,15 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 			"max_path_length": schema.Int64Attribute{
 				Optional: true,
 				Computed: true,
-				Default:  int64default.StaticInt64(-1),
 				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
 					int64planmodifier.RequiresReplace(),
 				},
 				Validators: []validator.Int64{
 					int64validator.AtLeast(-1),
 				},
 				Description: "Maximum number of intermediate certificates that may follow this certificate in a " +
-					"valid certification path. If `is_ca_certificate` is `false`, this value is ignored. (default: `-1`)",
+					"valid certification path. If `is_ca_certificate` is `false`, this value is ignored.",
 			},
 			"set_subject_key_id": schema.BoolAttribute{
 				Optional: true,
@@ -444,6 +444,11 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 	if diags.HasError() {
 		res.Diagnostics.Append(diags...)
 		return
+	}
+
+	// Ensure max_path_length is set to a concrete value (null if not specified)
+	if newState.MaxPathLen.IsUnknown() {
+		newState.MaxPathLen = types.Int64Null()
 	}
 
 	// Store the certificate into the state

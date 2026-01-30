@@ -46,6 +46,24 @@ func providerVersion310() map[string]resource.ExternalProvider {
 	}
 }
 
+func providerVersion410() map[string]resource.ExternalProvider {
+	return map[string]resource.ExternalProvider{
+		"tls": {
+			VersionConstraint: "4.1.0",
+			Source:            "hashicorp/tls",
+		},
+	}
+}
+
+func providerVersion420() map[string]resource.ExternalProvider {
+	return map[string]resource.ExternalProvider{
+		"tls": {
+			VersionConstraint: "4.2.0",
+			Source:            "hashicorp/tls",
+		},
+	}
+}
+
 func TestProvider_InvalidProxyConfig(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
