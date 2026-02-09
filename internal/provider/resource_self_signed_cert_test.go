@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2017, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package provider
@@ -15,6 +15,7 @@ import (
 	"time"
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -200,6 +201,94 @@ func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 					}),
 					tu.TestCheckPEMCertificateDuration("tls_self_signed_cert.test1", "cert_pem", time.Hour),
 				),
+			},
+		},
+	})
+}
+
+// TestAccResourceSelfSignedCert_UpgradeFromVersion4_1_0 verifies that upgrading from v4.1.0
+// (which did not have max_path_length attribute) to the current version does not cause
+// resource replacement. This is a regression test for https://github.com/hashicorp/terraform-provider-tls/issues/735
+func TestAccResourceSelfSignedCert_UpgradeFromVersion4_1_0(t *testing.T) {
+	config := `
+		resource "tls_private_key" "test" {
+			algorithm = "RSA"
+		}
+		resource "tls_self_signed_cert" "test" {
+			private_key_pem = tls_private_key.test.private_key_pem
+			subject {
+				organization = "test-organization"
+			}
+			validity_period_hours = 8760
+			allowed_uses = [
+				"key_encipherment",
+				"digital_signature",
+			]
+		}
+	`
+
+	r.Test(t, r.TestCase{
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion410(),
+				Config:            config,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					r.TestCheckNoResourceAttr("tls_self_signed_cert.test", "max_path_length"),
+				),
+			},
+			{
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				Config:                   config,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_self_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+		},
+	})
+}
+
+// TestAccResourceSelfSignedCert_UpgradeFromVersion4_2_0 verifies that upgrading from v4.2.0
+// (where max_path_length defaulted to -1) to the patched version does not cause
+// resource replacement.
+func TestAccResourceSelfSignedCert_UpgradeFromVersion4_2_0(t *testing.T) {
+	config := `
+		resource "tls_private_key" "test" {
+			algorithm = "RSA"
+		}
+		resource "tls_self_signed_cert" "test" {
+			private_key_pem = tls_private_key.test.private_key_pem
+			subject {
+				organization = "test-organization"
+			}
+			validity_period_hours = 8760
+			allowed_uses = [
+				"key_encipherment",
+				"digital_signature",
+			]
+		}
+	`
+
+	r.Test(t, r.TestCase{
+		Steps: []r.TestStep{
+			{
+				ExternalProviders: providerVersion420(),
+				Config:            config,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "max_path_length", "-1"),
+				),
+			},
+			{
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				Config:                   config,
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_self_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
 			},
 		},
 	})
@@ -938,7 +1027,7 @@ func TestResourceSelfSignedCert_WithoutMaxPathLen(t *testing.T) {
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("tls_self_signed_cert.test", "max_path_length", "-1"),
+					r.TestCheckNoResourceAttr("tls_self_signed_cert.test", "max_path_length"),
 					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
 				),
 			},

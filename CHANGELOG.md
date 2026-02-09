@@ -1,3 +1,21 @@
+## 4.2.1 (January 30, 2026)
+
+BUG FIXES:
+
+* fix regression triggering a replace for certs due to max_path_length defaulting to -1 ([#737](https://github.com/hashicorp/terraform-provider-tls/issues/737))
+
+## 4.2.0 (January 28, 2026)
+
+FEATURES:
+
+* ephemeral/tls_public_key: New ephemeral resource that extracts the public key from a private key. ([#668](https://github.com/hashicorp/terraform-provider-tls/issues/668))
+
+ENHANCEMENTS:
+
+* data-source/tls_certificats: Added `max_path_length` attribute ([#301](https://github.com/hashicorp/terraform-provider-tls/issues/301))
+* resource/tls_self_signed_cert: Added optional `max_path_length` attribute ([#301](https://github.com/hashicorp/terraform-provider-tls/issues/301))
+* resource/tls_locally_signed_cert: Added optional `max_path_length` attribute ([#301](https://github.com/hashicorp/terraform-provider-tls/issues/301))
+
 ## 4.1.0 (April 23, 2025)
 
 NOTES:

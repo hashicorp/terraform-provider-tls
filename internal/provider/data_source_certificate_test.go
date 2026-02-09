@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2017, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package provider
@@ -139,12 +139,12 @@ func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 
 					// ISRG Root X1
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R12,O=Let's Encrypt,C=US"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R13,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.max_path_length", "0"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "ee44782835d8fb31394da5ceb840dc93849bcf5a"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "22ff89586561fc2d52f77491e9f1eff1b80be33e"),
 
 					// developer.hashicorp.com
 					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),

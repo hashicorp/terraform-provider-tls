@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2017, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package provider
@@ -41,6 +41,24 @@ func providerVersion310() map[string]resource.ExternalProvider {
 	return map[string]resource.ExternalProvider{
 		"tls": {
 			VersionConstraint: "3.1.0",
+			Source:            "hashicorp/tls",
+		},
+	}
+}
+
+func providerVersion410() map[string]resource.ExternalProvider {
+	return map[string]resource.ExternalProvider{
+		"tls": {
+			VersionConstraint: "4.1.0",
+			Source:            "hashicorp/tls",
+		},
+	}
+}
+
+func providerVersion420() map[string]resource.ExternalProvider {
+	return map[string]resource.ExternalProvider{
+		"tls": {
+			VersionConstraint: "4.2.0",
 			Source:            "hashicorp/tls",
 		},
 	}
