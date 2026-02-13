@@ -3,7 +3,7 @@ module github.com/hashicorp/terraform-provider-tls
 go 1.24.8
 
 require (
-	github.com/elazarl/goproxy v1.8.1
+	github.com/elazarl/goproxy v1.8.2
 	github.com/elazarl/goproxy/ext v0.0.0-20220529153421-8ea89ba92021
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/terraform-plugin-framework v1.17.0
