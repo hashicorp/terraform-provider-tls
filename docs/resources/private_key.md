@@ -8,7 +8,6 @@ description: |-
 
 # tls_private_key (Resource)
 
-
 Creates a PEM (and OpenSSH) formatted private key.
 
 Generates a secure private key and encodes it in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) and [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) formats. This resource is primarily intended for easily bootstrapping throwaway development environments.
