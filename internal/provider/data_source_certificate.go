@@ -123,37 +123,43 @@ func (ds *certificateDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	var certs []CertificateModel
 	if !newState.Content.IsNull() && !newState.Content.IsUnknown() {
-		block, _ := pem.Decode([]byte(newState.Content.ValueString()))
-		if block == nil {
+		pemBytes := []byte(newState.Content.ValueString())
+		var block *pem.Block
+		// Loop through the entire contents decoding PEM blocks
+		for {
+			block, pemBytes = pem.Decode(pemBytes)
+			if block == nil {
+				break
+			}
+			preamble, err := pemBlockToPEMPreamble(block)
+			if err != nil {
+				res.Diagnostics.AddError("Failed to identify PEM preamble", err.Error())
+				return
+			}
+
+			if preamble != PreambleCertificate {
+				res.Diagnostics.AddError(
+					"Unexpected PEM preamble",
+					fmt.Sprintf("Certificate PEM should be %q, got %q", PreambleCertificate, preamble),
+				)
+				return
+			}
+
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				res.Diagnostics.AddError("Unable to parse certificate", err.Error())
+				return
+			}
+			certs = append(certs, certificateToStruct(cert))
+		}
+		if len(certs) == 0 {
 			res.Diagnostics.AddAttributeError(
 				path.Root("content"),
 				"Failed to decoded PEM",
-				"Value is not a valid PEM encoding of a certificate",
+				"Value is not a valid PEM encoding of certificate(s)",
 			)
 			return
 		}
-
-		preamble, err := pemBlockToPEMPreamble(block)
-		if err != nil {
-			res.Diagnostics.AddError("Failed to identify PEM preamble", err.Error())
-			return
-		}
-
-		if preamble != PreambleCertificate {
-			res.Diagnostics.AddError(
-				"Unexpected PEM preamble",
-				fmt.Sprintf("Certificate PEM should be %q, got %q", PreambleCertificate, preamble),
-			)
-			return
-		}
-
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if err != nil {
-			res.Diagnostics.AddError("Unable to parse certificate", err.Error())
-			return
-		}
-
-		certs = []CertificateModel{certificateToStruct(cert)}
 	} else {
 		targetURL, err := url.Parse(newState.URL.ValueString())
 		if err != nil {
