@@ -15,6 +15,6 @@ state and does not create any external managed resources.
 
 ## Example Usage
 
-{{ tffile "examples/resources/tls_cert_request/resource.tf" }}
+{{ tffile (printf "examples/resources/%s/resource.tf" .Name)}}
 
 {{ .SchemaMarkdown | trimspace }}

@@ -17,7 +17,7 @@ connecting to a server that has a self-signed certificate.
 
 ## Example Usage
 
-{{ tffile "examples/resources/tls_self_signed_cert/resource.tf" }}
+{{ tffile (printf "examples/resources/%s/resource.tf" .Name)}}
 
 {{ .SchemaMarkdown | trimspace }}
 
