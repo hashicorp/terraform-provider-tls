@@ -93,6 +93,89 @@ func TestCheckPEMCertificateRequestURIs(name, key string, expected []*url.URL) r
 	})
 }
 
+var keyUsageBits = map[string]int{
+	"digital_signature":  0x80,  // Bit 0
+	"content_commitment": 0x40,  // Bit 1
+	"key_encipherment":   0x20,  // Bit 2
+	"data_encipherment":  0x10,  // Bit 3
+	"key_agreement":      0x08,  // Bit 4
+	"cert_signing":       0x04,  // Bit 5
+	"crl_signing":        0x02,  // Bit 6
+	"encipher_only":      0x01,  // Bit 7 (encipherOnly in first byte)
+	"decipher_only":      0x100, // Bit 8 (decipherOnly in second byte)
+}
+
+var invertedKeyUsageBits = map[int]string{
+	0x80:  "digital_signature",
+	0x40:  "content_commitment",
+	0x20:  "key_encipherment",
+	0x10:  "data_encipherment",
+	0x08:  "key_agreement",
+	0x04:  "cert_signing",
+	0x02:  "crl_signing",
+	0x01:  "encipher_only",
+	0x100: "decipher_only",
+}
+
+func TestCheckPEMCertificateRequestKeyUsage(name, key string, expected []string) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+		for _, ext := range csr.Extensions {
+			if ext.Id.Equal([]int{2, 5, 29, 15}) { // oid for key usage
+				var keyUsage asn1.BitString
+				_, err := asn1.Unmarshal(ext.Value, &keyUsage)
+				if err != nil {
+					return fmt.Errorf("error unmarshaling key usage: %s", err)
+				}
+
+				actualKeyUsage := int(keyUsage.Bytes[0])
+				expectedBits := 0
+				for _, expectedUsage := range expected {
+					bit, ok := keyUsageBits[expectedUsage]
+					if !ok {
+						return fmt.Errorf("unknown key usage: %s", expectedUsage)
+					}
+					expectedBits |= bit
+					if actualKeyUsage&bit == 0 {
+						return fmt.Errorf("expected key usage %s not found in actual key usage %08b", expectedUsage, actualKeyUsage)
+					}
+				}
+
+				// check for unexpected key usages
+				for bit, name := range invertedKeyUsageBits {
+					if actualKeyUsage&bit != 0 && expectedBits&bit == 0 {
+						return fmt.Errorf("unexpected key usage %s found in actual key usage %08b", name, actualKeyUsage)
+					}
+				}
+
+				return nil
+			}
+		}
+		return fmt.Errorf("key usage extension not found")
+	})
+}
+
+func TestCheckPEMCertificateRequestBasicConstraints(name, key string, expectedCA bool) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+		for _, ext := range csr.Extensions {
+			if ext.Id.Equal([]int{2, 5, 29, 19}) { // oid for basic constraints
+				var basicConstraints struct {
+					IsCA bool `asn1:"optional"`
+				}
+				_, err := asn1.Unmarshal(ext.Value, &basicConstraints)
+				if err != nil {
+					return fmt.Errorf("error unmarshaling basic constraints: %s", err)
+				}
+
+				if basicConstraints.IsCA != expectedCA {
+					return fmt.Errorf("expected CA constraint %v, got %v", expectedCA, basicConstraints.IsCA)
+				}
+				return nil
+			}
+		}
+		return fmt.Errorf("basic constraints extension not found")
+	})
+}
+
 func TestCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate) error) r.TestCheckFunc {
 	return r.TestCheckResourceAttrWith(name, key, func(value string) error {
 		block, _ := pem.Decode([]byte(value))
