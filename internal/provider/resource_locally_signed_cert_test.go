@@ -984,3 +984,176 @@ func TestResourceLocallySignedCert_WithMaxPathLen(t *testing.T) {
 		},
 	})
 }
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEM_WriteOnly(t *testing.T) {
+	var cert1, cert2 string
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "ca" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca" {
+						private_key_pem_wo = ephemeral.tls_private_key.ca.private_key_pem
+						private_key_pem_wo_version = "1"
+						subject {
+							common_name = "example-ca"
+						}
+						validity_period_hours = 24
+						allowed_uses          = ["cert_signing", "crl_signing"]
+						is_ca_certificate     = true
+					}
+					resource "tls_private_key" "server" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "server" {
+						private_key_pem = tls_private_key.server.private_key_pem
+						subject {
+							common_name = "example.com"
+						}
+					}
+					resource "tls_locally_signed_cert" "test" {
+						cert_request_pem = tls_cert_request.server.cert_request_pem
+						ca_private_key_pem_wo = ephemeral.tls_private_key.ca.private_key_pem
+						ca_private_key_pem_wo_version = "1"
+						ca_cert_pem = tls_self_signed_cert.ca.cert_pem
+
+						validity_period_hours = 12
+						allowed_uses = [
+							"key_encipherment",
+							"digital_signature",
+							"server_auth",
+						]
+					}
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					testExtractResourceAttr("tls_locally_signed_cert.test", "cert_pem", &cert1),
+				),
+			},
+			{
+				Config: `
+					ephemeral "tls_private_key" "ca" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "ca" {
+						private_key_pem_wo = ephemeral.tls_private_key.ca.private_key_pem
+						private_key_pem_wo_version = "2"
+						subject {
+							common_name = "example-ca"
+						}
+						validity_period_hours = 24
+						allowed_uses          = ["cert_signing", "crl_signing"]
+						is_ca_certificate     = true
+					}
+					resource "tls_private_key" "server" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "server" {
+						private_key_pem = tls_private_key.server.private_key_pem
+						subject {
+							common_name = "example.com"
+						}
+					}
+					resource "tls_locally_signed_cert" "test" {
+						cert_request_pem = tls_cert_request.server.cert_request_pem
+						ca_private_key_pem_wo = ephemeral.tls_private_key.ca.private_key_pem
+						ca_private_key_pem_wo_version = "2"
+						ca_cert_pem = tls_self_signed_cert.ca.cert_pem
+
+						validity_period_hours = 12
+						allowed_uses = [
+							"key_encipherment",
+							"digital_signature",
+							"server_auth",
+						]
+					}
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					testExtractResourceAttr("tls_locally_signed_cert.test", "cert_pem", &cert2),
+					testCheckAttributeValuesDiffer(&cert1, &cert2),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_WriteOnly_Conflict(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca" {
+						algorithm = "ED25519"
+					}
+                    resource "tls_self_signed_cert" "ca" {
+						private_key_pem   = tls_private_key.ca.private_key_pem
+						subject { common_name = "example-ca" }
+						validity_period_hours = 24
+						allowed_uses          = ["cert_signing"]
+						is_ca_certificate     = true
+					}
+					resource "tls_cert_request" "server" {
+						private_key_pem = tls_private_key.ca.private_key_pem
+						subject { common_name = "example.com" }
+					}
+
+					resource "tls_locally_signed_cert" "test" {
+						cert_request_pem = tls_cert_request.server.cert_request_pem
+						
+                        ca_private_key_pem = tls_private_key.ca.private_key_pem
+                        ca_private_key_pem_wo = tls_private_key.ca.private_key_pem
+						ca_private_key_pem_wo_version = "1"
+						
+                        ca_cert_pem = tls_self_signed_cert.ca.cert_pem
+						validity_period_hours = 12
+						allowed_uses = ["server_auth"]
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_WriteOnly_MissingVersion(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca" {
+						algorithm = "ED25519"
+					}
+                    resource "tls_self_signed_cert" "ca" {
+						private_key_pem   = tls_private_key.ca.private_key_pem
+						subject { common_name = "example-ca" }
+						validity_period_hours = 24
+						allowed_uses          = ["cert_signing"]
+						is_ca_certificate     = true
+					}
+					resource "tls_cert_request" "server" {
+						private_key_pem = tls_private_key.ca.private_key_pem
+						subject { common_name = "example.com" }
+					}
+
+					resource "tls_locally_signed_cert" "test" {
+						cert_request_pem = tls_cert_request.server.cert_request_pem
+						
+                        ca_private_key_pem_wo = tls_private_key.ca.private_key_pem
+						# Version missing
+
+                        ca_cert_pem = tls_self_signed_cert.ca.cert_pem
+						validity_period_hours = 12
+						allowed_uses = ["server_auth"]
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}

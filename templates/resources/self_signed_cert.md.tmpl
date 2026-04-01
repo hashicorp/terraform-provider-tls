@@ -19,6 +19,13 @@ connecting to a server that has a self-signed certificate.
 
 {{ tffile "examples/resources/tls_self_signed_cert/resource.tf" }}
 
+### Example Usage with Write-Only Private Key
+
+This example demonstrates how to use the `private_key_pem_wo` attribute to supply the private key without storing it in the Terraform state.
+Note that `private_key_pem_wo_version` must be set and managed to trigger updates when the key changes.
+
+{{ tffile "examples/resources/tls_self_signed_cert/write_only/resource.tf" }}
+
 {{ .SchemaMarkdown | trimspace }}
 
 ## Automatic Renewal
