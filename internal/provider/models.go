@@ -48,14 +48,16 @@ type CertificateModel struct {
 }
 
 type certRequestResourceModel struct {
-	DNSNames       types.List   `tfsdk:"dns_names"`
-	IPAddresses    types.List   `tfsdk:"ip_addresses"`
-	URIs           types.List   `tfsdk:"uris"`
-	PrivateKeyPEM  types.String `tfsdk:"private_key_pem"`
-	KeyAlgorithm   types.String `tfsdk:"key_algorithm"`
-	CertRequestPEM types.String `tfsdk:"cert_request_pem"`
-	Subject        types.List   `tfsdk:"subject"` //< certificateSubjectModel
-	ID             types.String `tfsdk:"id"`
+	DNSNames               types.List   `tfsdk:"dns_names"`
+	IPAddresses            types.List   `tfsdk:"ip_addresses"`
+	URIs                   types.List   `tfsdk:"uris"`
+	PrivateKeyPEM          types.String `tfsdk:"private_key_pem"`
+	PrivateKeyPEMWO        types.String `tfsdk:"private_key_pem_wo"`
+	PrivateKeyPEMWOVersion types.Int64  `tfsdk:"private_key_pem_wo_version"`
+	KeyAlgorithm           types.String `tfsdk:"key_algorithm"`
+	CertRequestPEM         types.String `tfsdk:"cert_request_pem"`
+	Subject                types.List   `tfsdk:"subject"` //< certificateSubjectModel
+	ID                     types.String `tfsdk:"id"`
 }
 
 type certificateSubjectModel struct {
