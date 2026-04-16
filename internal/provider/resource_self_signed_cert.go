@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -50,15 +51,42 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 		Attributes: map[string]schema.Attribute{
 			// Required attributes
 			"private_key_pem": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
 				Sensitive: true,
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
+						path.MatchRoot("private_key_pem"),
+						path.MatchRoot("private_key_pem_wo"),
+					),
+				},
 				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
 					"that the certificate will belong to. " +
 					"This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) " +
 					"interpolation function. ",
+			},
+			"private_key_pem_wo": schema.StringAttribute{
+				Optional:  true,
+				Sensitive: true,
+				WriteOnly: true,
+				Validators: []validator.String{
+					stringvalidator.AlsoRequires(path.MatchRoot("private_key_pem_wo_version")),
+				},
+				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
+					"that the certificate will belong to. " +
+					"This attribute is write-only and will not be stored in the state.",
+			},
+			"private_key_pem_wo_version": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.AlsoRequires(path.MatchRoot("private_key_pem_wo")),
+				},
+				Description: "Version of the private key. If this changes, the certificate will be regenerated.",
 			},
 			"validity_period_hours": schema.Int64Attribute{
 				Required: true,
@@ -346,7 +374,18 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 
 	// Parse the Private Key PEM
 	tflog.Debug(ctx, "Parsing private key PEM")
-	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
+	var privateKeyPEM string
+	if !newState.PrivateKeyPEM.IsNull() && !newState.PrivateKeyPEM.IsUnknown() {
+		privateKeyPEM = newState.PrivateKeyPEM.ValueString()
+	} else {
+		var woValue types.String
+		req.Config.GetAttribute(ctx, path.Root("private_key_pem_wo"), &woValue)
+		if !woValue.IsNull() && !woValue.IsUnknown() {
+			privateKeyPEM = woValue.ValueString()
+		}
+	}
+
+	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(privateKeyPEM))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
@@ -469,7 +508,18 @@ func (r *selfSignedCertResource) Read(ctx context.Context, req resource.ReadRequ
 func (r *selfSignedCertResource) Update(ctx context.Context, req resource.UpdateRequest, res *resource.UpdateResponse) {
 	tflog.Debug(ctx, "Updating self signed certificate")
 
-	updatedUsingPlan(ctx, &req, res, &selfSignedCertResourceModel{})
+	// Read the plan
+	var newState selfSignedCertResourceModel
+	res.Diagnostics.Append(req.Plan.Get(ctx, &newState)...)
+	if res.Diagnostics.HasError() {
+		return
+	}
+
+	// Ensure write-only attributes are null in the state
+	newState.PrivateKeyPEMWriteOnly = types.StringNull()
+
+	// Set it as the new state
+	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
 }
 
 func (r *selfSignedCertResource) Delete(ctx context.Context, _ resource.DeleteRequest, _ *resource.DeleteResponse) {
