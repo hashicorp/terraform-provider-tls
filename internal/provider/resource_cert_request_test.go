@@ -121,6 +121,30 @@ func TestResourceCertRequest(t *testing.T) {
 					tu.TestCheckPEMCertificateRequestURIs("tls_cert_request.test2", "cert_request_pem", []*url.URL{}),
 				),
 			},
+			{
+				Config: `
+						resource "tls_private_key" "test3" {
+								algorithm = "RSA"
+								rsa_bits = 2048
+						}
+						resource "tls_cert_request" "test3" {
+								subject {
+										serial_number = "43"
+								}
+								private_key_pem = tls_private_key.test3.private_key_pem
+								allowed_uses = ["digital_signature", "key_encipherment"]
+								ca_constraint = true
+						}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_cert_request.test3", "cert_request_pem", PreambleCertificateRequest.String()),
+					tu.TestCheckPEMCertificateRequestSubject("tls_cert_request.test3", "cert_request_pem", &pkix.Name{
+						SerialNumber: "43",
+					}),
+					tu.TestCheckPEMCertificateRequestKeyUsage("tls_cert_request.test3", "cert_request_pem", []string{"digital_signature", "key_encipherment"}),
+					tu.TestCheckPEMCertificateRequestBasicConstraints("tls_cert_request.test3", "cert_request_pem", true),
+				),
+			},
 		},
 	})
 }
