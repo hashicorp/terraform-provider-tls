@@ -237,6 +237,7 @@ func fetchPeerCertificatesViaHTTPS(ctx context.Context, targetURL *url.URL, shou
 
 	client := &http.Client{
 		Transport: &http.Transport{
+			ForceAttemptHTTP2: true,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: !shouldVerifyChain,
 			},
