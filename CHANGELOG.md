@@ -1,3 +1,9 @@
+## 4.3.0 (May 12, 2026)
+
+ENHANCEMENTS:
+
+* Added linux/s390x build target for IBM Z platform support ([#771](https://github.com/hashicorp/terraform-provider-tls/issues/771))
+
 ## 4.2.1 (January 30, 2026)
 
 BUG FIXES:
