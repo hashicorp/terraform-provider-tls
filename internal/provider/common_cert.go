@@ -8,7 +8,6 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -88,8 +87,7 @@ func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
 			err = fmt.Errorf("received 'nil' pointer instead of public key")
 		}
 	case *ecdsa.PublicKey:
-		//nolint:staticcheck // Reference: https://github.com/hashicorp/terraform-provider-tls/issues/480
-		pubKeyBytes = elliptic.Marshal(pub.Curve, pub.X, pub.Y)
+		pubKeyBytes, err = marshalECDSAPublicKey(pub)
 	case ed25519.PublicKey:
 		pubKeyBytes, err = asn1.Marshal(pub)
 	case *ed25519.PublicKey:
@@ -109,6 +107,27 @@ func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
 
 	pubKeyHash := sha1.Sum(pubKeyBytes)
 	return pubKeyHash[:], nil
+}
+
+func marshalECDSAPublicKey(pub *ecdsa.PublicKey) ([]byte, error) {
+	if pub == nil {
+		return nil, fmt.Errorf("received 'nil' pointer instead of public key")
+	}
+
+	der, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+
+	var spki struct {
+		Algorithm        pkix.AlgorithmIdentifier
+		SubjectPublicKey asn1.BitString
+	}
+	if _, err := asn1.Unmarshal(der, &spki); err != nil {
+		return nil, err
+	}
+
+	return spki.SubjectPublicKey.Bytes, nil
 }
 
 func createCertificate(ctx context.Context, template, parent *x509.Certificate, pubKey crypto.PublicKey, prvKey crypto.PrivateKey, plan *tfsdk.Plan) (*commonCertificate, diag.Diagnostics) {
