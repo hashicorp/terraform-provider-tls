@@ -6,6 +6,7 @@ package provider
 import (
 	"context"
 	"crypto/sha1"
+	"crypto/x509"
 	"encoding/hex"
 	"regexp"
 	"strings"
@@ -62,4 +63,14 @@ func requireReplaceIfStateContainsPEMString() planmodifier.String {
 			return
 		}
 	}, description, description)
+}
+
+func signatureAlgorithmFromString(s string) x509.SignatureAlgorithm {
+	for _, algorithm := range supportedSignatureAlgorithms() {
+		if s == algorithm.String() {
+			return algorithm
+		}
+	}
+
+	return x509.UnknownSignatureAlgorithm
 }

@@ -183,6 +183,17 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 					"for self-signed certificates this is the same value as the " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
 			},
+			"signature_algorithm": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf(supportedSignatureAlgorithmsStr()...),
+				},
+				Description: "Name of the signature algorithm being used to sign the certificate. " +
+					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedSignatureAlgorithmsStr(), "`, `")),
+			},
 
 			// Computed attributes
 			"cert_pem": schema.StringAttribute{

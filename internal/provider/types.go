@@ -4,6 +4,7 @@
 package provider
 
 import (
+	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 )
@@ -21,7 +22,7 @@ func (a PrivateKeyAlgorithm) String() string {
 	return string(a)
 }
 
-// supportedPrivateKeyAlgorithms returns a slice of Algorithm currently supported by this provider.
+// supportedPrivateKeyAlgorithms returns a slice of private key algorithm currently supported by this provider.
 func supportedPrivateKeyAlgorithms() []PrivateKeyAlgorithm {
 	return []PrivateKeyAlgorithm{
 		RSA,
@@ -30,9 +31,35 @@ func supportedPrivateKeyAlgorithms() []PrivateKeyAlgorithm {
 	}
 }
 
-// supportedPrivateKeyAlgorithmsStr returns the same content of supportedAlgorithms but as a slice of string.
+// supportedPrivateKeyAlgorithmsStr returns the same content of supportedPrivateKeyAlgorithms but as a slice of string.
 func supportedPrivateKeyAlgorithmsStr() []string {
 	supported := supportedPrivateKeyAlgorithms()
+	supportedStr := make([]string, len(supported))
+	for i := range supported {
+		supportedStr[i] = supported[i].String()
+	}
+	return supportedStr
+}
+
+// supportedSignatureAlgorithms returns a slice of signature algorithm currently supported by this provider.
+func supportedSignatureAlgorithms() []x509.SignatureAlgorithm {
+	return []x509.SignatureAlgorithm{
+		x509.SHA256WithRSA,
+		x509.SHA384WithRSA,
+		x509.SHA512WithRSA,
+		x509.ECDSAWithSHA256,
+		x509.ECDSAWithSHA384,
+		x509.ECDSAWithSHA512,
+		x509.SHA256WithRSAPSS,
+		x509.SHA384WithRSAPSS,
+		x509.SHA512WithRSAPSS,
+		x509.PureEd25519,
+	}
+}
+
+// supportedSignatureAlgorithmsStr returns the same content of supportedSignatureAlgorithms but as a slice of string.
+func supportedSignatureAlgorithmsStr() []string {
+	supported := supportedSignatureAlgorithms()
 	supportedStr := make([]string, len(supported))
 	for i := range supported {
 		supportedStr[i] = supported[i].String()

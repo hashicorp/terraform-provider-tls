@@ -150,6 +150,17 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 				Description: "Should the generated certificate include a " +
 					"[subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).",
 			},
+			"signature_algorithm": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf(supportedSignatureAlgorithmsStr()...),
+				},
+				Description: "Name of the signature algorithm being used to sign the certificate. " +
+					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedSignatureAlgorithmsStr(), "`, `")),
+			},
 
 			// Computed attributes
 			"cert_pem": schema.StringAttribute{
@@ -233,7 +244,7 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 
 	// Parse the CA Private Key PEM
 	tflog.Debug(ctx, "Parsing CA private key PEM")
-	caPrvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.CAPrivateKeyPEM.ValueString()))
+	caPrvKey, privateKeyAlgorithm, err := parsePrivateKeyPEM([]byte(newState.CAPrivateKeyPEM.ValueString()))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse CA private key PEM", err.Error())
 		return
@@ -241,9 +252,9 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 
 	// Set the Algorithm of the Private Key
 	tflog.Debug(ctx, "Detected key algorithm of CA private key", map[string]interface{}{
-		"caKeyAlgorithm": algorithm,
+		"caKeyAlgorithm": privateKeyAlgorithm,
 	})
-	newState.CAKeyAlgorithm = types.StringValue(algorithm.String())
+	newState.CAKeyAlgorithm = types.StringValue(privateKeyAlgorithm.String())
 
 	// Parse the CA Certificate PEM
 	tflog.Debug(ctx, "Parsing CA certificate PEM")

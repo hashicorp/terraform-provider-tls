@@ -48,14 +48,15 @@ type CertificateModel struct {
 }
 
 type certRequestResourceModel struct {
-	DNSNames       types.List   `tfsdk:"dns_names"`
-	IPAddresses    types.List   `tfsdk:"ip_addresses"`
-	URIs           types.List   `tfsdk:"uris"`
-	PrivateKeyPEM  types.String `tfsdk:"private_key_pem"`
-	KeyAlgorithm   types.String `tfsdk:"key_algorithm"`
-	CertRequestPEM types.String `tfsdk:"cert_request_pem"`
-	Subject        types.List   `tfsdk:"subject"` //< certificateSubjectModel
-	ID             types.String `tfsdk:"id"`
+	DNSNames           types.List   `tfsdk:"dns_names"`
+	IPAddresses        types.List   `tfsdk:"ip_addresses"`
+	URIs               types.List   `tfsdk:"uris"`
+	SignatureAlgorithm types.String `tfsdk:"signature_algorithm"`
+	PrivateKeyPEM      types.String `tfsdk:"private_key_pem"`
+	KeyAlgorithm       types.String `tfsdk:"key_algorithm"`
+	CertRequestPEM     types.String `tfsdk:"cert_request_pem"`
+	Subject            types.List   `tfsdk:"subject"` //< certificateSubjectModel
+	ID                 types.String `tfsdk:"id"`
 }
 
 type certificateSubjectModel struct {
@@ -202,6 +203,7 @@ type selfSignedCertResourceModel struct {
 	ValidityStartTime   types.String `tfsdk:"validity_start_time"`
 	ValidityEndTime     types.String `tfsdk:"validity_end_time"`
 	KeyAlgorithm        types.String `tfsdk:"key_algorithm"`
+	SignatureAlgorithm  types.String `tfsdk:"signature_algorithm"`
 	ID                  types.String `tfsdk:"id"`
 }
 
@@ -220,5 +222,6 @@ type locallySignedCertResourceModel struct {
 	ValidityStartTime   types.String `tfsdk:"validity_start_time"`
 	ValidityEndTime     types.String `tfsdk:"validity_end_time"`
 	CAKeyAlgorithm      types.String `tfsdk:"ca_key_algorithm"`
+	SignatureAlgorithm  types.String `tfsdk:"signature_algorithm"`
 	ID                  types.String `tfsdk:"id"`
 }
