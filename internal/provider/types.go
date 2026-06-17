@@ -8,31 +8,31 @@ import (
 	"fmt"
 )
 
-// Algorithm represents a type of private key algorithm.
-type Algorithm string
+// PrivateKeyAlgorithm represents a type of private key algorithm.
+type PrivateKeyAlgorithm string
 
 const (
-	RSA     Algorithm = "RSA"
-	ECDSA   Algorithm = "ECDSA"
-	ED25519 Algorithm = "ED25519"
+	RSA     PrivateKeyAlgorithm = "RSA"
+	ECDSA   PrivateKeyAlgorithm = "ECDSA"
+	ED25519 PrivateKeyAlgorithm = "ED25519"
 )
 
-func (a Algorithm) String() string {
+func (a PrivateKeyAlgorithm) String() string {
 	return string(a)
 }
 
-// supportedAlgorithms returns a slice of Algorithm currently supported by this provider.
-func supportedAlgorithms() []Algorithm {
-	return []Algorithm{
+// supportedPrivateKeyAlgorithms returns a slice of Algorithm currently supported by this provider.
+func supportedPrivateKeyAlgorithms() []PrivateKeyAlgorithm {
+	return []PrivateKeyAlgorithm{
 		RSA,
 		ECDSA,
 		ED25519,
 	}
 }
 
-// supportedAlgorithmsStr returns the same content of supportedAlgorithms but as a slice of string.
-func supportedAlgorithmsStr() []string {
-	supported := supportedAlgorithms()
+// supportedPrivateKeyAlgorithmsStr returns the same content of supportedAlgorithms but as a slice of string.
+func supportedPrivateKeyAlgorithmsStr() []string {
+	supported := supportedPrivateKeyAlgorithms()
 	supportedStr := make([]string, len(supported))
 	for i := range supported {
 		supportedStr[i] = supported[i].String()
