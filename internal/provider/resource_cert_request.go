@@ -7,10 +7,13 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -86,6 +89,28 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 					),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
+			},
+			"allowed_uses": schema.ListAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.List{
+					listvalidator.ValueStringsAre(
+						stringvalidator.OneOf(supportedKeyUsagesStr()...),
+					),
+				},
+				Description: "List of key usages allowed for the issued certificate. " +
+					"Values are defined in [RFC 5280](https://datatracker.ietf.org/doc/html/rfc5280) " +
+					"and combine flags defined by both " +
+					"[Key Usages](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.3) " +
+					"and [Extended Key Usages](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.12). " +
+					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedKeyUsagesStr(), "`, `")),
+			},
+			"ca_constraint": schema.BoolAttribute{
+				Optional:    true,
+				Description: "Boolean flag to indicate if the CA constraint should be added to the certificate request.",
 			},
 
 			// Computed attributes
@@ -310,6 +335,84 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			}
 			certReq.URIs = append(certReq.URIs, uri)
 		}
+	}
+
+	// Add AllowedUses if provided
+	if !newState.AllowedUses.IsNull() && !newState.AllowedUses.IsUnknown() && len(newState.AllowedUses.Elements()) > 0 {
+		tflog.Debug(ctx, "Adding key usages and extended key usages in certificate request", map[string]interface{}{
+			"allowedUses": newState.AllowedUses,
+		})
+
+		var keyUsageBitsValue int
+		var extKeyUsages []asn1.ObjectIdentifier
+		var allowedUses types.List
+
+		res.Diagnostics.Append(newState.AllowedUses.ElementsAs(ctx, &allowedUses, false)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+
+		for _, keyUse := range allowedUses.Elements() {
+			keyUseName := keyUse.(types.String).ValueString()
+
+			// check if allowedUse element is keyUsage or extendedKeyUsage
+			if bit, ok := keyUsageBits[keyUseName]; ok {
+				keyUsageBitsValue |= bit
+			} else if oid, ok := extendedKeyUsageOIDs[keyUseName]; ok {
+				extKeyUsages = append(extKeyUsages, oid)
+			} else {
+				res.Diagnostics.AddError("Invalid usage", fmt.Sprintf("%#v is unsupported", keyUseName))
+				return
+			}
+		}
+
+		// keyUsage must be transformed into an ASN.1 bit string
+		keyUsageASN1, err := asn1.Marshal(asn1.BitString{
+			Bytes:     []byte{byte(keyUsageBitsValue)},
+			BitLength: 8,
+		})
+		if err != nil {
+			res.Diagnostics.AddError("Error marshaling key usage", err.Error())
+			return
+		}
+
+		// keyUsage must be added to extraExrensions instead of Extensions because CreateCertificateRequest() only uses ExtraExtensions
+		certReq.ExtraExtensions = append(certReq.ExtraExtensions, pkix.Extension{
+			Id:       asn1.ObjectIdentifier{2, 5, 29, 15}, // oid for keyUsage
+			Critical: true,
+			Value:    keyUsageASN1,
+		})
+
+		// add extended key usages if any
+		if len(extKeyUsages) > 0 {
+			extKeyUsagesASN1, err := asn1.Marshal(extKeyUsages)
+			if err != nil {
+				res.Diagnostics.AddError("Error marshaling extended key usages", err.Error())
+				return
+			}
+
+			certReq.ExtraExtensions = append(certReq.ExtraExtensions, pkix.Extension{
+				Id:       asn1.ObjectIdentifier{2, 5, 29, 37}, // oid for extendedKeyUsage
+				Critical: false,                               // extendedKeyUsage is not critical by default
+				Value:    extKeyUsagesASN1,
+			})
+		}
+	}
+
+	// add basic constraints for CA:true if ca_constraint is true
+	if newState.CAConstraint.ValueBool() {
+		basicConstraints := BasicConstraints{IsCA: true}
+		basicConstraintsASN1, err := asn1.Marshal(basicConstraints)
+		if err != nil {
+			res.Diagnostics.AddError("Error marshaling basic constraints", err.Error())
+			return
+		}
+
+		certReq.ExtraExtensions = append(certReq.ExtraExtensions, pkix.Extension{
+			Id:       asn1.ObjectIdentifier{2, 5, 29, 19}, // oid for basicConstraints
+			Critical: true,
+			Value:    basicConstraintsASN1,
+		})
 	}
 
 	// Generate `Certificate Request`
