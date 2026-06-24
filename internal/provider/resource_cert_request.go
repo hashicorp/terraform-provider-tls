@@ -11,11 +11,15 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -41,7 +45,7 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 		Attributes: map[string]schema.Attribute{
 			// Required attributes
 			"private_key_pem": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
@@ -49,9 +53,41 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
 					"that the certificate will belong to. " +
 					"This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) " +
-					"interpolation function.",
+					"interpolation function. Either private_key_pem or private_key_pem_wo must be provided.",
 			},
-
+			"private_key_pem_wo": schema.StringAttribute{
+				Optional:    true,
+				WriteOnly:   true,
+				Sensitive:   true,
+				Description: "Write only variant of private_key_pem. Either private_key_pem_wo or private_key_pem must be provided.",
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
+						path.MatchRoot("private_key_pem"),
+						path.MatchRoot("private_key_pem_wo"),
+					),
+					stringvalidator.AlsoRequires(
+						path.MatchRoot("private_key_pem_wo_version"),
+					),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^-----BEGIN [[:alpha:] ]+-----\n(.|\s)+\n-----END [[:alpha:] ]+-----\n?$`),
+						"must be a valid PEM string",
+					),
+				},
+			},
+			"private_key_pem_wo_version": schema.Int64Attribute{
+				Required: false,
+				Optional: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
+				Validators: []validator.Int64{
+					int64validator.AlsoRequires(
+						path.MatchRoot("private_key_pem_wo"),
+					),
+				},
+				Sensitive:   false,
+				Description: "Triggers update of the certificate request using the private_key_pem_wo write-only value.",
+			},
 			// Optional attributes
 			"dns_names": schema.ListAttribute{
 				ElementType: types.StringType,
@@ -228,9 +264,16 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 		"certRequestConfig": fmt.Sprintf("%+v", newState),
 	})
 
+	privateKeyPEM := ""
+	diagnostics := req.Config.GetAttribute(ctx, path.Root("private_key_pem_wo"), &privateKeyPEM)
+	if privateKeyPEM == "" || diagnostics.HasError() {
+		tflog.Debug(ctx, "private_key_pem_wo not set, using private_key_pem instead")
+		privateKeyPEM = newState.PrivateKeyPEM.ValueString()
+	}
+
 	// Parse the Private Key PEM
-	tflog.Debug(ctx, "Parsing Private Key PEM")
-	key, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
+	tflog.Debug(ctx, "Parsing private key PEM")
+	key, algorithm, err := parsePrivateKeyPEM([]byte(privateKeyPEM))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
