@@ -532,6 +532,158 @@ func TestResourceLocallySignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *
 	overridableTimeFunc = oldNow
 }
 
+func locallySignedCertWriteOnlyConfig(version int) string {
+	return fmt.Sprintf(`
+        resource "tls_locally_signed_cert" "test" {
+            cert_request_pem = <<EOT
+%s
+EOT
+            validity_period_hours = 1
+            allowed_uses = [
+                "key_encipherment",
+                "digital_signature",
+                "server_auth",
+                "client_auth",
+            ]
+            ca_cert_pem = <<EOT
+%s
+EOT
+            ca_private_key_pem_wo = <<EOT
+%s
+EOT
+            ca_private_key_pem_wo_version = %d
+        }`, fixtures.TestCertRequest, fixtures.TestCACert, fixtures.TestCAPrivateKey, version)
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly(t *testing.T) {
+	resourceName := "tls_locally_signed_cert.test"
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: locallySignedCertWriteOnlyConfig(1),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat(resourceName, "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateAgainstPEMRootCA(resourceName, "cert_pem", []byte(fixtures.TestCACert)),
+					tu.TestCheckPEMCertificateAuthorityKeyID(resourceName, "cert_pem", fixtures.TestCAPrivateKeySubjectKeyID),
+					// Neither the write-only nor the plain CA key must be persisted to state.
+					r.TestCheckNoResourceAttr(resourceName, "ca_private_key_pem_wo"),
+					r.TestCheckNoResourceAttr(resourceName, "ca_private_key_pem"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+                    resource "tls_locally_signed_cert" "test" {
+                        cert_request_pem = <<EOT
+%s
+EOT
+                        validity_period_hours = 1
+                        allowed_uses = ["server_auth"]
+                        ca_cert_pem = <<EOT
+%s
+EOT
+                        ca_private_key_pem = <<EOT
+%s
+EOT
+                        ca_private_key_pem_wo = <<EOT
+%s
+EOT
+                        ca_private_key_pem_wo_version = 1
+                    }`, fixtures.TestCertRequest, fixtures.TestCACert, fixtures.TestCAPrivateKey, fixtures.TestCAPrivateKey),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+                    resource "tls_locally_signed_cert" "test" {
+                        cert_request_pem = <<EOT
+%s
+EOT
+                        validity_period_hours = 1
+                        allowed_uses = ["server_auth"]
+                        ca_cert_pem = <<EOT
+%s
+EOT
+                    }`, fixtures.TestCertRequest, fixtures.TestCACert),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination|Missing Attribute Configuration`),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_RequiredTogether(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+                    resource "tls_locally_signed_cert" "test" {
+                        cert_request_pem = <<EOT
+%s
+EOT
+                        validity_period_hours = 1
+                        allowed_uses = ["server_auth"]
+                        ca_cert_pem = <<EOT
+%s
+EOT
+                        ca_private_key_pem_wo = <<EOT
+%s
+EOT
+                    }`, fixtures.TestCertRequest, fixtures.TestCACert, fixtures.TestCAPrivateKey),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: locallySignedCertWriteOnlyConfig(1),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+			{
+				// Same key and version: no changes.
+				Config: locallySignedCertWriteOnlyConfig(1),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+			{
+				// Bumping the version forces re-issuance (replacement).
+				Config: locallySignedCertWriteOnlyConfig(2),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionReplace),
+					},
+				},
+			},
+		},
+	})
+}
+
 func locallySignedCertConfig(validity, earlyRenewal uint32) string {
 	return fmt.Sprintf(`
         resource "tls_locally_signed_cert" "test" {

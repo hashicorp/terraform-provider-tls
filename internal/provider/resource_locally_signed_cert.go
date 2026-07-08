@@ -12,7 +12,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -32,8 +34,9 @@ import (
 type locallySignedCertResource struct{}
 
 var (
-	_ resource.Resource               = (*locallySignedCertResource)(nil)
-	_ resource.ResourceWithModifyPlan = (*locallySignedCertResource)(nil)
+	_ resource.Resource                     = (*locallySignedCertResource)(nil)
+	_ resource.ResourceWithModifyPlan       = (*locallySignedCertResource)(nil)
+	_ resource.ResourceWithConfigValidators = (*locallySignedCertResource)(nil)
 )
 
 func NewLocallySignedCertResource() resource.Resource {
@@ -57,13 +60,34 @@ func (r *locallySignedCertResource) Schema(_ context.Context, req resource.Schem
 					"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
 			},
 			"ca_private_key_pem": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
 				Sensitive: true,
 				Description: "Private key of the Certificate Authority (CA) used to sign the certificate, " +
-					"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format.",
+					"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
+					"Exactly one of `ca_private_key_pem` or `ca_private_key_pem_wo` must be set.",
+			},
+			"ca_private_key_pem_wo": schema.StringAttribute{
+				Optional:  true,
+				WriteOnly: true,
+				Sensitive: true,
+				Description: "Write-only private key of the Certificate Authority (CA) used to sign the certificate, " +
+					"in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format. " +
+					"Unlike `ca_private_key_pem`, the value provided here is never persisted to Terraform state. " +
+					"Requires `ca_private_key_pem_wo_version` to be set, and exactly one of `ca_private_key_pem` or " +
+					"`ca_private_key_pem_wo` must be set.",
+			},
+			"ca_private_key_pem_wo_version": schema.Int64Attribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
+				Description: "The version of the `ca_private_key_pem_wo` write-only private key. " +
+					"Because the write-only key is not stored in state, this version is the only signal the provider " +
+					"has that the key changed: increment it to force the certificate to be re-issued when " +
+					"rotating the CA key.",
 			},
 			"cert_request_pem": schema.StringAttribute{
 				Required: true,
@@ -231,9 +255,21 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
+	// Determine the CA private key PEM to use. The write-only variant is never stored
+	// in the plan/state, so it must be read directly from the config during apply.
+	caPrivateKeyPEM := newState.CAPrivateKeyPEM.ValueString()
+	if !newState.CAPrivateKeyPEMWOVersion.IsNull() {
+		var caPrivateKeyPEMWO types.String
+		res.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("ca_private_key_pem_wo"), &caPrivateKeyPEMWO)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+		caPrivateKeyPEM = caPrivateKeyPEMWO.ValueString()
+	}
+
 	// Parse the CA Private Key PEM
 	tflog.Debug(ctx, "Parsing CA private key PEM")
-	caPrvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.CAPrivateKeyPEM.ValueString()))
+	caPrvKey, algorithm, err := parsePrivateKeyPEM([]byte(caPrivateKeyPEM))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse CA private key PEM", err.Error())
 		return
@@ -286,6 +322,19 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 	newState.ValidityStartTime = types.StringValue(certificate.validityStartTime)
 	newState.ValidityEndTime = types.StringValue(certificate.validityEndTime)
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
+}
+
+func (r *locallySignedCertResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("ca_private_key_pem"),
+			path.MatchRoot("ca_private_key_pem_wo"),
+		),
+		resourcevalidator.RequiredTogether(
+			path.MatchRoot("ca_private_key_pem_wo"),
+			path.MatchRoot("ca_private_key_pem_wo_version"),
+		),
+	}
 }
 
 func (r *locallySignedCertResource) Read(ctx context.Context, req resource.ReadRequest, res *resource.ReadResponse) {
