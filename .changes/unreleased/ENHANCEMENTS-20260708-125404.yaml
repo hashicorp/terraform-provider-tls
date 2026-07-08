@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'resource/tls_cert_request: Added write-only `private_key_pem_wo` and `private_key_pem_wo_version` attributes so the private key can be supplied at apply time without being persisted to Terraform state. `private_key_pem` is now optional.'
+time: 2026-07-08T12:54:04.000000-07:00
+custom:
+    Issue: "645"
