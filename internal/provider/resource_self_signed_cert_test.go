@@ -767,6 +767,165 @@ EOT
         }`, validity, earlyRenewal, fixtures.TestPrivateKeyPEM)
 }
 
+func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly(t *testing.T) {
+	resourceName := "tls_self_signed_cert.test"
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate          = true
+						validity_period_hours      = 8760
+						allowed_uses               = ["cert_signing"]
+						private_key_pem_wo         = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = 1
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr(resourceName, "key_algorithm", "ED25519"),
+					tu.TestCheckPEMFormat(resourceName, "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateSubject(resourceName, "cert_pem", &pkix.Name{
+						Organization: []string{"test-organization"},
+					}),
+					// The write-only key and the plain key must never be persisted to state.
+					r.TestCheckNoResourceAttr(resourceName, "private_key_pem_wo"),
+					r.TestCheckNoResourceAttr(resourceName, "private_key_pem"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							organization = "test-organization"
+						}
+						validity_period_hours      = 8760
+						allowed_uses               = ["cert_signing"]
+						private_key_pem            = tls_private_key.test.private_key_pem
+						private_key_pem_wo         = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = 1
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							organization = "test-organization"
+						}
+						validity_period_hours = 8760
+						allowed_uses          = ["cert_signing"]
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination|Missing Attribute Configuration`),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_RequiredTogether(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							organization = "test-organization"
+						}
+						validity_period_hours = 8760
+						allowed_uses          = ["cert_signing"]
+						private_key_pem_wo     = ephemeral.tls_private_key.test.private_key_pem
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
+	staticKey := "-----BEGIN PRIVATE KEY-----\\nMC4CAQAwBQYDK2VwBCIEINW/ZsCp/KvfeMe4bFPUTRcigCbRzvpkn/oqASRSx89/\\n-----END PRIVATE KEY-----\\n"
+
+	config := func(version int) string {
+		return fmt.Sprintf(`
+			resource "tls_self_signed_cert" "test" {
+				subject {
+					organization = "test-organization"
+				}
+				is_ca_certificate          = true
+				validity_period_hours      = 8760
+				allowed_uses               = ["cert_signing"]
+				private_key_pem_wo         = "%s"
+				private_key_pem_wo_version = %d
+			}
+        `, staticKey, version)
+	}
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: config(1),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+			{
+				// Same key and version: no changes.
+				Config: config(1),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_self_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+			{
+				// Bumping the version forces re-issuance (replacement).
+				Config: config(2),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_self_signed_cert.test", plancheck.ResourceActionReplace),
+					},
+				},
+			},
+		},
+	})
+}
+
 func TestResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
