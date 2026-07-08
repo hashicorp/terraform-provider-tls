@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -451,6 +452,152 @@ func TestResourceCertRequest_PrivateKeyPEM(t *testing.T) {
 					testExtractResourceAttr(resourceName, "private_key_pem", &pkp2),
 					testCheckAttributeValuesDiffer(&pkp1, &pkp2),
 				),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_PrivateKeyPEMWriteOnly(t *testing.T) {
+	resourceName := "tls_cert_request.test"
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							common_name = "example.com"
+						}
+						private_key_pem_wo         = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = 1
+					}
+                `,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat(resourceName, "cert_request_pem", PreambleCertificateRequest.String()),
+					tu.TestCheckPEMCertificateRequestSubject(resourceName, "cert_request_pem", &pkix.Name{
+						CommonName: "example.com",
+					}),
+					// The write-only key and the plain key must never be persisted to state.
+					r.TestCheckNoResourceAttr(resourceName, "private_key_pem_wo"),
+					r.TestCheckNoResourceAttr(resourceName, "private_key_pem"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_PrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							common_name = "example.com"
+						}
+						private_key_pem            = tls_private_key.test.private_key_pem
+						private_key_pem_wo         = ephemeral.tls_private_key.test.private_key_pem
+						private_key_pem_wo_version = 1
+					}
+                `,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_PrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_cert_request" "test" {
+						subject {
+							common_name = "example.com"
+						}
+					}
+                `,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination|Missing Attribute Configuration`),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_PrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
+	staticKey := "-----BEGIN PRIVATE KEY-----\\nMC4CAQAwBQYDK2VwBCIEINW/ZsCp/KvfeMe4bFPUTRcigCbRzvpkn/oqASRSx89/\\n-----END PRIVATE KEY-----\\n"
+
+	config := func(version int) string {
+		return fmt.Sprintf(`
+			resource "tls_cert_request" "test" {
+				subject {
+					common_name = "example.com"
+				}
+				private_key_pem_wo         = "%s"
+				private_key_pem_wo_version = %d
+			}
+        `, staticKey, version)
+	}
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: config(1),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest.String()),
+				),
+			},
+			{
+				// Same key and version: no changes.
+				Config: config(1),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_cert_request.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+			{
+				// Bumping the version forces re-issuance (replacement).
+				Config: config(2),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_cert_request.test", plancheck.ResourceActionReplace),
+					},
+				},
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_PrivateKeyPEMWriteOnly_RequiredTogether(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							common_name = "example.com"
+						}
+						private_key_pem_wo = ephemeral.tls_private_key.test.private_key_pem
+					}
+                `,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
 			},
 		},
 	})
