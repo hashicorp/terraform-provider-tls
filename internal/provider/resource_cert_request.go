@@ -13,9 +13,12 @@ import (
 	"net/url"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -27,6 +30,7 @@ import (
 type certRequestResource struct{}
 
 var _ resource.Resource = (*certRequestResource)(nil)
+var _ resource.ResourceWithConfigValidators = (*certRequestResource)(nil)
 
 func NewCertRequestResource() resource.Resource {
 	return &certRequestResource{}
@@ -39,9 +43,9 @@ func (r *certRequestResource) Metadata(_ context.Context, req resource.MetadataR
 func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			// Required attributes
+			// Private key attributes
 			"private_key_pem": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
@@ -49,7 +53,29 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
 					"that the certificate will belong to. " +
 					"This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) " +
-					"interpolation function.",
+					"interpolation function. " +
+					"Exactly one of `private_key_pem` or `private_key_pem_wo` must be set.",
+			},
+			"private_key_pem_wo": schema.StringAttribute{
+				Optional:  true,
+				WriteOnly: true,
+				Sensitive: true,
+				Description: "Write-only private key in " +
+					"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
+					"that the certificate will belong to. " +
+					"Unlike `private_key_pem`, the value provided here is never persisted to Terraform state. " +
+					"Requires `private_key_pem_wo_version` to be set, and exactly one of `private_key_pem` or " +
+					"`private_key_pem_wo` must be set.",
+			},
+			"private_key_pem_wo_version": schema.Int64Attribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
+				Description: "The version of the `private_key_pem_wo` write-only private key. " +
+					"Because the write-only key is not stored in state, this version is the only signal the provider " +
+					"has that the key changed: increment it to force the certificate request to be re-issued when " +
+					"rotating the key.",
 			},
 
 			// Optional attributes
@@ -228,9 +254,21 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 		"certRequestConfig": fmt.Sprintf("%+v", newState),
 	})
 
+	// Determine the private key PEM to use. The write-only variant is never stored
+	// in the plan/state, so it must be read directly from the config during apply.
+	privateKeyPEM := newState.PrivateKeyPEM.ValueString()
+	if !newState.PrivateKeyPEMWOVersion.IsNull() {
+		var privateKeyPEMWO types.String
+		res.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("private_key_pem_wo"), &privateKeyPEMWO)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
+		privateKeyPEM = privateKeyPEMWO.ValueString()
+	}
+
 	// Parse the Private Key PEM
 	tflog.Debug(ctx, "Parsing Private Key PEM")
-	key, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
+	key, algorithm, err := parsePrivateKeyPEM([]byte(privateKeyPEM))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
@@ -329,6 +367,19 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 	// Finally, set the state
 	tflog.Debug(ctx, "Storing certificate request info into the state")
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
+}
+
+func (r *certRequestResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("private_key_pem"),
+			path.MatchRoot("private_key_pem_wo"),
+		),
+		resourcevalidator.RequiredTogether(
+			path.MatchRoot("private_key_pem_wo"),
+			path.MatchRoot("private_key_pem_wo_version"),
+		),
+	}
 }
 
 func (r *certRequestResource) Read(ctx context.Context, _ resource.ReadRequest, _ *resource.ReadResponse) {
