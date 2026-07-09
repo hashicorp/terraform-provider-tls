@@ -11,10 +11,38 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+// resolvePrivateKeyPEM picks the private key PEM an operation should use, given a
+// plain (state-backed) attribute value and the config path of its write-only twin.
+//
+// The choice is driven by the configuration, not by state: a write-only value only
+// ever exists in config (it is null in the plan and state), so we read it from
+// config and, when set, prefer it. Otherwise we fall back to the plain attribute.
+// The resource's config validators guarantee exactly one of the two is set, so this
+// never has to resolve an ambiguous "both set" case.
+//
+// GetAttribute reports problems (e.g. a type mismatch reading the config) as
+// diagnostics rather than a returned error; we surface those on the caller's
+// diagnostics so the framework can abort the operation.
+func resolvePrivateKeyPEM(ctx context.Context, config tfsdk.Config, writeOnlyPath path.Path, plain types.String, diags *diag.Diagnostics) string {
+	var writeOnly types.String
+	diags.Append(config.GetAttribute(ctx, writeOnlyPath, &writeOnly)...)
+	if diags.HasError() {
+		return ""
+	}
+	if !writeOnly.IsNull() {
+		return writeOnly.ValueString()
+	}
+	return plain.ValueString()
+}
 
 // hashForState computes the hexadecimal representation of the SHA1 checksum of a string.
 // This is used by most resources/data-sources here to compute their Unique Identifier (ID).

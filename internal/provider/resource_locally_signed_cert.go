@@ -255,16 +255,9 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	// Determine the CA private key PEM to use. The write-only variant is never stored
-	// in the plan/state, so it must be read directly from the config during apply.
-	caPrivateKeyPEM := newState.CAPrivateKeyPEM.ValueString()
-	if !newState.CAPrivateKeyPEMWOVersion.IsNull() {
-		var caPrivateKeyPEMWO types.String
-		res.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("ca_private_key_pem_wo"), &caPrivateKeyPEMWO)...)
-		if res.Diagnostics.HasError() {
-			return
-		}
-		caPrivateKeyPEM = caPrivateKeyPEMWO.ValueString()
+	caPrivateKeyPEM := resolvePrivateKeyPEM(ctx, req.Config, path.Root("ca_private_key_pem_wo"), newState.CAPrivateKeyPEM, &res.Diagnostics)
+	if res.Diagnostics.HasError() {
+		return
 	}
 
 	// Parse the CA Private Key PEM

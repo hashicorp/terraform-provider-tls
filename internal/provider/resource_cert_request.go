@@ -254,16 +254,9 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 		"certRequestConfig": fmt.Sprintf("%+v", newState),
 	})
 
-	// Determine the private key PEM to use. The write-only variant is never stored
-	// in the plan/state, so it must be read directly from the config during apply.
-	privateKeyPEM := newState.PrivateKeyPEM.ValueString()
-	if !newState.PrivateKeyPEMWOVersion.IsNull() {
-		var privateKeyPEMWO types.String
-		res.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("private_key_pem_wo"), &privateKeyPEMWO)...)
-		if res.Diagnostics.HasError() {
-			return
-		}
-		privateKeyPEM = privateKeyPEMWO.ValueString()
+	privateKeyPEM := resolvePrivateKeyPEM(ctx, req.Config, path.Root("private_key_pem_wo"), newState.PrivateKeyPEM, &res.Diagnostics)
+	if res.Diagnostics.HasError() {
+		return
 	}
 
 	// Parse the Private Key PEM
