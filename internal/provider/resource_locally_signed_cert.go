@@ -255,7 +255,8 @@ func (r *locallySignedCertResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	caPrivateKeyPEM := resolvePrivateKeyPEM(ctx, req.Config, path.Root("ca_private_key_pem_wo"), newState.CAPrivateKeyPEM, &res.Diagnostics)
+	caPrivateKeyPEM, diags := resolvePrivateKeyPEM(ctx, req.Config, path.Root("ca_private_key_pem_wo"), newState.CAPrivateKeyPEM)
+	res.Diagnostics.Append(diags...)
 	if res.Diagnostics.HasError() {
 		return
 	}
