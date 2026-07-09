@@ -481,7 +481,9 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly(t *testing.T) {
 					tu.TestCheckPEMCertificateRequestSubject(resourceName, "cert_request_pem", &pkix.Name{
 						CommonName: "example.com",
 					}),
-					// The write-only key and the plain key must never be persisted to state.
+					// The write-only key must never be persisted to state (the whole point of
+					// the _wo attribute). Also assert the plain private_key_pem stayed null, i.e.
+					// the write-only path never leaked the key into the state-backed attribute.
 					r.TestCheckNoResourceAttr(resourceName, "private_key_pem_wo"),
 					r.TestCheckNoResourceAttr(resourceName, "private_key_pem"),
 				),
@@ -538,7 +540,8 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
 func TestResourceCertRequest_PrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
 	staticKey := "-----BEGIN PRIVATE KEY-----\\nMC4CAQAwBQYDK2VwBCIEINW/ZsCp/KvfeMe4bFPUTRcigCbRzvpkn/oqASRSx89/\\n-----END PRIVATE KEY-----\\n"
 
-	config := func(version int) string {
+	otherKey := "-----BEGIN PRIVATE KEY-----\\nMC4CAQAwBQYDK2VwBCIEIFdVpvzgk867dvD00ZZs2lFZDWRjlWstT4ZLnSO+Jl2k\\n-----END PRIVATE KEY-----\\n"
+	config := func(key string, version int) string {
 		return fmt.Sprintf(`
 			resource "tls_cert_request" "test" {
 				subject {
@@ -547,21 +550,31 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
 				private_key_pem_wo         = "%s"
 				private_key_pem_wo_version = %d
 			}
-        `, staticKey, version)
+        `, key, version)
 	}
 
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
-				Config: config(1),
+				Config: config(staticKey, 1),
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest.String()),
 				),
 			},
 			{
 				// Same key and version: no changes.
-				Config: config(1),
+				Config: config(staticKey, 1),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_cert_request.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+			{
+				// Key changed but version held constant: the write-only key is absent from
+				// state, so the provider has no signal to act on and must not re-issue.
+				Config: config(otherKey, 1),
 				ConfigPlanChecks: r.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("tls_cert_request.test", plancheck.ResourceActionNoop),
@@ -570,7 +583,7 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
 			},
 			{
 				// Bumping the version forces re-issuance (replacement).
-				Config: config(2),
+				Config: config(otherKey, 2),
 				ConfigPlanChecks: r.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("tls_cert_request.test", plancheck.ResourceActionReplace),

@@ -532,7 +532,7 @@ func TestResourceLocallySignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *
 	overridableTimeFunc = oldNow
 }
 
-func locallySignedCertWriteOnlyConfig(version int) string {
+func locallySignedCertWriteOnlyConfig(caKey string, version int) string {
 	return fmt.Sprintf(`
         resource "tls_locally_signed_cert" "test" {
             cert_request_pem = <<EOT
@@ -552,7 +552,7 @@ EOT
 %s
 EOT
             ca_private_key_pem_wo_version = %d
-        }`, fixtures.TestCertRequest, fixtures.TestCACert, fixtures.TestCAPrivateKey, version)
+        }`, fixtures.TestCertRequest, fixtures.TestCACert, caKey, version)
 }
 
 func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly(t *testing.T) {
@@ -562,12 +562,14 @@ func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly(t *testing.T) {
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
-				Config: locallySignedCertWriteOnlyConfig(1),
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 1),
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat(resourceName, "cert_pem", PreambleCertificate.String()),
 					tu.TestCheckPEMCertificateAgainstPEMRootCA(resourceName, "cert_pem", []byte(fixtures.TestCACert)),
 					tu.TestCheckPEMCertificateAuthorityKeyID(resourceName, "cert_pem", fixtures.TestCAPrivateKeySubjectKeyID),
-					// Neither the write-only nor the plain CA key must be persisted to state.
+					// The write-only CA key must never be persisted to state (the whole point of
+					// the _wo attribute). Also assert the plain ca_private_key_pem stayed null, i.e.
+					// the write-only path never leaked the key into the state-backed attribute.
 					r.TestCheckNoResourceAttr(resourceName, "ca_private_key_pem_wo"),
 					r.TestCheckNoResourceAttr(resourceName, "ca_private_key_pem"),
 				),
@@ -657,14 +659,14 @@ func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_Rotation(t *testing.
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
 		Steps: []r.TestStep{
 			{
-				Config: locallySignedCertWriteOnlyConfig(1),
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 1),
 				Check: r.ComposeAggregateTestCheckFunc(
 					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
 				),
 			},
 			{
 				// Same key and version: no changes.
-				Config: locallySignedCertWriteOnlyConfig(1),
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 1),
 				ConfigPlanChecks: r.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
@@ -672,8 +674,19 @@ func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_Rotation(t *testing.
 				},
 			},
 			{
-				// Bumping the version forces re-issuance (replacement).
-				Config: locallySignedCertWriteOnlyConfig(2),
+				// Key changed but version held constant: the write-only CA key is absent
+				// from state, so the provider has no signal to act on and must not re-issue.
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestPrivateKeyPEM, 1),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+			{
+				// Bumping the version forces re-issuance (replacement). The CA key must
+				// still match ca_cert_pem here, since this step actually re-signs.
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 2),
 				ConfigPlanChecks: r.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionReplace),
