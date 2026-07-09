@@ -30,18 +30,18 @@ import (
 // never has to resolve an ambiguous "both set" case.
 //
 // GetAttribute reports problems (e.g. a type mismatch reading the config) as
-// diagnostics rather than a returned error; we surface those on the caller's
-// diagnostics so the framework can abort the operation.
-func resolvePrivateKeyPEM(ctx context.Context, config tfsdk.Config, writeOnlyPath path.Path, plain types.String, diags *diag.Diagnostics) string {
+// diagnostics rather than a returned error, so the returned diagnostics follow the
+// framework convention: callers append them and abort when they contain an error.
+func resolvePrivateKeyPEM(ctx context.Context, config tfsdk.Config, writeOnlyPath path.Path, plain types.String) (string, diag.Diagnostics) {
 	var writeOnly types.String
-	diags.Append(config.GetAttribute(ctx, writeOnlyPath, &writeOnly)...)
+	diags := config.GetAttribute(ctx, writeOnlyPath, &writeOnly)
 	if diags.HasError() {
-		return ""
+		return "", diags
 	}
 	if !writeOnly.IsNull() {
-		return writeOnly.ValueString()
+		return writeOnly.ValueString(), diags
 	}
-	return plain.ValueString()
+	return plain.ValueString(), diags
 }
 
 // hashForState computes the hexadecimal representation of the SHA1 checksum of a string.

@@ -371,7 +371,8 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 		"selfSignedCertConfig": fmt.Sprintf("%+v", newState),
 	})
 
-	privateKeyPEM := resolvePrivateKeyPEM(ctx, req.Config, path.Root("private_key_pem_wo"), newState.PrivateKeyPEM, &res.Diagnostics)
+	privateKeyPEM, diags := resolvePrivateKeyPEM(ctx, req.Config, path.Root("private_key_pem_wo"), newState.PrivateKeyPEM)
+	res.Diagnostics.Append(diags...)
 	if res.Diagnostics.HasError() {
 		return
 	}
