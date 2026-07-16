@@ -123,7 +123,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 // NOTE: Yes, this test is fetching a live certificate.
 // It will break over time and we will need to keep the
 // data we check against up to date, when that happens.
-// Last updated: 2025-07-02
+// Last updated: 2025-07-02.
 func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 	r.Test(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
