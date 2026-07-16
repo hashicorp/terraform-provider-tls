@@ -15,6 +15,7 @@ import (
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -560,6 +561,9 @@ func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly(t *testing.T) {
 
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 1),
@@ -581,6 +585,9 @@ func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly(t *testing.T) {
 func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -610,6 +617,9 @@ EOT
 func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -632,6 +642,9 @@ EOT
 func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_RequiredTogether(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: fmt.Sprintf(`
@@ -657,6 +670,9 @@ EOT
 func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 1),
