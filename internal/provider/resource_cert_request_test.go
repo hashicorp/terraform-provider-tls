@@ -15,6 +15,7 @@ import (
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
 )
@@ -462,6 +463,9 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly(t *testing.T) {
 
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -495,6 +499,9 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly(t *testing.T) {
 func TestResourceCertRequest_PrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -522,6 +529,9 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T) {
 func TestResourceCertRequest_PrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -555,6 +565,9 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
 
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: config(staticKey, 1),
@@ -597,6 +610,9 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
 func TestResourceCertRequest_PrivateKeyPEMWriteOnly_RequiredTogether(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: `

@@ -16,6 +16,7 @@ import (
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -772,6 +773,9 @@ func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly(t *testing.T) {
 
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -809,6 +813,9 @@ func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly(t *testing.T) {
 func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -838,6 +845,9 @@ func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T
 func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -858,6 +868,9 @@ func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
 func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_RequiredTogether(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: `
@@ -900,6 +913,9 @@ func TestResourceSelfSignedCert_PrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
 
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
 		Steps: []r.TestStep{
 			{
 				Config: config(staticKey, 1),
