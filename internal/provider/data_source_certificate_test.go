@@ -123,6 +123,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 // NOTE: Yes, this test is fetching a live certificate.
 // It will break over time and we will need to keep the
 // data we check against up to date, when that happens.
+// Last updated: 2025-07-02.
 func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 	r.Test(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
@@ -135,26 +136,32 @@ func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 					}
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "2"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.#", "3"),
 
-					// ISRG Root X1
+					// Root YR (ISRG root)
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=Root YR,O=ISRG,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.issuer", "CN=ISRG Root X1,O=Internet Security Research Group,C=US"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.subject", "CN=R13,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.max_path_length", "0"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "22ff89586561fc2d52f77491e9f1eff1b80be33e"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "ab9d0263244dd0326eb67015705a667e79cfe998"),
 
-					// developer.hashicorp.com
+					// YR2 (Let's Encrypt intermediate)
 					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=developer.hashicorp.com"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=YR2,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "false"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "true"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.max_path_length", "0"),
+					// NOTE: Not checking the fingerprint, as this certificate is auto-updated frequently.
 
-					// NOTE: Not checking the fingerprint, as this certificate is auto-updated frequently:
-					//   all the other data are stable, but the signature changes every time.
+					// developer.hashicorp.com (leaf)
+					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.2.issuer", "data.tls_certificate.test", "certificates.1.subject"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.subject", "CN=developer.hashicorp.com"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.signature_algorithm", "SHA256-RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.public_key_algorithm", "RSA"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.2.is_ca", "false"),
+					// NOTE: Not checking the fingerprint, as this certificate is auto-updated frequently.
 				),
 			},
 		},

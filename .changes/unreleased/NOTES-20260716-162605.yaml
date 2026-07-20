@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: Updated `TestAccDataSourceCertificate_DevDot` acceptance test to reflect the current TLS certificate chain for `developer.hashicorp.com`
+time: 2026-07-16T16:26:05.622161-04:00
+custom:
+    Issue: "793"
