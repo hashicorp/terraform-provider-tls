@@ -15,6 +15,7 @@ import (
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
 	tu "github.com/hashicorp/terraform-provider-tls/internal/provider/testutils"
@@ -531,6 +532,186 @@ func TestResourceLocallySignedCert_NotRecreatedForEarlyRenewalUpdateInFuture(t *
 		},
 	})
 	overridableTimeFunc = oldNow
+}
+
+func locallySignedCertWriteOnlyConfig(caKey string, version int) string {
+	return fmt.Sprintf(`
+        resource "tls_locally_signed_cert" "test" {
+            cert_request_pem = <<EOT
+%s
+EOT
+            validity_period_hours = 1
+            allowed_uses = [
+                "key_encipherment",
+                "digital_signature",
+                "server_auth",
+                "client_auth",
+            ]
+            ca_cert_pem = <<EOT
+%s
+EOT
+            ca_private_key_pem_wo = <<EOT
+%s
+EOT
+            ca_private_key_pem_wo_version = %d
+        }`, fixtures.TestCertRequest, fixtures.TestCACert, caKey, version)
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly(t *testing.T) {
+	resourceName := "tls_locally_signed_cert.test"
+
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
+		Steps: []r.TestStep{
+			{
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 1),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat(resourceName, "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateAgainstPEMRootCA(resourceName, "cert_pem", []byte(fixtures.TestCACert)),
+					tu.TestCheckPEMCertificateAuthorityKeyID(resourceName, "cert_pem", fixtures.TestCAPrivateKeySubjectKeyID),
+					// The write-only CA key must never be persisted to state (the whole point of
+					// the _wo attribute). Also assert the plain ca_private_key_pem stayed null, i.e.
+					// the write-only path never leaked the key into the state-backed attribute.
+					r.TestCheckNoResourceAttr(resourceName, "ca_private_key_pem_wo"),
+					r.TestCheckNoResourceAttr(resourceName, "ca_private_key_pem"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_ExactlyOneOf(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+                    resource "tls_locally_signed_cert" "test" {
+                        cert_request_pem = <<EOT
+%s
+EOT
+                        validity_period_hours = 1
+                        allowed_uses = ["server_auth"]
+                        ca_cert_pem = <<EOT
+%s
+EOT
+                        ca_private_key_pem = <<EOT
+%s
+EOT
+                        ca_private_key_pem_wo = <<EOT
+%s
+EOT
+                        ca_private_key_pem_wo_version = 1
+                    }`, fixtures.TestCertRequest, fixtures.TestCACert, fixtures.TestCAPrivateKey, fixtures.TestCAPrivateKey),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_NoneSet(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+                    resource "tls_locally_signed_cert" "test" {
+                        cert_request_pem = <<EOT
+%s
+EOT
+                        validity_period_hours = 1
+                        allowed_uses = ["server_auth"]
+                        ca_cert_pem = <<EOT
+%s
+EOT
+                    }`, fixtures.TestCertRequest, fixtures.TestCACert),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination|Missing Attribute Configuration`),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_RequiredTogether(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+                    resource "tls_locally_signed_cert" "test" {
+                        cert_request_pem = <<EOT
+%s
+EOT
+                        validity_period_hours = 1
+                        allowed_uses = ["server_auth"]
+                        ca_cert_pem = <<EOT
+%s
+EOT
+                        ca_private_key_pem_wo = <<EOT
+%s
+EOT
+                    }`, fixtures.TestCertRequest, fixtures.TestCACert, fixtures.TestCAPrivateKey),
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceLocallySignedCert_CAPrivateKeyPEMWriteOnly_Rotation(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_11_0),
+		},
+		Steps: []r.TestStep{
+			{
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 1),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+			{
+				// Same key and version: no changes.
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 1),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+			{
+				// Key changed but version held constant: the write-only CA key is absent
+				// from state, so the provider has no signal to act on and must not re-issue.
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestPrivateKeyPEM, 1),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionNoop),
+					},
+				},
+			},
+			{
+				// Bumping the version forces re-issuance (replacement). The CA key must
+				// still match ca_cert_pem here, since this step actually re-signs.
+				Config: locallySignedCertWriteOnlyConfig(fixtures.TestCAPrivateKey, 2),
+				ConfigPlanChecks: r.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("tls_locally_signed_cert.test", plancheck.ResourceActionReplace),
+					},
+				},
+			},
+		},
+	})
 }
 
 func locallySignedCertConfig(validity, earlyRenewal uint32) string {

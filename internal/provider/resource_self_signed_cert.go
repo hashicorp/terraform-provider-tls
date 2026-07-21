@@ -13,7 +13,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -33,8 +35,9 @@ import (
 type selfSignedCertResource struct{}
 
 var (
-	_ resource.Resource               = (*selfSignedCertResource)(nil)
-	_ resource.ResourceWithModifyPlan = (*selfSignedCertResource)(nil)
+	_ resource.Resource                     = (*selfSignedCertResource)(nil)
+	_ resource.ResourceWithModifyPlan       = (*selfSignedCertResource)(nil)
+	_ resource.ResourceWithConfigValidators = (*selfSignedCertResource)(nil)
 )
 
 func NewSelfSignedCertResource() resource.Resource {
@@ -48,9 +51,9 @@ func (r *selfSignedCertResource) Metadata(_ context.Context, req resource.Metada
 func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			// Required attributes
+			// Private key attributes
 			"private_key_pem": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				PlanModifiers: []planmodifier.String{
 					requireReplaceIfStateContainsPEMString(),
 				},
@@ -58,8 +61,32 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 				Description: "Private key in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
 					"that the certificate will belong to. " +
 					"This can be read from a separate file using the [`file`](https://www.terraform.io/language/functions/file) " +
-					"interpolation function. ",
+					"interpolation function. " +
+					"Exactly one of `private_key_pem` or `private_key_pem_wo` must be set.",
 			},
+			"private_key_pem_wo": schema.StringAttribute{
+				Optional:  true,
+				WriteOnly: true,
+				Sensitive: true,
+				Description: "Write-only private key in " +
+					"[PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format, " +
+					"that the certificate will belong to. " +
+					"Unlike `private_key_pem`, the value provided here is never persisted to Terraform state. " +
+					"Requires `private_key_pem_wo_version` to be set, and exactly one of `private_key_pem` or " +
+					"`private_key_pem_wo` must be set.",
+			},
+			"private_key_pem_wo_version": schema.Int64Attribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
+				Description: "The version of the `private_key_pem_wo` write-only private key. " +
+					"Because the write-only key is not stored in state, this version is the only signal the provider " +
+					"has that the key changed: increment it to force the certificate to be re-issued when " +
+					"rotating the key.",
+			},
+
+			// Required attributes
 			"validity_period_hours": schema.Int64Attribute{
 				Required: true,
 				PlanModifiers: []planmodifier.Int64{
@@ -355,9 +382,15 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 		"selfSignedCertConfig": fmt.Sprintf("%+v", newState),
 	})
 
+	privateKeyPEM, diags := resolvePrivateKeyPEM(ctx, req.Config, path.Root("private_key_pem_wo"), newState.PrivateKeyPEM)
+	res.Diagnostics.Append(diags...)
+	if res.Diagnostics.HasError() {
+		return
+	}
+
 	// Parse the Private Key PEM
 	tflog.Debug(ctx, "Parsing private key PEM")
-	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(newState.PrivateKeyPEM.ValueString()))
+	prvKey, algorithm, err := parsePrivateKeyPEM([]byte(privateKeyPEM))
 	if err != nil {
 		res.Diagnostics.AddError("Failed to parse private key PEM", err.Error())
 		return
@@ -469,6 +502,19 @@ func (r *selfSignedCertResource) Create(ctx context.Context, req resource.Create
 	newState.ValidityStartTime = types.StringValue(certificate.validityStartTime)
 	newState.ValidityEndTime = types.StringValue(certificate.validityEndTime)
 	res.Diagnostics.Append(res.State.Set(ctx, newState)...)
+}
+
+func (r *selfSignedCertResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("private_key_pem"),
+			path.MatchRoot("private_key_pem_wo"),
+		),
+		resourcevalidator.RequiredTogether(
+			path.MatchRoot("private_key_pem_wo"),
+			path.MatchRoot("private_key_pem_wo_version"),
+		),
+	}
 }
 
 func (r *selfSignedCertResource) Read(ctx context.Context, req resource.ReadRequest, res *resource.ReadResponse) {
