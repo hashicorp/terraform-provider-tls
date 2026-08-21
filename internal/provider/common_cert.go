@@ -9,6 +9,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha1"
@@ -95,6 +96,15 @@ func generateSubjectKeyID(pubKey crypto.PublicKey) ([]byte, error) {
 	case *ed25519.PublicKey:
 		if pub != nil {
 			pubKeyBytes, err = asn1.Marshal(*pub)
+		} else {
+			err = fmt.Errorf("received 'nil' pointer instead of public key")
+		}
+	case *mldsa.PublicKey:
+		if pub != nil {
+			// NOTE: unlike the cases above, the raw key encoding is hashed as-is. That is
+			// the method RFC 5280 section 4.2.1.2 describes, and ML-DSA has no legacy
+			// state in this provider to stay compatible with.
+			pubKeyBytes = pub.Bytes()
 		} else {
 			err = fmt.Errorf("received 'nil' pointer instead of public key")
 		}

@@ -14,3 +14,8 @@ ephemeral "tls_private_key" "rsa-4096-example" {
 ephemeral "tls_private_key" "ed25519-example" {
   algorithm = "ED25519"
 }
+
+# ML-DSA key with the ML-DSA-65 parameter set
+ephemeral "tls_private_key" "mldsa-65-example" {
+  algorithm = "ML-DSA-65"
+}

@@ -236,6 +236,27 @@ func TestPublicKey_dataSource_PKCS8PEM(t *testing.T) {
 					r.TestCheckResourceAttr("data.tls_public_key.ed25519PubKey", "algorithm", "ED25519"),
 				),
 			},
+			{
+				Config: `
+					resource "tls_private_key" "mldsaPrvKey" {
+						algorithm = "ML-DSA-65"
+					}
+					data "tls_public_key" "mldsaPubKey" {
+						private_key_pem = tls_private_key.mldsaPrvKey.private_key_pem_pkcs8
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttrPair(
+						"data.tls_public_key.mldsaPubKey", "public_key_pem",
+						"tls_private_key.mldsaPrvKey", "public_key_pem",
+					),
+					r.TestCheckResourceAttr("data.tls_public_key.mldsaPubKey", "algorithm", "ML-DSA-65"),
+					// `x/crypto/ssh` has no key type for ML-DSA, so all the OpenSSH attributes are empty
+					r.TestCheckResourceAttr("data.tls_public_key.mldsaPubKey", "public_key_openssh", ""),
+					r.TestCheckResourceAttr("data.tls_public_key.mldsaPubKey", "public_key_fingerprint_md5", ""),
+					r.TestCheckResourceAttr("data.tls_public_key.mldsaPubKey", "public_key_fingerprint_sha256", ""),
+				),
+			},
 		},
 	})
 }

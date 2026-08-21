@@ -53,6 +53,18 @@ The attributes affected are:
 This is because the SSH ECC Algorithm Integration ([RFC 5656](https://datatracker.ietf.org/doc/html/rfc5656))
 restricts support for elliptic curves to "nistp256", "nistp384" and "nistp521".
 
+### The `ML-DSA-*` algorithms and OpenSSH
+
+When using `ML-DSA-44`, `ML-DSA-65` or `ML-DSA-87`, the same (computed) OpenSSH
+attributes listed above will have a value of `""` (empty string), for the same reason:
+OpenSSH defines no key type for ML-DSA, so these keys cannot be encoded in any of its
+formats.
+
+Note also that ML-DSA private keys have a single standard encoding, the
+[PKCS#8 (RFC 5958)](https://datatracker.ietf.org/doc/html/rfc5958) seed-only form
+described by [RFC 9881](https://datatracker.ietf.org/doc/html/rfc9881). The
+`.private_key_pem` and `.private_key_pem_pkcs8` attributes therefore hold the same value.
+
 ### Secrets and Terraform state
 
 Some resources that can be created with this provider, like `tls_private_key`, are

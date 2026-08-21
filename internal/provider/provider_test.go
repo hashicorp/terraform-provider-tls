@@ -55,6 +55,15 @@ func providerVersion410() map[string]resource.ExternalProvider {
 	}
 }
 
+func providerVersion430() map[string]resource.ExternalProvider {
+	return map[string]resource.ExternalProvider{
+		"tls": {
+			VersionConstraint: "4.3.0",
+			Source:            "hashicorp/tls",
+		},
+	}
+}
+
 func providerVersion420() map[string]resource.ExternalProvider {
 	return map[string]resource.ExternalProvider{
 		"tls": {
