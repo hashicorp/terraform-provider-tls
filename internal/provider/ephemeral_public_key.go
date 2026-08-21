@@ -84,7 +84,7 @@ func (p *publicKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.S
 				Computed: true,
 				Description: "The public key, in  [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format. " +
 					"This is also known as ['Authorized Keys'](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
-					"This is not populated for `ECDSA` with curve `P224`, as it is [not supported](../../docs#limitations). " +
+					"This is not populated for `ECDSA` with curve `P224`, nor for the `ML-DSA-*` algorithms, as none of these are [supported](../../docs#limitations). " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
 					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
 					"value append a `\\n` at the end of the PEM. " +
@@ -95,13 +95,13 @@ func (p *publicKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.S
 				Computed: true,
 				Description: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
 					"Only available if the selected private key format is compatible, as per the rules for " +
-					"`public_key_openssh` and [ECDSA P224 limitations](../../docs#limitations).",
+					"`public_key_openssh` and the [OpenSSH limitations](../../docs#limitations).",
 			},
 			"public_key_fingerprint_sha256": schema.StringAttribute{
 				Computed: true,
 				Description: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
 					"Only available if the selected private key format is compatible, as per the rules for " +
-					"`public_key_openssh` and [ECDSA P224 limitations](../../docs#limitations).",
+					"`public_key_openssh` and the [OpenSSH limitations](../../docs#limitations).",
 			},
 			"id": schema.StringAttribute{
 				Computed: true,

@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/mldsa"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -65,7 +66,6 @@ func (p *privateKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.
 					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedECDSACurvesStr(), "`, `")) +
 					fmt.Sprintf("(default: `%s`).", P224.String()),
 			},
-
 			// Computed attributes
 			"private_key_pem": schema.StringAttribute{
 				Computed:            true,
@@ -95,7 +95,7 @@ func (p *privateKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.
 				Computed: true,
 				MarkdownDescription: " The public key data in " +
 					"[\"Authorized Keys\"](https://www.ssh.com/academy/ssh/authorized_keys/openssh#format-of-the-authorized-keys-file) format. " +
-					"This is not populated for `ECDSA` with curve `P224`, as it is [not supported](../../docs#limitations). " +
+					"This is not populated for `ECDSA` with curve `P224`, nor for the `ML-DSA-*` algorithms, as none of these are [supported](../../docs#limitations). " +
 					"**NOTE**: the [underlying](https://pkg.go.dev/encoding/pem#Encode) " +
 					"[libraries](https://pkg.go.dev/golang.org/x/crypto/ssh#MarshalAuthorizedKey) that generate this " +
 					"value append a `\\n` at the end of the PEM. " +
@@ -106,13 +106,13 @@ func (p *privateKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.
 				Computed: true,
 				MarkdownDescription: "The fingerprint of the public key data in OpenSSH MD5 hash format, e.g. `aa:bb:cc:...`. " +
 					"Only available if the selected private key format is compatible, similarly to " +
-					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
+					"`public_key_openssh` and the [OpenSSH limitations](../../docs#limitations).",
 			},
 			"public_key_fingerprint_sha256": schema.StringAttribute{
 				Computed: true,
 				MarkdownDescription: "The fingerprint of the public key data in OpenSSH SHA256 hash format, e.g. `SHA256:...`. " +
 					"Only available if the selected private key format is compatible, similarly to " +
-					"`public_key_openssh` and the [ECDSA P224 limitations](../../docs#limitations).",
+					"`public_key_openssh` and the [OpenSSH limitations](../../docs#limitations).",
 			},
 		},
 		MarkdownDescription: "-> If the managed resource doesn't have a write-only argument available for the private key (first introduced in Terraform 1.11), then the " +
@@ -185,7 +185,7 @@ func (p *privateKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Op
 			Type:  PreamblePrivateKeyEC.String(),
 			Bytes: keyBytes,
 		}
-	case ed25519.PrivateKey:
+	case ed25519.PrivateKey, *mldsa.PrivateKey:
 		prvKeyBytes, err := x509.MarshalPKCS8PrivateKey(k)
 		if err != nil {
 			res.Diagnostics.AddError("Unable to encode key to PEM", err.Error())

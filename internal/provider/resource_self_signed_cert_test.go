@@ -985,6 +985,49 @@ func TestResourceSelfSignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	})
 }
 
+func TestResourceSelfSignedCert_FromMLDSAPrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ML-DSA-65"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						set_subject_key_id    = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_self_signed_cert.test", "key_algorithm", "ML-DSA-65"),
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateWith("tls_self_signed_cert.test", "cert_pem", func(cert *x509.Certificate) error {
+						if got, want := cert.SignatureAlgorithm.String(), "ML-DSA-65"; got != want {
+							return fmt.Errorf("expected signature algorithm %q, got %q", want, got)
+						}
+						if got, want := cert.PublicKeyAlgorithm.String(), "ML-DSA"; got != want {
+							return fmt.Errorf("expected public key algorithm %q, got %q", want, got)
+						}
+						if len(cert.SubjectKeyId) == 0 {
+							return fmt.Errorf("expected a subject key identifier, got none")
+						}
+						return cert.CheckSignatureFrom(cert)
+					}),
+				),
+			},
+		},
+	})
+}
+
 func TestResourceSelfSignedCert_FromECDSAPrivateKeyResource(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
