@@ -1,3 +1,12 @@
+## 4.4.0 (August 31, 2026)
+
+ENHANCEMENTS:
+
+* resource/tls_cert_request: Added write-only `private_key_pem_wo` and `private_key_pem_wo_version` attributes so the private key can be supplied at apply time without being persisted to Terraform state. `private_key_pem` is now optional. ([#645](https://github.com/hashicorp/terraform-provider-tls/issues/645))
+* resource/tls_self_signed_cert: Added write-only `private_key_pem_wo` and `private_key_pem_wo_version` attributes so the private key can be supplied at apply time without being persisted to Terraform state. `private_key_pem` is now optional. ([#645](https://github.com/hashicorp/terraform-provider-tls/issues/645))
+* resource/tls_locally_signed_cert: Added write-only `ca_private_key_pem_wo` and `ca_private_key_pem_wo_version` attributes so the CA private key can be supplied at apply time without being persisted to Terraform state. `ca_private_key_pem` is now optional. ([#645](https://github.com/hashicorp/terraform-provider-tls/issues/645))
+* Updated `TestAccDataSourceCertificate_DevDot` acceptance test to reflect the current TLS certificate chain for `developer.hashicorp.com` ([#793](https://github.com/hashicorp/terraform-provider-tls/issues/793))
+
 ## 4.3.0 (May 12, 2026)
 
 ENHANCEMENTS:
