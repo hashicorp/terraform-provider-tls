@@ -8,4 +8,16 @@ binary {
   osv          = true
   oss_index    = false
   nvd          = false
+
+  triage {
+    suppress {
+      vulnerabilities = [
+        // golang.org/x/crypto/openpgp is deprecated/unmaintained with no fixed
+        // version. The provider does not use this package (confirmed via
+        // `go mod why golang.org/x/crypto/openpgp`); it imports the maintained
+        // fork github.com/ProtonMail/go-crypto/openpgp instead.
+        "GO-2026-5932",
+      ]
+    }
+  }
 }
