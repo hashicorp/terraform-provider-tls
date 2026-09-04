@@ -180,6 +180,37 @@ func TestAccEphemeralPrivateKey_ED25519(t *testing.T) {
 	})
 }
 
+func TestAccEphemeralPrivateKey_OpenSSHComment(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		// Ephemeral resources are only available in 1.10 and later
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_10_0),
+		},
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
+			"echo": echoprovider.NewProviderServer(),
+		},
+		Steps: []r.TestStep{
+			{
+				Config: ephemeralPrivateKeyWithEchoConfig(`ephemeral "tls_private_key" "test" {
+						algorithm = "ED25519"
+						openssh_comment = "test@test"
+					}`),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.private_key_pem", PreamblePrivateKeyPKCS8.String()),
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.public_key_pem", PreamblePublicKey.String()),
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.private_key_openssh", PreamblePrivateKeyOpenSSH.String()),
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.private_key_pem_pkcs8", PreamblePrivateKeyPKCS8.String()),
+					r.TestMatchResourceAttr("echo.tls_private_key_test", "data.public_key_openssh", regexp.MustCompile(`^ssh-ed25519 `)),
+					r.TestMatchResourceAttr("echo.tls_private_key_test", "data.public_key_openssh", regexp.MustCompile(` test@test\n$`)),
+					r.TestMatchResourceAttr("echo.tls_private_key_test", "data.public_key_fingerprint_md5", regexp.MustCompile(`^([abcdef\d]{2}:){15}[abcdef\d]{2}`)),
+					r.TestMatchResourceAttr("echo.tls_private_key_test", "data.public_key_fingerprint_sha256", regexp.MustCompile(`^SHA256:`)),
+				),
+			},
+		},
+	})
+}
+
 // Adds the test echo provider to enable using state checks with ephemeral resources.
 func ephemeralPrivateKeyWithEchoConfig(cfg string) string {
 	return fmt.Sprintf(`
