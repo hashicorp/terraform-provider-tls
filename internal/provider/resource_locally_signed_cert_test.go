@@ -6,6 +6,7 @@ package provider
 import (
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"net/url"
@@ -15,6 +16,7 @@ import (
 
 	r "github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfversion"
 
 	"github.com/hashicorp/terraform-provider-tls/internal/provider/fixtures"
@@ -872,6 +874,72 @@ func TestResourceLocallySignedCert_FromED25519PrivateKeyResource(t *testing.T) {
 	})
 }
 
+func TestResourceLocallySignedCert_FromMLDSAPrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "ca_prv_test" {
+						algorithm = "ML-DSA-87"
+					}
+					resource "tls_self_signed_cert" "ca_cert_test" {
+						private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+						]
+					}
+					resource "tls_private_key" "test" {
+						algorithm = "ML-DSA-44"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							common_name = "test.com"
+						}
+					}
+					resource "tls_locally_signed_cert" "test" {
+						validity_period_hours = 1
+						early_renewal_hours = 0
+						set_subject_key_id = true
+						allowed_uses = [
+							"server_auth",
+							"client_auth",
+						]
+						cert_request_pem = tls_cert_request.test.cert_request_pem
+						ca_cert_pem = tls_self_signed_cert.ca_cert_test.cert_pem
+						ca_private_key_pem = tls_private_key.ca_prv_test.private_key_pem
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_locally_signed_cert.test", "ca_key_algorithm", "ML-DSA-87"),
+					tu.TestCheckPEMFormat("tls_locally_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					// The CA and the leaf deliberately use different parameter sets: the certificate is
+					// signed with the CA's ML-DSA-87 key, but carries the leaf's ML-DSA-44 public key.
+					tu.TestCheckPEMCertificateWith("tls_locally_signed_cert.test", "cert_pem", func(cert *x509.Certificate) error {
+						if got, want := cert.SignatureAlgorithm.String(), "ML-DSA-87"; got != want {
+							return fmt.Errorf("expected signature algorithm %q, got %q", want, got)
+						}
+						if got, want := cert.PublicKeyAlgorithm.String(), "ML-DSA"; got != want {
+							return fmt.Errorf("expected public key algorithm %q, got %q", want, got)
+						}
+						if len(cert.SubjectKeyId) == 0 {
+							return fmt.Errorf("expected a subject key identifier, got none")
+						}
+						return nil
+					}),
+					testCheckCertSignedByCA("tls_locally_signed_cert.test", "tls_self_signed_cert.ca_cert_test"),
+				),
+			},
+		},
+	})
+}
+
 func TestResourceLocallySignedCert_FromED25519PrivateKeyResource_PKCS8(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
@@ -1164,4 +1232,39 @@ func TestResourceLocallySignedCert_WithMaxPathLen(t *testing.T) {
 			},
 		},
 	})
+}
+
+// testCheckCertSignedByCA verifies that the `cert_pem` of the certificate resource was
+// in fact signed by the `cert_pem` of the CA resource, both read from the state. Unlike
+// tu.TestCheckPEMCertificateAgainstPEMRootCA, the CA certificate does not have to be
+// known when the check is built.
+func testCheckCertSignedByCA(certResourceName, caResourceName string) r.TestCheckFunc {
+	return func(s *terraform.State) error {
+		parsePEM := func(resourceName string) (*x509.Certificate, error) {
+			rs, ok := s.RootModule().Resources[resourceName]
+			if !ok {
+				return nil, fmt.Errorf("resource name %s not found in state", resourceName)
+			}
+			block, _ := pem.Decode([]byte(rs.Primary.Attributes["cert_pem"]))
+			if block == nil {
+				return nil, fmt.Errorf("failed to decode PEM of resource %s", resourceName)
+			}
+			return x509.ParseCertificate(block.Bytes)
+		}
+
+		cert, err := parsePEM(certResourceName)
+		if err != nil {
+			return err
+		}
+		caCert, err := parsePEM(caResourceName)
+		if err != nil {
+			return err
+		}
+
+		if err := cert.CheckSignatureFrom(caCert); err != nil {
+			return fmt.Errorf("certificate is not signed by the given CA: %w", err)
+		}
+
+		return nil
+	}
 }

@@ -15,6 +15,17 @@ const (
 	RSA     Algorithm = "RSA"
 	ECDSA   Algorithm = "ECDSA"
 	ED25519 Algorithm = "ED25519"
+
+	// Each ML-DSA parameter set defined in FIPS 204 is its own algorithm rather than a
+	// parameter of a shared one: nothing within a parameter set is selectable, and each
+	// carries its own object identifier, which is why [crypto/x509] gives them three
+	// distinct signature algorithms. This follows ED25519 above, itself one
+	// instantiation of EdDSA. The values are spelled as [crypto/mldsa.Parameters]
+	// spells them, which is also how the `tls_certificate` data source reports the
+	// `signature_algorithm` of a certificate signed with such a key.
+	MLDSA44 Algorithm = "ML-DSA-44"
+	MLDSA65 Algorithm = "ML-DSA-65"
+	MLDSA87 Algorithm = "ML-DSA-87"
 )
 
 func (a Algorithm) String() string {
@@ -27,6 +38,9 @@ func supportedAlgorithms() []Algorithm {
 		RSA,
 		ECDSA,
 		ED25519,
+		MLDSA44,
+		MLDSA65,
+		MLDSA87,
 	}
 }
 

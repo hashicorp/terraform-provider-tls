@@ -9,6 +9,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -64,6 +65,42 @@ var keyGenerators = map[Algorithm]keyGenerator{
 		}
 		return key, err
 	},
+	MLDSA44: mldsaKeyGenerator(mldsa.MLDSA44()),
+	MLDSA65: mldsaKeyGenerator(mldsa.MLDSA65()),
+	MLDSA87: mldsaKeyGenerator(mldsa.MLDSA87()),
+}
+
+// mldsaAlgorithms maps each ML-DSA Algorithm onto the FIPS 204 parameter set it names.
+func mldsaAlgorithms() map[Algorithm]mldsa.Parameters {
+	return map[Algorithm]mldsa.Parameters{
+		MLDSA44: mldsa.MLDSA44(),
+		MLDSA65: mldsa.MLDSA65(),
+		MLDSA87: mldsa.MLDSA87(),
+	}
+}
+
+// mldsaKeyGenerator returns a keyGenerator for the given FIPS 204 parameter set. A
+// parameter set fixes the key size, the digest and everything else about the scheme,
+// so there is nothing to read off the configuration.
+func mldsaKeyGenerator(params mldsa.Parameters) keyGenerator {
+	return func(_ *privateKeyResourceModel) (crypto.PrivateKey, error) {
+		key, err := mldsa.GenerateKey(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate %s key: %s", params, err)
+		}
+		return key, nil
+	}
+}
+
+// mldsaAlgorithm identifies the Algorithm naming the given FIPS 204 parameter set.
+func mldsaAlgorithm(params mldsa.Parameters) (Algorithm, error) {
+	for algorithm, candidate := range mldsaAlgorithms() {
+		if candidate == params {
+			return algorithm, nil
+		}
+	}
+
+	return "", fmt.Errorf("unsupported ML-DSA parameter set: %s", params)
 }
 
 // keyParsers provides a keyParser given a specific PEMPreamble.
@@ -145,13 +182,15 @@ func privateKeyToPublicKey(prvKey crypto.PrivateKey) (crypto.PublicKey, error) {
 
 // privateKeyToAlgorithm identifies the Algorithm used by a given crypto.PrivateKey.
 func privateKeyToAlgorithm(prvKey crypto.PrivateKey) (Algorithm, error) {
-	switch prvKey.(type) {
+	switch k := prvKey.(type) {
 	case rsa.PrivateKey, *rsa.PrivateKey:
 		return RSA, nil
 	case ecdsa.PrivateKey, *ecdsa.PrivateKey:
 		return ECDSA, nil
 	case ed25519.PrivateKey, *ed25519.PrivateKey:
 		return ED25519, nil
+	case *mldsa.PrivateKey:
+		return mldsaAlgorithm(k.PublicKey().Parameters())
 	default:
 		return "", fmt.Errorf("unsupported private key type: %T", prvKey)
 	}
@@ -193,8 +232,9 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 		return diags
 	}
 
-	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
-	// so this will return an error: in that case, we set the below fields to empty strings
+	// NOTE: neither ECDSA keys with elliptic curve P-224 nor ML-DSA keys are supported
+	// by `x/crypto/ssh`, so this will return an error: in that case, we set the below
+	// fields to empty strings
 	sshPubKey, err := ssh.NewPublicKey(pubKey)
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {
@@ -259,8 +299,9 @@ func setPublicKeyAttributesEphemeral(ctx context.Context, d *tfsdk.EphemeralResu
 		return diags
 	}
 
-	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
-	// so this will return an error: in that case, we set the below fields to empty strings
+	// NOTE: neither ECDSA keys with elliptic curve P-224 nor ML-DSA keys are supported
+	// by `x/crypto/ssh`, so this will return an error: in that case, we set the below
+	// fields to empty strings
 	sshPubKey, err := ssh.NewPublicKey(pubKey)
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {

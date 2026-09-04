@@ -4,6 +4,7 @@
 package provider
 
 import (
+	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"fmt"
@@ -490,6 +491,40 @@ func TestResourceCertRequest_PrivateKeyPEMWriteOnly(t *testing.T) {
 					// the write-only path never leaked the key into the state-backed attribute.
 					r.TestCheckNoResourceAttr(resourceName, "private_key_pem_wo"),
 					r.TestCheckNoResourceAttr(resourceName, "private_key_pem"),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_FromMLDSAPrivateKeyResource(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ML-DSA-65"
+					}
+					resource "tls_cert_request" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							common_name = "example.com"
+						}
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					r.TestCheckResourceAttr("tls_cert_request.test", "key_algorithm", "ML-DSA-65"),
+					tu.TestCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest.String()),
+					tu.TestCheckPEMCertificateRequestWith("tls_cert_request.test", "cert_request_pem", func(csr *x509.CertificateRequest) error {
+						if got, want := csr.SignatureAlgorithm.String(), "ML-DSA-65"; got != want {
+							return fmt.Errorf("expected signature algorithm %q, got %q", want, got)
+						}
+						if got, want := csr.PublicKeyAlgorithm.String(), "ML-DSA"; got != want {
+							return fmt.Errorf("expected public key algorithm %q, got %q", want, got)
+						}
+						return csr.CheckSignature()
+					}),
 				),
 			},
 		},

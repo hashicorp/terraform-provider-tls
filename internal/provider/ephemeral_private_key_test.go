@@ -180,6 +180,60 @@ func TestAccEphemeralPrivateKey_ED25519(t *testing.T) {
 	})
 }
 
+func TestAccEphemeralPrivateKey_MLDSA44(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		// Ephemeral resources are only available in 1.10 and later
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_10_0),
+		},
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
+			"echo": echoprovider.NewProviderServer(),
+		},
+		Steps: []r.TestStep{
+			{
+				Config: ephemeralPrivateKeyWithEchoConfig(`ephemeral "tls_private_key" "test" {
+						algorithm = "ML-DSA-44"
+					}`),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.private_key_pem", PreamblePrivateKeyPKCS8.String()),
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.public_key_pem", PreamblePublicKey.String()),
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.private_key_pem_pkcs8", PreamblePrivateKeyPKCS8.String()),
+					// `x/crypto/ssh` has no key type for ML-DSA, so all the OpenSSH attributes are empty
+					r.TestCheckResourceAttr("echo.tls_private_key_test", "data.private_key_openssh", ""),
+					r.TestCheckResourceAttr("echo.tls_private_key_test", "data.public_key_openssh", ""),
+					r.TestCheckResourceAttr("echo.tls_private_key_test", "data.public_key_fingerprint_md5", ""),
+					r.TestCheckResourceAttr("echo.tls_private_key_test", "data.public_key_fingerprint_sha256", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccEphemeralPrivateKey_MLDSA87(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		// Ephemeral resources are only available in 1.10 and later
+		TerraformVersionChecks: []tfversion.TerraformVersionCheck{
+			tfversion.SkipBelow(tfversion.Version1_10_0),
+		},
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
+			"echo": echoprovider.NewProviderServer(),
+		},
+		Steps: []r.TestStep{
+			{
+				Config: ephemeralPrivateKeyWithEchoConfig(`ephemeral "tls_private_key" "test" {
+						algorithm = "ML-DSA-87"
+					}`),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.private_key_pem", PreamblePrivateKeyPKCS8.String()),
+					tu.TestCheckPEMFormat("echo.tls_private_key_test", "data.public_key_pem", PreamblePublicKey.String()),
+				),
+			},
+		},
+	})
+}
+
 // Adds the test echo provider to enable using state checks with ephemeral resources.
 func ephemeralPrivateKeyWithEchoConfig(cfg string) string {
 	return fmt.Sprintf(`

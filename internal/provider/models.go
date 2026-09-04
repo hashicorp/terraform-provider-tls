@@ -143,8 +143,9 @@ func (data *privateKeyEphemeralModel) setPublicKeyAttributes(prvKey crypto.Priva
 
 	data.PublicKeyPem = types.StringValue(string(pem.EncodeToMemory(pubKeyPemBlock)))
 
-	// NOTE: ECDSA keys with elliptic curve P-224 are not supported by `x/crypto/ssh`,
-	// so this will return an error: in that case, we set the below fields to empty strings
+	// NOTE: neither ECDSA keys with elliptic curve P-224 nor ML-DSA keys are supported
+	// by `x/crypto/ssh`, so this will return an error: in that case, we set the below
+	// fields to empty strings
 	sshPubKey, err := ssh.NewPublicKey(pubKey)
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {
