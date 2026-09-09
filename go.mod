@@ -1,6 +1,6 @@
 module github.com/hashicorp/terraform-provider-tls
 
-go 1.26.0
+go 1.26.8
 
 require (
 	github.com/elazarl/goproxy v1.9.0
