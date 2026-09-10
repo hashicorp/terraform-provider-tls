@@ -1,3 +1,9 @@
+## 4.5.0 (September 10, 2026)
+
+NOTES:
+
+* Upgrade the Go toolchain to 1.26.8. ([#813](https://github.com/hashicorp/terraform-provider-tls/issues/813))
+
 ## 4.4.0 (August 31, 2026)
 
 ENHANCEMENTS:
