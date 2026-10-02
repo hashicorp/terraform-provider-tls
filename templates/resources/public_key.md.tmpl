@@ -1,0 +1,23 @@
+---
+page_title: "{{.Name}} {{.Type}} - {{.ProviderName}}"
+subcategory: ""
+description: |-
+{{ .Description | plainmarkdown | trimspace | prefixlines "  " }}
+---
+
+# {{.Name}} ({{.Type}})
+
+{{ .Description | trimspace }}
+
+~> **Note** This resource requires Terraform 1.11 or later, as it uses
+[write-only attributes](https://developer.hashicorp.com/terraform/language/resources/syntax#write-only-arguments)
+to accept private key inputs without storing them in plan or state.
+
+This is a *logical resource*, so it contributes only to the current Terraform
+state and does not create any external managed resources.
+
+## Example Usage
+
+{{ tffile "examples/resources/tls_public_key/resource.tf" }}
+
+{{ .SchemaMarkdown | trimspace }}
