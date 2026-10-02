@@ -13,7 +13,10 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"math/big"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -118,18 +121,22 @@ func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, Algorithm, error
 // parsePrivateKeyOpenSSHPEM takes a slide of bytes containing a private key
 // encoded in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format,
 // and returns a crypto.PrivateKey implementation, together with the Algorithm used by the key.
-func parsePrivateKeyOpenSSHPEM(keyOpenSSHPEMBytes []byte) (crypto.PrivateKey, Algorithm, error) {
+func parsePrivateKeyOpenSSHPEM(keyOpenSSHPEMBytes []byte) (crypto.PrivateKey, Algorithm, string, error) {
 	prvKey, err := ssh.ParseRawPrivateKey(keyOpenSSHPEMBytes)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to parse openssh private key: %w", err)
+		return nil, "", "", fmt.Errorf("failed to parse openssh private key: %w", err)
+	}
+
+	comment, err := getPrivateKeyComment(keyOpenSSHPEMBytes)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("failed to get private key comment: %w", err)
 	}
 
 	algorithm, err := privateKeyToAlgorithm(prvKey)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to determine key algorithm for private key of type %T: %w", prvKey, err)
+		return nil, "", "", fmt.Errorf("failed to determine key algorithm for private key of type %T: %w", prvKey, err)
 	}
-
-	return prvKey, algorithm, nil
+	return prvKey, algorithm, comment, nil
 }
 
 // privateKeyToPublicKey takes a crypto.PrivateKey and extracts the corresponding crypto.PublicKey,
@@ -159,7 +166,7 @@ func privateKeyToAlgorithm(prvKey crypto.PrivateKey) (Algorithm, error) {
 
 // setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
 // encodes related attributes on the given *tfsdk.State.
-func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.PrivateKey) diag.Diagnostics {
+func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.PrivateKey, openSSHComment string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	pubKey, err := privateKeyToPublicKey(prvKey)
@@ -199,8 +206,13 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
-
 		pubKeySSH = string(sshPubKeyBytes)
+
+		// Manually add the comment as MarshalAuthorizedKeys ignores it: https://github.com/golang/go/issues/46870
+		if openSSHComment != "" {
+			pubKeySSH = fmt.Sprintf("%s %s\n", strings.TrimSuffix(pubKeySSH, "\n"), openSSHComment)
+		}
+
 		pubKeySSHFingerprintMD5 = ssh.FingerprintLegacyMD5(sshPubKey)
 		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
 	}
@@ -225,7 +237,7 @@ func setPublicKeyAttributes(ctx context.Context, s *tfsdk.State, prvKey crypto.P
 
 // setPublicKeyAttributes takes a crypto.PrivateKey, extracts the corresponding crypto.PublicKey and then
 // encodes related attributes on the given *tfsdk.EphemeralResultData.
-func setPublicKeyAttributesEphemeral(ctx context.Context, d *tfsdk.EphemeralResultData, prvKey crypto.PrivateKey) diag.Diagnostics {
+func setPublicKeyAttributesEphemeral(ctx context.Context, d *tfsdk.EphemeralResultData, prvKey crypto.PrivateKey, openSSHComment string) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	pubKey, err := privateKeyToPublicKey(prvKey)
@@ -265,8 +277,13 @@ func setPublicKeyAttributesEphemeral(ctx context.Context, d *tfsdk.EphemeralResu
 	var pubKeySSH, pubKeySSHFingerprintMD5, pubKeySSHFingerprintSHA256 string
 	if err == nil {
 		sshPubKeyBytes := ssh.MarshalAuthorizedKey(sshPubKey)
-
 		pubKeySSH = string(sshPubKeyBytes)
+
+		// Manually add the comment as MarshalAuthorizedKeys ignores it: https://github.com/golang/go/issues/46870
+		if openSSHComment != "" {
+			pubKeySSH = fmt.Sprintf("%s %s\n", strings.TrimSuffix(pubKeySSH, "\n"), openSSHComment)
+		}
+
 		pubKeySSHFingerprintMD5 = ssh.FingerprintLegacyMD5(sshPubKey)
 		pubKeySSHFingerprintSHA256 = ssh.FingerprintSHA256(sshPubKey)
 	}
@@ -287,4 +304,107 @@ func setPublicKeyAttributesEphemeral(ctx context.Context, d *tfsdk.EphemeralResu
 	}
 
 	return nil
+}
+
+// Note: The SSH package does not currently expose the comment in the private key, so an adapted version of
+// parseOpenSSHPrivateKey from https://github.com/golang/crypto/blob/master/ssh/keys.go#L1532
+const privateKeyAuthMagic = "openssh-key-v1\x00"
+
+type openSSHEncryptedPrivateKey struct {
+	CipherName   string
+	KdfName      string
+	KdfOpts      string
+	NumKeys      uint32
+	PubKey       []byte
+	PrivKeyBlock []byte
+}
+
+type openSSHPrivateKey struct {
+	Check1  uint32
+	Check2  uint32
+	Keytype string
+	Rest    []byte `ssh:"rest"`
+}
+
+type openSSHRSAPrivateKey struct {
+	N       *big.Int
+	E       *big.Int
+	D       *big.Int
+	Iqmp    *big.Int
+	P       *big.Int
+	Q       *big.Int
+	Comment string
+	Pad     []byte `ssh:"rest"`
+}
+
+type openSSHEd25519PrivateKey struct {
+	Pub     []byte
+	Priv    []byte
+	Comment string
+	Pad     []byte `ssh:"rest"`
+}
+
+type openSSHECDSAPrivateKey struct {
+	Curve   string
+	Pub     []byte
+	D       *big.Int
+	Comment string
+	Pad     []byte `ssh:"rest"`
+}
+
+func getPrivateKeyComment(pemBytes []byte) (string, error) {
+	block, _ := pem.Decode(pemBytes)
+
+	if block == nil {
+		return "", errors.New("ssh: no key found")
+	}
+
+	key := block.Bytes
+
+	if len(key) < len(privateKeyAuthMagic) || string(key[:len(privateKeyAuthMagic)]) != privateKeyAuthMagic {
+		return "", errors.New("ssh: invalid openssh private key format")
+	}
+	remaining := key[len(privateKeyAuthMagic):]
+
+	var w openSSHEncryptedPrivateKey
+	if err := ssh.Unmarshal(remaining, &w); err != nil {
+		return "", err
+	}
+	if w.NumKeys != 1 {
+		// We only support single key files, and so does OpenSSH.
+		// https://github.com/openssh/openssh-portable/blob/4103a3ec7/sshkey.c#L4171
+		return "", errors.New("ssh: multi-key files are not supported")
+	}
+
+	var pk1 openSSHPrivateKey
+	if err := ssh.Unmarshal(w.PrivKeyBlock, &pk1); err != nil || pk1.Check1 != pk1.Check2 {
+		if w.CipherName != "none" {
+			return "", x509.IncorrectPasswordError
+		}
+		return "", errors.New("ssh: malformed OpenSSH key")
+	}
+
+	switch pk1.Keytype {
+	case ssh.KeyAlgoRSA:
+		var key openSSHRSAPrivateKey
+		if err := ssh.Unmarshal(pk1.Rest, &key); err != nil {
+			return "", err
+		}
+
+		return key.Comment, nil
+	case ssh.KeyAlgoED25519:
+		var key openSSHEd25519PrivateKey
+		if err := ssh.Unmarshal(pk1.Rest, &key); err != nil {
+			return "", err
+		}
+		return key.Comment, nil
+	case ssh.KeyAlgoECDSA256, ssh.KeyAlgoECDSA384, ssh.KeyAlgoECDSA521:
+		var key openSSHECDSAPrivateKey
+		if err := ssh.Unmarshal(pk1.Rest, &key); err != nil {
+			return "", err
+		}
+		return key.Comment, nil
+	default:
+		return "", errors.New("ssh: unhandled key type")
+	}
 }

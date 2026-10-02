@@ -122,6 +122,7 @@ func (p *publicKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Ope
 	var prvKey crypto.PrivateKey
 	var algorithm Algorithm
 	var err error
+	var openSSHComment string
 
 	// Given the use of `ExactlyOneOf` in the Schema, we are guaranteed
 	// that either `private_key_pem` or `private_key_openssh` will be set.
@@ -131,7 +132,7 @@ func (p *publicKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Ope
 		prvKey, algorithm, err = parsePrivateKeyPEM([]byte(prvKeyArg.ValueString()))
 	} else if req.Config.GetAttribute(ctx, path.Root("private_key_openssh"), &prvKeyArg); !prvKeyArg.IsNull() {
 		tflog.Debug(ctx, "Parsing private key from OpenSSH PEM")
-		prvKey, algorithm, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.ValueString()))
+		prvKey, algorithm, openSSHComment, err = parsePrivateKeyOpenSSHPEM([]byte(prvKeyArg.ValueString()))
 	}
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to parse private key", err.Error())
@@ -143,5 +144,5 @@ func (p *publicKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Ope
 		return
 	}
 
-	resp.Diagnostics.Append(setPublicKeyAttributesEphemeral(ctx, &resp.Result, prvKey)...)
+	resp.Diagnostics.Append(setPublicKeyAttributesEphemeral(ctx, &resp.Result, prvKey, openSSHComment)...)
 }

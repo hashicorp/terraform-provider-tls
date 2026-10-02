@@ -240,6 +240,51 @@ func TestPublicKey_dataSource_PKCS8PEM(t *testing.T) {
 	})
 }
 
+func TestPublicKey_dataSource_OpenSSHComment(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "prvKey" {
+						algorithm = "RSA"
+						openssh_comment = "test@test"
+					}
+					data "tls_public_key" "pubKey" {
+						private_key_openssh = tls_private_key.prvKey.private_key_openssh
+					}
+				`,
+				Check: r.TestMatchResourceAttr("data.tls_public_key.pubKey", "public_key_openssh", regexp.MustCompile(` test@test\n$`)),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "prvKey" {
+						algorithm = "ECDSA"
+						ecdsa_curve = "P384"
+						openssh_comment = "test@test"
+					}
+					data "tls_public_key" "pubKey" {
+						private_key_openssh = tls_private_key.prvKey.private_key_openssh
+					}
+				`,
+				Check: r.TestMatchResourceAttr("data.tls_public_key.pubKey", "public_key_openssh", regexp.MustCompile(` test@test\n$`)),
+			},
+			{
+				Config: `
+					resource "tls_private_key" "prvKey" {
+						algorithm = "ED25519"
+						openssh_comment = "test@test"
+					}
+					data "tls_public_key" "pubKey" {
+						private_key_openssh = tls_private_key.prvKey.private_key_openssh
+					}
+				`,
+				Check: r.TestMatchResourceAttr("data.tls_public_key.pubKey", "public_key_openssh", regexp.MustCompile(` test@test\n$`)),
+			},
+		},
+	})
+}
+
 func TestPublicKey_dataSource_errorCases(t *testing.T) {
 	r.UnitTest(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
