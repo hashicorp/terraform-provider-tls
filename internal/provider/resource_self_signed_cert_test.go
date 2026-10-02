@@ -70,6 +70,7 @@ func TestResourceSelfSignedCert(t *testing.T) {
 							Path:   "ca2",
 						},
 					}),
+					tu.TestCheckPEMCertificateSignatureAlgorithm("tls_self_signed_cert.test1", "cert_pem", x509.SHA256WithRSA),
 					tu.TestCheckPEMCertificateKeyUsage("tls_self_signed_cert.test1", "cert_pem", x509.KeyUsageKeyEncipherment|x509.KeyUsageDigitalSignature|x509.KeyUsageContentCommitment),
 					tu.TestCheckPEMCertificateExtKeyUsages("tls_self_signed_cert.test1", "cert_pem", []x509.ExtKeyUsage{
 						x509.ExtKeyUsageServerAuth,
@@ -1249,6 +1250,38 @@ func TestResourceSelfSignedCert_WithMaxPathLen(t *testing.T) {
 				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckResourceAttr("tls_self_signed_cert.test", "max_path_length", "2"),
 					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceSelfSignedCert_SignatureAlgorithmPss(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "RSA"
+					}
+					resource "tls_self_signed_cert" "test" {
+						private_key_pem = tls_private_key.test.private_key_pem
+						subject {
+							organization = "test-organization"
+						}
+						is_ca_certificate     = true
+						validity_period_hours = 8760
+						allowed_uses = [
+							"cert_signing",
+							"crl_signing",
+						]
+						signature_algorithm = "SHA256-RSAPSS"
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateSignatureAlgorithm("tls_self_signed_cert.test", "cert_pem", x509.SHA256WithRSAPSS),
 				),
 			},
 		},

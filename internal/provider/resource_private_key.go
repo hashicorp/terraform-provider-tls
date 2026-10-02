@@ -60,10 +60,10 @@ func privateKeyResourceSchemaV1() schema.Schema {
 					stringplanmodifier.RequiresReplace(),
 				},
 				Validators: []validator.String{
-					stringvalidator.OneOf(supportedAlgorithmsStr()...),
+					stringvalidator.OneOf(supportedPrivateKeyAlgorithmsStr()...),
 				},
 				Description: "Name of the algorithm to use when generating the private key. " +
-					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
+					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedPrivateKeyAlgorithmsStr(), "`, `")),
 			},
 
 			// Optional attributes
@@ -170,7 +170,7 @@ func (r *privateKeyResource) Create(ctx context.Context, req resource.CreateRequ
 		"privateKeyConfig": fmt.Sprintf("%+v", newState),
 	})
 
-	keyAlgoName := Algorithm(newState.Algorithm.ValueString())
+	keyAlgoName := PrivateKeyAlgorithm(newState.Algorithm.ValueString())
 
 	// Identify the correct (Private) Key Generator
 	var keyGen keyGenerator

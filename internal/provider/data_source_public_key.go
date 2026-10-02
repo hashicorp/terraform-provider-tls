@@ -46,7 +46,7 @@ func (d *publicKeyDataSource) Schema(ctx context.Context, req datasource.SchemaR
 				Description: "The private key (in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format) " +
 					"to extract the public key from. " +
 					"This is _mutually exclusive_ with `private_key_openssh`. " +
-					fmt.Sprintf("Currently-supported algorithms for keys are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
+					fmt.Sprintf("Currently-supported algorithms for keys are: `%s`. ", strings.Join(supportedPrivateKeyAlgorithmsStr(), "`, `")),
 			},
 			"private_key_openssh": schema.StringAttribute{
 				Optional:  true,
@@ -60,14 +60,14 @@ func (d *publicKeyDataSource) Schema(ctx context.Context, req datasource.SchemaR
 				Description: "The private key (in  [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format) " +
 					"to extract the public key from. " +
 					"This is _mutually exclusive_ with `private_key_pem`. " +
-					fmt.Sprintf("Currently-supported algorithms for keys are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
+					fmt.Sprintf("Currently-supported algorithms for keys are: `%s`. ", strings.Join(supportedPrivateKeyAlgorithmsStr(), "`, `")),
 			},
 
 			// Computed attributes
 			"algorithm": schema.StringAttribute{
 				Computed: true,
 				Description: "The name of the algorithm used by the given private key. " +
-					fmt.Sprintf("Possible values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
+					fmt.Sprintf("Possible values are: `%s`. ", strings.Join(supportedPrivateKeyAlgorithmsStr(), "`, `")),
 			},
 			"public_key_pem": schema.StringAttribute{
 				Computed: true,
@@ -118,7 +118,7 @@ func (ds *publicKeyDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	tflog.Debug(ctx, "Reading public key resource")
 
 	var prvKey crypto.PrivateKey
-	var algorithm Algorithm
+	var algorithm PrivateKeyAlgorithm
 	var err error
 
 	// Given the use of `ExactlyOneOf` in the Schema, we are guaranteed
