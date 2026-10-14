@@ -226,6 +226,23 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 		}
 	}
 
+	// Set signature-algorithm
+	var signatureAlgorithm types.String
+	diags.Append(plan.GetAttribute(ctx, path.Root("signature_algorithm"), &signatureAlgorithm)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	if !signatureAlgorithm.IsNull() && !signatureAlgorithm.IsUnknown() {
+		template.SignatureAlgorithm = signatureAlgorithmFromString(signatureAlgorithm.ValueString())
+
+		if template.SignatureAlgorithm == x509.UnknownSignatureAlgorithm {
+			diags.AddWarning(
+				"Unknown Signature Algorithm",
+				fmt.Sprintf("Provided signature algorithm '%s' is unknown or unsupported", signatureAlgorithm),
+			)
+		}
+	}
+
 	// Creating the certificate and encoding it to PEM
 	tflog.Debug(ctx, "Creating certificate", map[string]interface{}{
 		"template": fmt.Sprintf("%+v", template),
