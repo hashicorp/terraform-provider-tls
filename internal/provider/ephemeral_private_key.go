@@ -50,6 +50,10 @@ func (p *privateKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.
 			},
 
 			// Optional attributes
+			"openssh_comment": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Comment to add to the OpenSSH key (default: `\"\"`).",
+			},
 			"rsa_bits": schema.Int64Attribute{
 				Optional:            true,
 				Computed:            true,
@@ -216,7 +220,7 @@ func (p *privateKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Op
 	tflog.Debug(ctx, "Marshalling private key to OpenSSH PEM (if supported)")
 	data.PrivateKeyOpenSSH = types.StringValue("")
 	if prvKeySupportsOpenSSHMarshalling(prvKey) {
-		openSSHKeyPemBlock, err := ssh.MarshalPrivateKey(prvKey, "")
+		openSSHKeyPemBlock, err := ssh.MarshalPrivateKey(prvKey, data.OpenSSHComment.ValueString())
 		if err != nil {
 			res.Diagnostics.AddError("Unable to marshal private key into OpenSSH format", err.Error())
 			return
