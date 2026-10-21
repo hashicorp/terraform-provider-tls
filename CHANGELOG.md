@@ -1,3 +1,9 @@
+## 4.4.2 (October 21, 2026)
+
+NOTES:
+
+* Upgrade the Go toolchain to 1.26.10 to mitigate the eMudhra certificate authority vulnerability (CVE-2026-111943). ([#825](https://github.com/hashicorp/terraform-provider-tls/issues/825))
+
 ## 4.4.1 (September 10, 2026)
 
 NOTES:
