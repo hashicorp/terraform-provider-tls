@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
@@ -112,6 +113,17 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 					),
 				},
 				Description: "List of URIs for which a certificate is being requested (i.e. certificate subjects).",
+			},
+			"signature_algorithm": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.OneOf(supportedSignatureAlgorithmsStr()...),
+				},
+				Description: "Name of the signature algorithm being requested. " +
+					fmt.Sprintf("Accepted values: `%s`.", strings.Join(supportedSignatureAlgorithmsStr(), "`, `")),
 			},
 
 			// Computed attributes
@@ -342,6 +354,15 @@ func (r *certRequestResource) Create(ctx context.Context, req resource.CreateReq
 			}
 			certReq.URIs = append(certReq.URIs, uri)
 		}
+	}
+
+	// Set Signature Algorithm if provided
+	if !newState.SignatureAlgorithm.IsNull() && !newState.SignatureAlgorithm.IsUnknown() {
+		tflog.Debug(ctx, "Adding Signature Algorithm on certificate request", map[string]interface{}{
+			"signatureAlgorithm": newState.SignatureAlgorithm,
+		})
+
+		certReq.SignatureAlgorithm = signatureAlgorithmFromString(newState.SignatureAlgorithm.ValueString())
 	}
 
 	// Generate `Certificate Request`

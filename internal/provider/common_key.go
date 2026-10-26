@@ -30,7 +30,7 @@ type keyGenerator func(prvKeyConf *privateKeyResourceModel) (crypto.PrivateKey, 
 // according to the selected algorithm.
 type keyParser func([]byte) (crypto.PrivateKey, error)
 
-var keyGenerators = map[Algorithm]keyGenerator{
+var keyGenerators = map[PrivateKeyAlgorithm]keyGenerator{
 	RSA: func(prvKeyConf *privateKeyResourceModel) (crypto.PrivateKey, error) {
 		if prvKeyConf.RSABits.IsUnknown() || prvKeyConf.RSABits.IsNull() {
 			return nil, fmt.Errorf("RSA bits curve not provided")
@@ -82,7 +82,7 @@ var keyParsers = map[PEMPreamble]keyParser{
 // parsePrivateKeyPEM takes a slide of bytes containing a private key
 // encoded in [PEM (RFC 1421)](https://datatracker.ietf.org/doc/html/rfc1421) format,
 // and returns a crypto.PrivateKey implementation, together with the Algorithm used by the key.
-func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, Algorithm, error) {
+func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, PrivateKeyAlgorithm, error) {
 	pemBlock, rest := pem.Decode(keyPEMBytes)
 	if pemBlock == nil {
 		return nil, "", fmt.Errorf("failed to decode PEM block: decoded bytes %d, undecoded %d", len(keyPEMBytes)-len(rest), len(rest))
@@ -118,7 +118,7 @@ func parsePrivateKeyPEM(keyPEMBytes []byte) (crypto.PrivateKey, Algorithm, error
 // parsePrivateKeyOpenSSHPEM takes a slide of bytes containing a private key
 // encoded in [OpenSSH PEM (RFC 4716)](https://datatracker.ietf.org/doc/html/rfc4716) format,
 // and returns a crypto.PrivateKey implementation, together with the Algorithm used by the key.
-func parsePrivateKeyOpenSSHPEM(keyOpenSSHPEMBytes []byte) (crypto.PrivateKey, Algorithm, error) {
+func parsePrivateKeyOpenSSHPEM(keyOpenSSHPEMBytes []byte) (crypto.PrivateKey, PrivateKeyAlgorithm, error) {
 	prvKey, err := ssh.ParseRawPrivateKey(keyOpenSSHPEMBytes)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to parse openssh private key: %w", err)
@@ -144,7 +144,7 @@ func privateKeyToPublicKey(prvKey crypto.PrivateKey) (crypto.PublicKey, error) {
 }
 
 // privateKeyToAlgorithm identifies the Algorithm used by a given crypto.PrivateKey.
-func privateKeyToAlgorithm(prvKey crypto.PrivateKey) (Algorithm, error) {
+func privateKeyToAlgorithm(prvKey crypto.PrivateKey) (PrivateKeyAlgorithm, error) {
 	switch prvKey.(type) {
 	case rsa.PrivateKey, *rsa.PrivateKey:
 		return RSA, nil
