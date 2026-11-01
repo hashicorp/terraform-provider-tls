@@ -342,3 +342,13 @@ func confirmSubjectIsEmpty(subject pkix.Name) error {
 
 	return nil
 }
+
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
+func TestCheckPEMCertificateMaxPathLen(name, key string, expected int) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(cert *x509.Certificate) error {
+		if cert.MaxPathLen != expected || cert.MaxPathLenZero != (expected == 0) {
+			return fmt.Errorf("incorrect path length: expected (%d, zero=%t), got (%d, zero=%t)", expected, expected == 0, cert.MaxPathLen, cert.MaxPathLenZero)
+		}
+		return nil
+	})
+}
