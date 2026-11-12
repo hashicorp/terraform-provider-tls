@@ -123,7 +123,7 @@ func TestAccDataSourceCertificate_UpgradeFromVersion3_4_0(t *testing.T) {
 // NOTE: Yes, this test is fetching a live certificate.
 // It will break over time and we will need to keep the
 // data we check against up to date, when that happens.
-// Last updated: 2025-07-02.
+// Last updated: 2026-11-11.
 func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 	r.Test(t, r.TestCase{
 		ProtoV5ProviderFactories: protoV5ProviderFactories(),
@@ -146,9 +146,9 @@ func TestAccDataSourceCertificate_DevDot(t *testing.T) {
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.is_ca", "true"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.0.sha1_fingerprint", "ab9d0263244dd0326eb67015705a667e79cfe998"),
 
-					// YR2 (Let's Encrypt intermediate)
+					// YR1 (Let's Encrypt intermediate)
 					r.TestCheckResourceAttrPair("data.tls_certificate.test", "certificates.1.issuer", "data.tls_certificate.test", "certificates.0.subject"),
-					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=YR2,O=Let's Encrypt,C=US"),
+					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.subject", "CN=YR1,O=Let's Encrypt,C=US"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.signature_algorithm", "SHA256-RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.public_key_algorithm", "RSA"),
 					r.TestCheckResourceAttr("data.tls_certificate.test", "certificates.1.is_ca", "true"),
