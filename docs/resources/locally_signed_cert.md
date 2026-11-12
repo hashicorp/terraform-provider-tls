@@ -52,6 +52,7 @@ resource "tls_locally_signed_cert" "example" {
 - `is_ca_certificate` (Boolean) Is the generated certificate representing a Certificate Authority (CA) (default: `false`).
 - `max_path_length` (Number) Maximum number of intermediate certificates that may follow this certificate in a valid certification path. If `is_ca_certificate` is `false`, this value is ignored.
 - `set_subject_key_id` (Boolean) Should the generated certificate include a [subject key identifier](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2.1.2) (default: `false`).
+- `signature_algorithm` (String) Name of the signature algorithm being used to sign the certificate. Accepted values: `SHA1-RSA`, `SHA256-RSA`, `SHA384-RSA`, `SHA512-RSA`, `ECDSA-SHA1`, `ECDSA-SHA256`, `ECDSA-SHA384`, `ECDSA-SHA512`, `SHA256-RSAPSS`, `SHA384-RSAPSS`, `SHA512-RSAPSS`, `Ed25519`.
 
 ### Read-Only
 

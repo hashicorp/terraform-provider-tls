@@ -43,10 +43,10 @@ func (p *privateKeyEphemeralResource) Schema(ctx context.Context, req ephemeral.
 			"algorithm": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(supportedAlgorithmsStr()...),
+					stringvalidator.OneOf(supportedPrivateKeyAlgorithmsStr()...),
 				},
 				Description: "Name of the algorithm to use when generating the private key. " +
-					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedAlgorithmsStr(), "`, `")),
+					fmt.Sprintf("Currently-supported values are: `%s`. ", strings.Join(supportedPrivateKeyAlgorithmsStr(), "`, `")),
 			},
 
 			// Optional attributes
@@ -143,7 +143,7 @@ func (p *privateKeyEphemeralResource) Open(ctx context.Context, req ephemeral.Op
 
 	data.setupDefaultValue()
 
-	keyAlgoName := Algorithm(data.Algorithm.ValueString())
+	keyAlgoName := PrivateKeyAlgorithm(data.Algorithm.ValueString())
 
 	// Identify the correct (Private) Key Generator
 	var keyGen keyGenerator
