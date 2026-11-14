@@ -15,7 +15,7 @@ or when deployed internally to an organization.
 
 ## Example Usage
 
-{{ tffile "examples/resources/tls_locally_signed_cert/resource.tf" }}
+{{ tffile (printf "examples/resources/%s/resource.tf" .Name)}}
 
 {{ .SchemaMarkdown | trimspace }}
 
