@@ -369,7 +369,32 @@ func createSubjectDistinguishedNames(ctx context.Context, subject certificateSub
 		result.Organization = []string{subject.Organization.ValueString()}
 	}
 
-	if !subject.OrganizationalUnit.IsNull() && !subject.OrganizationalUnit.IsUnknown() {
+	// `organizational_units` and `organizational_unit` are mutually exclusive (enforced by a schema validator).
+	if !subject.OrganizationalUnits.IsNull() && !subject.OrganizationalUnits.IsUnknown() {
+		var organizationalUnits []string
+		var elements []types.String
+		subject.OrganizationalUnits.ElementsAs(ctx, &elements, false)
+		for _, ou := range elements {
+			if !ou.IsNull() && !ou.IsUnknown() {
+				organizationalUnits = append(organizationalUnits, ou.ValueString())
+			}
+		}
+
+		if len(organizationalUnits) == 1 {
+			// Identical to what `organizational_unit` produces.
+			result.OrganizationalUnit = organizationalUnits
+		} else {
+			// `pkix.Name.OrganizationalUnit` would pack several values into one multi-valued RDN
+			// (`OU=a+OU=b`), which DER sorts, losing the order given. `ExtraNames` entries are marshaled
+			// as one RDN each, in order (like `openssl -subj "/OU=a/OU=b"`).
+			for _, ou := range organizationalUnits {
+				result.ExtraNames = append(result.ExtraNames, pkix.AttributeTypeAndValue{
+					Type:  asn1.ObjectIdentifier{2, 5, 4, 11},
+					Value: ou,
+				})
+			}
+		}
+	} else if !subject.OrganizationalUnit.IsNull() && !subject.OrganizationalUnit.IsUnknown() {
 		result.OrganizationalUnit = []string{subject.OrganizationalUnit.ValueString()}
 	}
 

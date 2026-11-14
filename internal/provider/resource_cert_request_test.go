@@ -127,6 +127,88 @@ func TestResourceCertRequest(t *testing.T) {
 	})
 }
 
+func TestResourceCertRequest_OrganizationalUnits(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							common_name = "example.com"
+							organizational_units = [
+								"Platform Engineering",
+								"Security",
+								"Department of Terraform Testing",
+							]
+						}
+						private_key_pem = tls_private_key.test.private_key_pem
+					}
+				`,
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_cert_request.test", "cert_request_pem", PreambleCertificateRequest.String()),
+					tu.TestCheckPEMCertificateRequestSubject("tls_cert_request.test", "cert_request_pem", &pkix.Name{
+						CommonName: "example.com",
+						OrganizationalUnit: []string{
+							"Platform Engineering",
+							"Security",
+							"Department of Terraform Testing",
+						},
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_OrganizationalUnitsConflictsWithOrganizationalUnit(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							organizational_unit  = "Security"
+							organizational_units = ["Platform Engineering"]
+						}
+						private_key_pem = tls_private_key.test.private_key_pem
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Combination`),
+			},
+		},
+	})
+}
+
+func TestResourceCertRequest_OrganizationalUnitsRejectsEmptyElements(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: `
+					resource "tls_private_key" "test" {
+						algorithm = "ED25519"
+					}
+					resource "tls_cert_request" "test" {
+						subject {
+							organizational_units = ["Platform Engineering", ""]
+						}
+						private_key_pem = tls_private_key.test.private_key_pem
+					}
+				`,
+				ExpectError: regexp.MustCompile(`Invalid Attribute Value Length`),
+			},
+		},
+	})
+}
+
 func TestAccResourceCertRequest_UpgradeFromVersion3_4_0(t *testing.T) {
 	config := `
 		resource "tls_private_key" "test1" {
