@@ -61,16 +61,17 @@ type certRequestResourceModel struct {
 }
 
 type certificateSubjectModel struct {
-	Organization       types.String `tfsdk:"organization"`
-	CommonName         types.String `tfsdk:"common_name"`
-	OrganizationalUnit types.String `tfsdk:"organizational_unit"`
-	StreetAddress      types.List   `tfsdk:"street_address"`
-	Locality           types.String `tfsdk:"locality"`
-	Province           types.String `tfsdk:"province"`
-	Country            types.String `tfsdk:"country"`
-	PostalCode         types.String `tfsdk:"postal_code"`
-	EmailAddress       types.String `tfsdk:"email_address"`
-	SerialNumber       types.String `tfsdk:"serial_number"`
+	Organization        types.String `tfsdk:"organization"`
+	CommonName          types.String `tfsdk:"common_name"`
+	OrganizationalUnit  types.String `tfsdk:"organizational_unit"`
+	OrganizationalUnits types.List   `tfsdk:"organizational_units"` //< string
+	StreetAddress       types.List   `tfsdk:"street_address"`
+	Locality            types.String `tfsdk:"locality"`
+	Province            types.String `tfsdk:"province"`
+	Country             types.String `tfsdk:"country"`
+	PostalCode          types.String `tfsdk:"postal_code"`
+	EmailAddress        types.String `tfsdk:"email_address"`
+	SerialNumber        types.String `tfsdk:"serial_number"`
 }
 
 type privateKeyResourceModel struct {
