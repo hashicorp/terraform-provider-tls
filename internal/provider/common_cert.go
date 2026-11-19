@@ -187,6 +187,8 @@ func createCertificate(ctx context.Context, template, parent *x509.Certificate, 
 	}
 	if !maxPathLen.IsNull() && !maxPathLen.IsUnknown() && maxPathLen.ValueInt64() >= 0 {
 		template.MaxPathLen = int(maxPathLen.ValueInt64())
+		// Go otherwise treats zero as an omitted path length constraint.
+		template.MaxPathLenZero = maxPathLen.ValueInt64() == 0
 	}
 
 	// Set subject-id on the template

@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: 'resource/tls_self_signed_cert, resource/tls_locally_signed_cert: Honor max_path_length = 0 for CA certificates.'
+time: 2026-11-01T16:32:46.259033385+08:00
+custom:
+    Issue: "827"

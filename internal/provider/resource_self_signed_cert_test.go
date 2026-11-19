@@ -1216,6 +1216,7 @@ func TestResourceSelfSignedCert_WithoutMaxPathLen(t *testing.T) {
 				`,
 				Check: r.ComposeAggregateTestCheckFunc(
 					r.TestCheckNoResourceAttr("tls_self_signed_cert.test", "max_path_length"),
+					tu.TestCheckPEMCertificateMaxPathLen("tls_self_signed_cert.test", "cert_pem", -1),
 					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
 				),
 			},
@@ -1224,11 +1225,22 @@ func TestResourceSelfSignedCert_WithoutMaxPathLen(t *testing.T) {
 }
 
 func TestResourceSelfSignedCert_WithMaxPathLen(t *testing.T) {
-	r.UnitTest(t, r.TestCase{
-		ProtoV5ProviderFactories: protoV5ProviderFactories(),
-		Steps: []r.TestStep{
-			{
-				Config: `
+	for _, tc := range []struct {
+		name      string
+		value     string
+		expected  int
+		endEntity bool
+	}{
+		{name: "null", value: "null", expected: -1},
+		{name: "negative", value: "-1", expected: -1},
+		{name: "zero", value: "0", expected: 0},
+		{name: "one", value: "1", expected: 1},
+		{name: "two", value: "2", expected: 2},
+		{name: "end_entity_zero", value: "0", endEntity: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			step := r.TestStep{
+				Config: fmt.Sprintf(`
 					resource "tls_private_key" "test" {
 						algorithm = "ED25519"
 					}
@@ -1237,20 +1249,33 @@ func TestResourceSelfSignedCert_WithMaxPathLen(t *testing.T) {
 						subject {
 							organization = "test-organization"
 						}
-						is_ca_certificate     = true
-						max_path_length       = 2
+						is_ca_certificate     = %t
+						max_path_length       = %s
 						validity_period_hours = 8760
 						allowed_uses = [
 							"cert_signing",
 							"crl_signing",
 						]
 					}
-				`,
-				Check: r.ComposeAggregateTestCheckFunc(
-					r.TestCheckResourceAttr("tls_self_signed_cert.test", "max_path_length", "2"),
+				`, !tc.endEntity, tc.value),
+			}
+			if tc.endEntity {
+				step.ExpectError = regexp.MustCompile("x509: only CAs are allowed to specify MaxPathLen")
+			} else {
+				checkPathLen := r.TestCheckResourceAttr("tls_self_signed_cert.test", "max_path_length", tc.value)
+				if tc.value == "null" {
+					checkPathLen = r.TestCheckNoResourceAttr("tls_self_signed_cert.test", "max_path_length")
+				}
+				step.Check = r.ComposeAggregateTestCheckFunc(
+					checkPathLen,
 					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
-				),
-			},
-		},
-	})
+					tu.TestCheckPEMCertificateMaxPathLen("tls_self_signed_cert.test", "cert_pem", tc.expected),
+				)
+			}
+			r.UnitTest(t, r.TestCase{
+				ProtoV5ProviderFactories: protoV5ProviderFactories(),
+				Steps:                    []r.TestStep{step},
+			})
+		})
+	}
 }

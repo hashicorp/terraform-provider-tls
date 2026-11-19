@@ -186,7 +186,8 @@ func (r *selfSignedCertResource) Schema(_ context.Context, req resource.SchemaRe
 					int64validator.AtLeast(-1),
 				},
 				Description: "Maximum number of intermediate certificates that may follow this certificate in a " +
-					"valid certification path. If `is_ca_certificate` is `false`, this value is ignored.",
+					"valid certification path. Non-negative values require `is_ca_certificate` to be `true`. " +
+					"If omitted or set to `-1`, no path length constraint is set.",
 			},
 			"set_subject_key_id": schema.BoolAttribute{
 				Optional: true,
