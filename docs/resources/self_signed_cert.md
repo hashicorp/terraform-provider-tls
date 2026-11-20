@@ -80,7 +80,8 @@ Optional:
 - `email_address` (String) ASN.1 Object Identifier (OID): `1.2.840.113549.1.9.1`
 - `locality` (String) Distinguished name: `L`
 - `organization` (String) Distinguished name: `O`
-- `organizational_unit` (String) Distinguished name: `OU`
+- `organizational_unit` (String) Distinguished name: `OU`. To set more than one `OU`, use `organizational_units` instead.
+- `organizational_units` (List of String) Distinguished name: `OU`. Each element is added to the subject as a separate `OU` entry, in the order given. Conflicts with `organizational_unit`.
 - `postal_code` (String) Distinguished name: `PC`
 - `province` (String) Distinguished name: `ST`
 - `serial_number` (String) Distinguished name: `SERIALNUMBER`

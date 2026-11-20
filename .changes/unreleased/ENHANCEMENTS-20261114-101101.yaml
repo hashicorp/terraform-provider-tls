@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'resource/tls_self_signed_cert: Add `organizational_units` to the `subject` block, to allow more than one `OU` on a certificate'
+time: 2026-11-14T10:11:01.000000000Z
+custom:
+  Issue: "831"

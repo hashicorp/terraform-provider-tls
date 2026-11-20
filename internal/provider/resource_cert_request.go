@@ -174,7 +174,26 @@ func (r *certRequestResource) Schema(_ context.Context, req resource.SchemaReque
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.RequiresReplace(),
 							},
-							Description: "Distinguished name: `OU`",
+							Description: "Distinguished name: `OU`. " +
+								"To set more than one `OU`, use `organizational_units` instead.",
+						},
+						"organizational_units": schema.ListAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+							PlanModifiers: []planmodifier.List{
+								listplanmodifier.RequiresReplace(),
+							},
+							Validators: []validator.List{
+								listvalidator.ConflictsWith(
+									path.MatchRelative().AtParent().AtName("organizational_unit"),
+								),
+								listvalidator.ValueStringsAre(
+									stringvalidator.LengthAtLeast(1),
+								),
+							},
+							Description: "Distinguished name: `OU`. " +
+								"Each element is added to the subject as a separate `OU` entry, in the order given. " +
+								"Conflicts with `organizational_unit`.",
 						},
 						"street_address": schema.ListAttribute{
 							ElementType: types.StringType,

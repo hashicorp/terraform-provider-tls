@@ -106,6 +106,41 @@ EOT
 	})
 }
 
+func TestResourceSelfSignedCert_OrganizationalUnits(t *testing.T) {
+	r.UnitTest(t, r.TestCase{
+		ProtoV5ProviderFactories: protoV5ProviderFactories(),
+		Steps: []r.TestStep{
+			{
+				Config: fmt.Sprintf(`
+					resource "tls_self_signed_cert" "test" {
+						subject {
+							common_name = "example.com"
+							organizational_units = [
+								"Platform Engineering",
+								"Security",
+							]
+						}
+						validity_period_hours = 1
+						allowed_uses = []
+						private_key_pem = <<EOT
+%s
+EOT
+					}`, fixtures.TestPrivateKeyPEM),
+				Check: r.ComposeAggregateTestCheckFunc(
+					tu.TestCheckPEMFormat("tls_self_signed_cert.test", "cert_pem", PreambleCertificate.String()),
+					tu.TestCheckPEMCertificateSubject("tls_self_signed_cert.test", "cert_pem", &pkix.Name{
+						CommonName: "example.com",
+						OrganizationalUnit: []string{
+							"Platform Engineering",
+							"Security",
+						},
+					}),
+				),
+			},
+		},
+	})
+}
+
 func TestAccResourceSelfSignedCert_UpgradeFromVersion3_4_0(t *testing.T) {
 	r.Test(t, r.TestCase{
 		Steps: []r.TestStep{
