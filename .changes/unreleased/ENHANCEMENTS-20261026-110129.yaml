@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'resource/tls_locally_signed_cert: Add optional `signature_algorithm` argument to select the algorithm used to sign the certificate.'
+time: 2026-10-26T11:01:29.74563+01:00
+custom:
+    Issue: "785"

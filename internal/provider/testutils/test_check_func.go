@@ -93,6 +93,13 @@ func TestCheckPEMCertificateRequestURIs(name, key string, expected []*url.URL) r
 	})
 }
 
+//nolint:unparam // `key` parameter always receives `cert_request_pem` because generated PEMs attributes are called that way.
+func TestCheckPEMCertificateRequestSignatureAlgorithm(name, key string, expected x509.SignatureAlgorithm) r.TestCheckFunc {
+	return TestCheckPEMCertificateRequestWith(name, key, func(csr *x509.CertificateRequest) error {
+		return compareSignatureAlgorithm(expected, csr.SignatureAlgorithm)
+	})
+}
+
 func TestCheckPEMCertificateWith(name, key string, f func(csr *x509.Certificate) error) r.TestCheckFunc {
 	return r.TestCheckResourceAttrWith(name, key, func(value string) error {
 		block, _ := pem.Decode([]byte(value))
@@ -159,6 +166,13 @@ func TestCheckPEMCertificateIPAddresses(name, key string, expected []net.IP) r.T
 func TestCheckPEMCertificateURIs(name, key string, expected []*url.URL) r.TestCheckFunc {
 	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
 		return compareCertURIs(expected, crt.URIs)
+	})
+}
+
+//nolint:unparam // `key` parameter always receives `cert_pem` because generated PEMs attributes are called that way.
+func TestCheckPEMCertificateSignatureAlgorithm(name, key string, excpected x509.SignatureAlgorithm) r.TestCheckFunc {
+	return TestCheckPEMCertificateWith(name, key, func(crt *x509.Certificate) error {
+		return compareSignatureAlgorithm(excpected, crt.SignatureAlgorithm)
 	})
 }
 
@@ -329,6 +343,14 @@ func compareExtKeyUsages(expected, actual []x509.ExtKeyUsage) error {
 		if expected[i] != actual[i] {
 			return fmt.Errorf("incorrect Extended Key Usages: expected %v, got %v", expected, actual)
 		}
+	}
+
+	return nil
+}
+
+func compareSignatureAlgorithm(expected, actual x509.SignatureAlgorithm) error {
+	if expected != actual {
+		return fmt.Errorf("incorrect Signature Algorithm: expected %v, got %v", expected, actual)
 	}
 
 	return nil

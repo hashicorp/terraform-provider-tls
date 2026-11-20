@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: 'resource/tls_cert_request: Add optional `signature_algorithm` argument to select the algorithm used to sign the certificate request.'
+time: 2026-10-26T11:00:14.85539+01:00
+custom:
+    Issue: "785"
